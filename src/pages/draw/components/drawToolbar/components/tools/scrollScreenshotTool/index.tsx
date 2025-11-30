@@ -513,19 +513,13 @@ export const ScrollScreenshot: React.FC<{
 				return;
 			}
 
-			const tipVisible = touchAreaTipRef.current?.style.opacity === "1";
-
+			// 无论当前是否可见，直接强制隐藏，并且不要设置 setTimeout 把它变回来，一旦开始滚动，提示就应该消失。
 			setShowTip(false);
-			// 等待 1 帧，确保触摸区域提示隐藏
-			if (tipVisible) {
-				setTimeout(() => {
-					setShowTip(true);
-				}, 17);
-			} else {
-				captureImage(
-					event.deltaY > 0 ? ScrollImageList.Bottom : ScrollImageList.Top,
-				);
-			}
+
+			// 直接执行截图逻辑，这里的 captureImage 内部调用的 captureImageCore 已经包含了 17ms 的等待，足够让上面的 setShowTip(false) 生效并完成渲染，所以这里直接调用即可。
+			captureImage(
+				event.deltaY > 0 ? ScrollImageList.Bottom : ScrollImageList.Top,
+			);
 
 			if (!pendingScrollThroughRef.current) {
 				if (
