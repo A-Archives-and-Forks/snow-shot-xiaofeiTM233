@@ -246,7 +246,7 @@ jobs:
 
                   # 解压 cab 文件到 src-tauri 目录
                   Write-Host "Extracting WebView2 Fixed Runtime..."
-                  $targetDir = ".\src-tauri\Microsoft.WebView2.FixedVersionRuntime.$runtimeVersion.x64"
+                  $targetDir = ".\src-tauri"
 
                   # 创建目标目录
                   New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
