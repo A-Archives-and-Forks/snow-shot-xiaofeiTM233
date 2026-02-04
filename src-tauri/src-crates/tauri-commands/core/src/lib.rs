@@ -847,6 +847,10 @@ pub async fn restart_with_admin() -> Result<(), String> {
     snow_shot_app_os::utils::restart_with_admin()
 }
 
+pub async fn restart() -> Result<(), String> {
+    snow_shot_app_os::utils::restart()
+}
+
 pub async fn is_admin() -> Result<bool, String> {
     Ok(snow_shot_app_os::utils::is_admin())
 }

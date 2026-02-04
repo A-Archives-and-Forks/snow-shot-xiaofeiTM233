@@ -28,6 +28,10 @@ pub fn restart_with_admin() -> Result<(), String> {
     Ok(())
 }
 
+pub fn restart() -> Result<(), String> {
+    Ok(())
+}
+
 pub fn is_admin() -> bool {
     false
 }
