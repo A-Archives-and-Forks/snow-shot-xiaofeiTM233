@@ -201,7 +201,7 @@ export const generateSerialNumber = (
 			strokeColor: appState.currentItemStrokeColor,
 			backgroundColor: appState.currentItemBackgroundColor,
 			fillStyle: appState.currentItemFillStyle,
-			strokeWidth: 1,
+			strokeWidth: appState.currentItemStrokeWidth,
 			strokeStyle: appState.currentItemStrokeStyle,
 			roughness: appState.currentItemRoughness,
 			opacity: appState.currentItemOpacity,
