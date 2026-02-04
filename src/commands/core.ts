@@ -195,6 +195,11 @@ export const restartWithAdmin = async () => {
 	return result;
 };
 
+export const restart = async () => {
+	const result = await invoke<void>("restart");
+	return result;
+};
+
 export const writeBitmapImageToClipboard = async (image: ArrayBuffer) => {
 	const result = await invoke<void>("write_bitmap_image_to_clipboard", image);
 	return result;

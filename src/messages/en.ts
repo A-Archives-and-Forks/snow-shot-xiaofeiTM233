@@ -65,6 +65,7 @@ export const en = {
 		"Registration interrupted (possible hotkey conflict)",
 	"home.shortcut.error": "Registration failed (hotkey occupied by another app)",
 	"home.exit": "Exit",
+	"home.restart": "Restart",
 	"draw.drag": "Drag",
 	"draw.red": "Red",
 	"draw.orange": "Orange",

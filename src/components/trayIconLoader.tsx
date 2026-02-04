@@ -12,6 +12,7 @@ import { exitApp } from "@/commands";
 import {
 	createFixedContentWindow,
 	createFullScreenDrawWindow,
+	restart,
 } from "@/commands/core";
 import {
 	PLUGIN_ID_AI_CHAT,
@@ -489,6 +490,13 @@ const TrayIconLoaderComponent = () => {
 				},
 				{
 					item: "Separator",
+				},
+				{
+					id: `${appWindow.label}-restart`,
+					text: intl.formatMessage({ id: "home.restart" }),
+					action: async () => {
+						restart();
+					},
 				},
 				{
 					id: `${appWindow.label}-exit`,

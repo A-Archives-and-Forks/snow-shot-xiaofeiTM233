@@ -552,3 +552,42 @@ pub fn restart_with_admin() -> Result<(), String> {
         std::process::exit(0);
     }
 }
+
+/// 重启应用程序（不使用管理员权限）
+pub fn restart() -> Result<(), String> {
+    // 获取当前可执行文件的路径
+    let current_exe = match env::current_exe() {
+        Ok(current_exe) => current_exe,
+        Err(e) => {
+            return Err(format!(
+                "[restart] env::current_exe failed: {:?}",
+                e
+            ));
+        }
+    };
+    let exe_path = current_exe.to_string_lossy();
+
+    unsafe {
+        let mut sei: SHELLEXECUTEINFOW = std::mem::zeroed();
+        sei.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
+        sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+        let verb = "open\0".encode_utf16().collect::<Vec<u16>>();
+        let file = exe_path.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
+        sei.lpVerb = PCWSTR::from_raw(verb.as_ptr());
+        sei.lpFile = PCWSTR::from_raw(file.as_ptr());
+        sei.nShow = windows::Win32::UI::WindowsAndMessaging::SW_SHOW.0 as i32;
+
+        let result = ShellExecuteExW(&mut sei);
+        if result.is_err() {
+            return Err("[restart] ShellExecuteExW failed".into());
+        }
+
+        // 检查是否成功启动
+        if sei.hProcess.is_invalid() {
+            return Err("[restart] ShellExecuteExW failed".into());
+        }
+
+        // 如果成功，新进程启动后，当前进程可以退出
+        std::process::exit(0);
+    }
+}

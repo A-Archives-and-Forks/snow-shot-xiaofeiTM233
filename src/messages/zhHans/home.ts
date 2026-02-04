@@ -1,6 +1,7 @@
 export const home = {
 	"home.commonFunction": "常用功能",
 	"home.showMainWindow": "显示主界面",
+	"home.restart": "重启",
 	"home.screenshotFunction": "截图",
 	"home.screenshotFunction.screenshotFocusedWindow": "当前具有焦点的窗口",
 	"home.screenshotFunction.screenshotFullScreen": "截取全屏",
