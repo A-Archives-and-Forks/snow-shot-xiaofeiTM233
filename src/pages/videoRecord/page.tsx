@@ -134,6 +134,7 @@ export const VideoRecordPage: React.FC = () => {
 
 	// 按键显示配置
 	const [keyDisplayConfig, setKeyDisplayConfig] = useState({
+		enableKeyDisplay: true,
 		fontSize: 16,
 		backgroundColor: "rgba(0, 0, 0, 0.7)",
 		textColor: "#ffffff",
@@ -146,6 +147,7 @@ export const VideoRecordPage: React.FC = () => {
 	useAppSettingsLoad((settings) => {
 		const videoRecordSettings = settings[AppSettingsGroup.FunctionVideoRecord];
 		setKeyDisplayConfig({
+			enableKeyDisplay: videoRecordSettings.enableKeyDisplay,
 			fontSize: videoRecordSettings.keyDisplayFontSize,
 			backgroundColor: videoRecordSettings.keyDisplayBackgroundColor,
 			textColor: videoRecordSettings.keyDisplayTextColor,
@@ -457,13 +459,15 @@ export const VideoRecordPage: React.FC = () => {
 			<div ref={selectCanvasRef} className="select-canvas" />
 
 			{/* 按键显示区域 */}
-			<div className="key-display-container">
-				{keyDisplayList.map((keyItem) => (
-					<div key={keyItem.id} className="key-display-item">
-						{keyItem.text}
-					</div>
-				))}
-			</div>
+			{keyDisplayConfig.enableKeyDisplay && (
+				<div className="key-display-container">
+					{keyDisplayList.map((keyItem) => (
+						<div key={keyItem.id} className="key-display-item">
+							{keyItem.text}
+						</div>
+					))}
+				</div>
+			)}
 
 			<style jsx>{`
                 .container {

@@ -507,6 +507,8 @@ export type AppSettingsData = {
 		gifMaxSize: VideoMaxSize;
 		/** 动图格式 */
 		gifFormat: GifFormat;
+		/** 启用按键显示 */
+		enableKeyDisplay: boolean;
 		/** 按键显示字体大小 */
 		keyDisplayFontSize: number;
 		/** 按键显示背景色 */

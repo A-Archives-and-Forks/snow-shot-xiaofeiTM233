@@ -1219,6 +1219,11 @@ const AppSettingsContextProviderCore: React.FC<{
 							? newSettings.gifFormat
 							: (prevSettings?.gifFormat ??
 								defaultAppSettingsData[group].gifFormat),
+					enableKeyDisplay:
+						typeof newSettings?.enableKeyDisplay === "boolean"
+							? newSettings.enableKeyDisplay
+							: (prevSettings?.enableKeyDisplay ??
+								defaultAppSettingsData[group].enableKeyDisplay),
 					keyDisplayFontSize:
 						typeof newSettings?.keyDisplayFontSize === "number"
 							? Math.min(Math.max(newSettings.keyDisplayFontSize, 8), 64)

@@ -231,6 +231,8 @@ export const en = {
 	"common.permission.error.goToSettings": "Go to Settings",
 	"settings.functionSettings.videoRecordSettings.keyDisplaySettings":
 		"Key Display",
+	"settings.functionSettings.videoRecordSettings.enableKeyDisplay":
+		"Enable Key Display",
 	"settings.functionSettings.videoRecordSettings.keyDisplayFontSize":
 		"Font Size",
 	"settings.functionSettings.videoRecordSettings.keyDisplayBackgroundColor":

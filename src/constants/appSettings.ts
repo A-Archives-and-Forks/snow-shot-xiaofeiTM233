@@ -295,6 +295,7 @@ Priority order (highest to lowest):
 		videoMaxSize: VideoMaxSize.P1080,
 		gifMaxSize: VideoMaxSize.P1080,
 		gifFormat: GifFormat.Gif,
+		enableKeyDisplay: true,
 		keyDisplayFontSize: 16,
 		keyDisplayBackgroundColor: "rgba(0, 0, 0, 0.42)",
 		keyDisplayTextColor: "#ffffff",

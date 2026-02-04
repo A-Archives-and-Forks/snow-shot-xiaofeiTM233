@@ -340,6 +340,8 @@ export const settings = {
 	"settings.functionSettings.videoRecordSettings.videoMaxSize.p480": "480P",
 	"settings.functionSettings.videoRecordSettings.keyDisplaySettings":
 		"按鍵顯示",
+	"settings.functionSettings.videoRecordSettings.enableKeyDisplay":
+		"啟用按鍵顯示",
 	"settings.functionSettings.videoRecordSettings.keyDisplayFontSize":
 		"字型大小",
 	"settings.functionSettings.videoRecordSettings.keyDisplayBackgroundColor":
