@@ -395,8 +395,15 @@ pub async fn restart_with_admin() -> Result<(), String> {
 }
 
 #[command]
-pub async fn restart() -> Result<(), String> {
-    snow_shot_tauri_commands_core::restart().await
+pub async fn restart(app: tauri::AppHandle) -> Result<(), String> {
+    // 使用 app-os 中的重启实现
+    // 该实现会先启动新实例，延迟退出以确保单实例检测正常工作
+    let _ = snow_shot_tauri_commands_core::restart().await?;
+
+    // 退出当前实例
+    app.exit(0);
+
+    Ok(())
 }
 
 #[command]
