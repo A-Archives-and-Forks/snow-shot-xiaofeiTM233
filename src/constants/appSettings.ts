@@ -10,6 +10,7 @@ import {
 	ColorPickerShowMode,
 	DoubleClickAction,
 	ExtraToolList,
+	FixedContentDoubleClickAction,
 	GifFormat,
 	HdrColorAlgorithm,
 	HistoryValidDuration,
@@ -270,6 +271,7 @@ Priority order (highest to lowest):
 		autoOcr: true,
 		autoCopyToClipboard: false,
 		initialPosition: AppSettingsFixedContentInitialPosition.MousePosition,
+		doubleClickAction: FixedContentDoubleClickAction.SwitchThumbnail,
 	},
 	[AppSettingsGroup.FunctionOutput]: {
 		manualSaveFileNameFormat: `SnowShot_{{YYYY-MM-DD_HH-mm-ss}}`,

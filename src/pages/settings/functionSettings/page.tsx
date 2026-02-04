@@ -65,6 +65,7 @@ import {
 	CloudSaveUrlFormat,
 	CloudSaveUrlType,
 	DoubleClickAction,
+	FixedContentDoubleClickAction,
 	GifFormat,
 	KeyDisplayDirection,
 	OcrDetectAfterAction,
@@ -711,6 +712,23 @@ export const FunctionSettingsPage = () => {
 		];
 	}, [intl]);
 
+	const fixedContentDoubleClickActionOptions = useMemo(() => {
+		return [
+			{
+				label: intl.formatMessage({
+					id: "draw.fixedContentDoubleClickAction.switchThumbnail",
+				}),
+				value: FixedContentDoubleClickAction.SwitchThumbnail,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.fixedContentDoubleClickAction.closeWindow",
+				}),
+				value: FixedContentDoubleClickAction.CloseWindow,
+			},
+		];
+	}, [intl]);
+
 	return (
 		<ContentWrap>
 			<GroupTitle
@@ -1202,6 +1220,17 @@ export const FunctionSettingsPage = () => {
 					layout="horizontal"
 				>
 					<Row gutter={token.marginLG}>
+						<Col span={12}>
+							<ProFormSelect
+								name="doubleClickAction"
+								layout="horizontal"
+								label={
+									<FormattedMessage id="settings.functionSettings.fixedContentSettings.doubleClickAction" />
+								}
+								options={fixedContentDoubleClickActionOptions}
+							/>
+						</Col>
+
 						<Col span={12}>
 							<ProFormSwitch
 								name="zoomWithMouse"

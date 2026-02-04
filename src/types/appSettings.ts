@@ -164,6 +164,13 @@ export enum DoubleClickAction {
 	None = "none",
 }
 
+export enum FixedContentDoubleClickAction {
+	/** 切换缩略模式 */
+	SwitchThumbnail = "switchThumbnail",
+	/** 关闭窗口 */
+	CloseWindow = "closeWindow",
+}
+
 export enum ExtraToolList {
 	None = 0,
 	ScanQrcode = 1,
@@ -479,6 +486,8 @@ export type AppSettingsData = {
 		autoCopyToClipboard: boolean;
 		/** 窗口初始位置 */
 		initialPosition: AppSettingsFixedContentInitialPosition;
+		/** 双击后的行为 */
+		doubleClickAction: FixedContentDoubleClickAction;
 	};
 	[AppSettingsGroup.FunctionFullScreenDraw]: {
 		/** 默认工具 */

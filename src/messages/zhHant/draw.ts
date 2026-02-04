@@ -184,6 +184,8 @@ export const draw = {
 	"draw.doubleClickAction.save": "儲存為檔案",
 	"draw.doubleClickAction.fixedToScreen": "固定到螢幕",
 	"draw.doubleClickAction.none": "無",
+	"draw.fixedContentDoubleClickAction.switchThumbnail": "切換縮圖模式",
+	"draw.fixedContentDoubleClickAction.closeWindow": "關閉視窗",
 	"draw.copyImageFileToClipboard": "複製圖片檔到剪貼簿",
 	"draw.copyImageFileToClipboard.tip":
 		"複製截圖時先將圖片寫入到檔案然後複製檔案路徑到剪貼簿，開啟該選項後預設啟用「複製後自動儲存」。目前僅支援儲存普通截圖",

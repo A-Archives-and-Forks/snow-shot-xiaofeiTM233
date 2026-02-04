@@ -427,6 +427,8 @@ export const settings = {
 	"settings.functionSettings.fixedContentSettings": "固定到螢幕",
 	"settings.functionSettings.fixedContentSettings.zoomWithMouse":
 		"以滑鼠為中心縮放",
+	"settings.functionSettings.fixedContentSettings.doubleClickAction":
+		"雙擊後執行",
 	"settings.functionSettings.fixedContentSettings.autoResizeWindow":
 		"自動縮放視窗",
 	"settings.functionSettings.fixedContentSettings.autoResizeWindow.tip":
