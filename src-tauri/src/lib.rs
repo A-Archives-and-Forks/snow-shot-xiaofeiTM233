@@ -8,6 +8,7 @@ pub mod ocr;
 pub mod plugin;
 pub mod screenshot;
 pub mod scroll_screenshot;
+pub mod single_instance;
 pub mod video_record;
 pub mod webview;
 
@@ -40,6 +41,13 @@ pub static PROFILER: std::sync::LazyLock<Mutex<Option<dhat::Profiler>>> =
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // 单实例检测
+    if !crate::single_instance::check_single_instance() {
+        // 已有实例在运行，退出当前实例
+        log::warn!("[run] Another instance is running, exiting");
+        std::process::exit(0);
+    }
+
     let ocr_instance = Mutex::new(OcrService::new());
     let video_record_service = Mutex::new(video_record_service::VideoRecordService::new());
     let hot_load_page_service = Arc::new(hot_load_page_service::HotLoadPageService::new());
@@ -114,12 +122,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            let app_window = app.get_webview_window("main").expect("no main window");
-            app_window.show().unwrap();
-            app_window.unminimize().unwrap();
-            app_window.set_focus().unwrap();
-        }))
+        // 自定义单实例检测，不使用插件
         .plugin(tauri_plugin_macos_permissions::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard::init())

@@ -40,20 +40,20 @@ pub fn restart() -> Result<(), String> {
         }
     };
 
-    // 使用 std::process::Command 启动新进程
-    let mut command = std::process::Command::new(&current_exe);
-
-    match command.spawn() {
-        Ok(_) => {
-            // 新进程已成功启动，延迟退出以确保单实例检测完成
-            std::thread::sleep(std::time::Duration::from_millis(2000));
+    // 使用 std::process::Command 直接启动新进程
+    // 传递 --restart-instance 参数，标记这是重启操作
+    match std::process::Command::new(&current_exe)
+        .arg("--restart-instance")
+        .spawn()
+    {
+        Ok(_child) => {
+            // 新进程已启动，立即退出当前进程
+            // 新进程通过 --restart-instance 参数可以绕过单实例检测
+            log::info!("[restart] New process spawned, exiting current process");
             std::process::exit(0);
         }
         Err(e) => {
-            return Err(format!(
-                "[restart] Failed to spawn process: {:?}",
-                e
-            ));
+            return Err(format!("[restart] Failed to spawn process: {:?}", e));
         }
     }
 }

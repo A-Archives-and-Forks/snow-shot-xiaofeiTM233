@@ -565,29 +565,22 @@ pub fn restart() -> Result<(), String> {
             ));
         }
     };
-    let exe_path = current_exe.to_string_lossy();
+    let exe_path = current_exe.to_string_lossy().to_string();
 
-    unsafe {
-        let mut sei: SHELLEXECUTEINFOW = std::mem::zeroed();
-        sei.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
-        // 不使用 SEE_MASK_NOCLOSEPROCESS，不保留进程句柄
-        // 让系统管理进程生命周期
-        sei.fMask = 0;
-        let verb = "open\0".encode_utf16().collect::<Vec<u16>>();
-        let file = exe_path.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
-        sei.lpVerb = PCWSTR::from_raw(verb.as_ptr());
-        sei.lpFile = PCWSTR::from_raw(file.as_ptr());
-        sei.nShow = windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL.0 as i32;
-
-        let result = ShellExecuteExW(&mut sei);
-        if result.is_err() {
-            return Err("[restart] ShellExecuteExW failed".into());
+    // 使用 std::process::Command 直接启动新进程
+    // 传递 --restart-instance 参数，标记这是重启操作
+    match std::process::Command::new(&exe_path)
+        .arg("--restart-instance")
+        .spawn()
+    {
+        Ok(_child) => {
+            // 新进程已启动，立即退出当前进程
+            // 新进程通过 --restart-instance 参数可以绕过单实例检测
+            log::info!("[restart] New process spawned, exiting current process");
+            std::process::exit(0);
         }
-
-        // ShellExecuteExW 会创建一个独立的进程实例
-        // 现在退出当前进程，让新进程获得单实例锁
-        // 注意：需要延迟退出，确保新进程有足够时间完成单实例检测
-        std::thread::sleep(std::time::Duration::from_millis(2000));
-        std::process::exit(0);
+        Err(e) => {
+            return Err(format!("[restart] Failed to spawn process: {:?}", e));
+        }
     }
 }

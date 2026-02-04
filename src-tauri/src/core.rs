@@ -10,6 +10,9 @@ use tokio::sync::Mutex;
 
 #[command]
 pub async fn exit_app(handle: tauri::AppHandle) {
+    // 清理单实例锁文件
+    crate::single_instance::cleanup_lock_file();
+
     #[cfg(feature = "dhat-heap")]
     drop(crate::PROFILER.lock().await.take());
 
@@ -396,14 +399,19 @@ pub async fn restart_with_admin() -> Result<(), String> {
 
 #[command]
 pub async fn restart(app: tauri::AppHandle) -> Result<(), String> {
+    // 清理单实例锁文件，允许新进程启动
+    crate::single_instance::cleanup_lock_file();
+
     // 使用 app-os 中的重启实现
-    // 该实现会先启动新实例，延迟退出以确保单实例检测正常工作
-    let _ = snow_shot_tauri_commands_core::restart().await?;
+    // 该实现会直接启动新进程并传递 --restart-instance 参数
+    // 新进程检测到这个参数后会绕过单实例检测
+    let result = snow_shot_tauri_commands_core::restart().await?;
 
-    // 退出当前实例
-    app.exit(0);
+    // 注意：上面的重启函数已经会调用 std::process::exit(0)
+    // 所以这里的代码实际上不会被执行
+    // 但为了保持编译通过，还是需要返回 Ok
 
-    Ok(())
+    Ok(result)
 }
 
 #[command]
