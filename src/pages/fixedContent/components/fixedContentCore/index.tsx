@@ -66,7 +66,11 @@ import {
 	DrawEventPublisher,
 } from "@/pages/draw/extra";
 import type { ImageSharedBufferData } from "@/pages/draw/tools";
-import { type AppSettingsData, AppSettingsGroup } from "@/types/appSettings";
+import {
+	type AppSettingsData,
+	AppSettingsGroup,
+	FixedContentDoubleClickAction,
+} from "@/types/appSettings";
 import {
 	CommonKeyEventKey,
 	type CommonKeyEventValue,
@@ -2374,9 +2378,16 @@ const FixedContentCoreInner: React.FC<{
 		(e: React.MouseEvent<HTMLDivElement>) => {
 			e.stopPropagation();
 			e.preventDefault();
-			switchThumbnail();
+			const doubleClickAction =
+				getAppSettings()[AppSettingsGroup.FunctionFixedContent]
+					.doubleClickAction;
+			if (doubleClickAction === FixedContentDoubleClickAction.CloseWindow) {
+				closeWindowComplete();
+			} else {
+				switchThumbnail();
+			}
 		},
-		[switchThumbnail],
+		[getAppSettings, switchThumbnail],
 	);
 
 	const onDragRegionMouseDown = useCallback(

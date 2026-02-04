@@ -1286,6 +1286,11 @@ const AppSettingsContextProviderCore: React.FC<{
 							? (newSettings.initialPosition as AppSettingsFixedContentInitialPosition)
 							: (prevSettings?.initialPosition ??
 								defaultAppSettingsData[group].initialPosition),
+					doubleClickAction:
+						typeof newSettings?.doubleClickAction === "string"
+							? newSettings.doubleClickAction
+							: (prevSettings?.doubleClickAction ??
+								defaultAppSettingsData[group].doubleClickAction),
 				};
 			} else if (group === AppSettingsGroup.SystemScreenshot) {
 				newSettings = newSettings as AppSettingsData[typeof group];
