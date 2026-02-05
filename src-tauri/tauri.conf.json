@@ -30,7 +30,7 @@
 					"y": 16
 				},
 				"visible": false,
-				"backgroundThrottling": "disabled",
+				"backgroundThrottling": "throttle",
 				"url": "/"
 			}
 		],

@@ -52,7 +52,31 @@ export default defineConfig({
 					autoCodeSplitting: true,
 				}),
 			],
-			optimization: {},
+			optimization: {
+				minimize: true,
+				splitChunks: {
+					chunks: "all",
+					minSize: 20000,
+					maxSize: 500000,
+					cacheGroups: {
+						vendors: {
+							test: /[\\/]node_modules[\\/]/,
+							name: "vendors",
+							chunks: "all",
+						},
+						react: {
+							test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+							name: "react",
+							chunks: "all",
+						},
+						antd: {
+							test: /[\\/]node_modules[\\/]antd[\\/]/,
+							name: "antd",
+							chunks: "all",
+						},
+					},
+				},
+			},
 		},
 	},
 });
