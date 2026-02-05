@@ -37,21 +37,26 @@ pub fn restart() -> Result<(), String> {
             ));
         }
     };
+    let exe_path = current_exe.to_string_lossy().to_string();
 
-    // 使用 std::process::Command 直接启动新进程
-    // 传递 --restart-instance 参数，标记这是重启操作
-    match std::process::Command::new(&current_exe)
-        .arg("--restart-instance")
+    // 使用 bash -c 来执行命令：等待1秒后启动新进程
+    // 这样确保当前进程已经退出，新进程才启动，不会触发单实例检测
+    let command = format!("sleep 1 && {} &", exe_path);
+
+    match std::process::Command::new("sh")
+        .args(["-c", &command])
         .spawn()
     {
         Ok(_child) => {
-            // 新进程已启动，立即退出当前进程
-            // 新进程通过 --restart-instance 参数可以绕过单实例检测
-            log::info!("[restart] New process spawned, exiting current process");
+            log::info!("[restart] Restart command scheduled");
+
+            // 立即退出当前进程，不等待
+            // 新进程会在1秒后启动，此时当前进程已经退出，单实例锁已释放
+            log::info!("[restart] Exiting current process");
             std::process::exit(0);
         }
         Err(e) => {
-            return Err(format!("[restart] Failed to spawn process: {:?}", e));
+            return Err(format!("[restart] Failed to schedule restart: {:?}", e));
         }
     }
 }

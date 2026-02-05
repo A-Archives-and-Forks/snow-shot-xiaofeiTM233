@@ -399,12 +399,11 @@ pub async fn restart_with_admin() -> Result<(), String> {
 
 #[command]
 pub async fn restart(app: tauri::AppHandle) -> Result<(), String> {
-    // 清理单实例锁文件，允许新进程启动
-    crate::single_instance::cleanup_lock_file();
-
     // 使用 app-os 中的重启实现
-    // 该实现会直接启动新进程并传递 --restart-instance 参数
-    // 新进程检测到这个参数后会绕过单实例检测
+    // 该实现会：
+    // 1. 使用系统命令调度1秒后启动新进程
+    // 2. 立即退出当前进程（释放单实例锁）
+    // 3. 1秒后新进程启动，此时单实例锁已释放，不会触发单实例检测
     let result = snow_shot_tauri_commands_core::restart().await?;
 
     // 注意：上面的重启函数已经会调用 std::process::exit(0)
