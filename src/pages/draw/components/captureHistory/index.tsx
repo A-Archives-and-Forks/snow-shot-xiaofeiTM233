@@ -10,6 +10,7 @@ import React, {
 	useRef,
 } from "react";
 import { FormattedMessage } from "react-intl";
+import { saveFile } from "@/commands";
 import { captureFullScreen } from "@/commands/screenshot";
 import { DrawStatePublisher } from "@/components/drawCore/extra";
 import { AntdContext } from "@/contexts/antdContext";
@@ -18,12 +19,9 @@ import { onCaptureHistoryChange } from "@/functions/screenshot";
 import { useAppSettingsLoad } from "@/hooks/useAppSettingsLoad";
 import { withStatePublisher } from "@/hooks/useStatePublisher";
 import { useStateSubscriber } from "@/hooks/useStateSubscriber";
+import { copyToClipboard } from "@/pages/draw/actions";
 import { type AppSettingsData, AppSettingsGroup } from "@/types/appSettings";
-import type {
-	CaptureFullScreenResult,
-	ElementRect,
-	ImageBuffer,
-} from "@/types/commands/screenshot";
+import type { ElementRect, ImageBuffer } from "@/types/commands/screenshot";
 import { DrawToolbarKeyEventKey } from "@/types/components/drawToolbar";
 import { DrawState } from "@/types/draw";
 import { getCorrectHdrColorAlgorithm } from "@/utils/appSettings";
@@ -289,7 +287,7 @@ const CaptureHistoryControllerCore: React.FC<{
 
 	const saveCurrentCapture = useCallback(
 		async (
-			imageBuffer: ImageBuffer | CaptureFullScreenResult | CaptureHistoryItem,
+			imageBuffer: ImageBuffer | CaptureHistoryItem,
 			captureHistoryIndex: number,
 			selectRect: ElementRect | undefined,
 			excalidrawElements:
@@ -355,27 +353,16 @@ const CaptureHistoryControllerCore: React.FC<{
 			CaptureHistorySource.FullScreen,
 		);
 
-		const imagePath = await getImagePathFromSettings(
-			appSettings,
-			"full-screen",
-		);
-		if (!imagePath) {
-			return;
-		}
-
-		let captureFullScreenResult: CaptureFullScreenResult;
+		let imageBuffer: ImageBuffer | undefined;
 		try {
-			const captureFullScreenResultPromise = captureFullScreen(
+			const captureFullScreenPromise = captureFullScreen(
 				appSettings[AppSettingsGroup.SystemScreenshot].enableMultipleMonitor,
-				imagePath.filePath,
-				appSettings[AppSettingsGroup.FunctionScreenshot]
-					.fullScreenCopyToClipboard,
 				await getCaptureHistoryImageAbsPath(captureHistoryParams.file_name),
 				getCorrectHdrColorAlgorithm(appSettings),
 				appSettings[AppSettingsGroup.SystemScreenshot].correctColorFilter,
 			);
 			playCameraShutterSound();
-			captureFullScreenResult = await captureFullScreenResultPromise;
+			imageBuffer = await captureFullScreenPromise;
 		} catch (error) {
 			appError(
 				"[CaptureHistoryController] captureFullScreenAction error",
@@ -384,7 +371,60 @@ const CaptureHistoryControllerCore: React.FC<{
 			return;
 		}
 
-		captureHistoryParams.selected_rect = captureFullScreenResult.monitor_rect;
+		if (!imageBuffer) {
+			appError(
+				"[CaptureHistoryController] captureFullScreenAction error, imageBuffer is undefined",
+			);
+			return;
+		}
+
+		// 前端检查 autoSaveOnCopy 配置，遵循区域截图的逻辑
+		const enableAutoSave =
+			appSettings[AppSettingsGroup.FunctionScreenshot].autoSaveOnCopy;
+		const enableFullAutoSave =
+			appSettings[AppSettingsGroup.FunctionScreenshot]
+				.fullScreenCopyToClipboard;
+
+		// 计算图像尺寸作为 selected_rect
+		const tempCanvas = new OffscreenCanvas(1, 1);
+		const tempCtx = tempCanvas.getContext("2d");
+		if (!tempCtx) {
+			appError(
+				"[CaptureHistoryController] captureFullScreenAction error, failed to create canvas context",
+			);
+			return;
+		}
+		const bitmap = await createImageBitmap(imageBuffer.data);
+		tempCanvas.width = bitmap.width;
+		tempCanvas.height = bitmap.height;
+		const selectedRect: ElementRect = {
+			min_x: 0,
+			min_y: 0,
+			max_x: bitmap.width,
+			max_y: bitmap.height,
+		};
+
+		// 复制到剪贴板
+		if (enableFullAutoSave) {
+			await copyToClipboard(imageBuffer.buffer, appSettings, undefined);
+		}
+
+		// 保存到文件
+		if (enableAutoSave) {
+			const imagePath = await getImagePathFromSettings(
+				appSettings,
+				"full-screen",
+			);
+			if (imagePath) {
+				await saveFile(
+					imagePath.filePath,
+					imageBuffer.buffer,
+					imagePath.imageFormat,
+				);
+			}
+		}
+
+		captureHistoryParams.selected_rect = selectedRect;
 		const captureHistoryItemPromise = captureHistoryRef.current.save(
 			{
 				type: "full-screen",
@@ -392,8 +432,8 @@ const CaptureHistoryControllerCore: React.FC<{
 			},
 			undefined,
 			undefined,
-			captureFullScreenResult.monitor_rect,
-			undefined,
+			selectedRect,
+			imageBuffer.buffer,
 			CaptureHistorySource.FullScreen,
 		);
 		const captureHistoryItem = await captureHistoryItemPromise;

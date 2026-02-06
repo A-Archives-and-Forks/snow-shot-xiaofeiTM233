@@ -8,7 +8,6 @@ use snow_shot_app_utils::monitor_info::{
 };
 use snow_shot_global_state::WebViewSharedBufferState;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::ipc::Response;
 use tokio::sync::Mutex;
@@ -135,49 +134,6 @@ pub async fn capture_all_monitors(
     }
 }
 
-pub async fn save_and_copy_image<F>(
-    write_image_to_clipboard: F,
-    image: image::DynamicImage,
-    file_path: PathBuf,
-    copy_to_clipboard: bool,
-) -> Result<(), String>
-where
-    F: Fn(&image::DynamicImage) -> Result<(), String> + Send + 'static,
-{
-    let image = Arc::new(image);
-    // 并行执行保存文件和写入剪贴板
-    let save_file_future =
-        snow_shot_app_utils::save_image_to_file(&image, PathBuf::from(file_path));
-    let clipboard_future = if copy_to_clipboard {
-        let image_clone = Arc::clone(&image);
-        Some(tokio::task::spawn_blocking(
-            move || match write_image_to_clipboard(&image_clone) {
-                Ok(_) => Ok(()),
-                Err(e) => {
-                    log::error!(
-                        "[save_and_copy_image] Failed to write image to clipboard: {}",
-                        e
-                    );
-
-                    Err(e)
-                }
-            },
-        ))
-    } else {
-        None
-    };
-
-    if let Some(clipboard_handle) = clipboard_future {
-        let (save_result, clipboard_result) = tokio::join!(save_file_future, clipboard_handle);
-        save_result?;
-        clipboard_result.unwrap()?;
-    } else {
-        save_file_future.await?;
-    }
-
-    Ok(())
-}
-
 #[cfg(target_os = "windows")]
 pub fn capture_window_hdr_image(window: &xcap::Window) -> Option<image::DynamicImage> {
     use snow_shot_app_utils::monitor_hdr_info::get_all_monitors_sdr_info;
@@ -232,28 +188,17 @@ pub fn capture_window_hdr_image(window: &xcap::Window) -> Option<image::DynamicI
     };
 }
 
-pub async fn capture_focused_window<F>(
-    write_image_to_clipboard: F,
-    file_path: String,
-    copy_to_clipboard: bool,
-    focus_window_app_name_variable_name: String,
+pub async fn capture_focused_window(
     #[allow(unused_variables)] correct_hdr_color_algorithm: CorrectHdrColorAlgorithm,
-) -> Result<(), String>
-where
-    F: Fn(&image::DynamicImage) -> Result<(), String> + Send + 'static,
+) -> Result<Response, String>
 {
     let image;
-
-    // 截取窗口的应用名称
-    let focused_window_app_name;
 
     #[cfg(target_os = "windows")]
     {
         let hwnd = snow_shot_app_os::utils::get_focused_window();
 
         let focused_window = xcap::Window::new(xcap::ImplWindow::new(hwnd));
-
-        focused_window_app_name = focused_window.app_name().unwrap_or_default();
 
         let hdr_image = if correct_hdr_color_algorithm != CorrectHdrColorAlgorithm::None {
             capture_window_hdr_image(&focused_window)
@@ -310,11 +255,6 @@ where
                 && !w.title().unwrap_or_default().starts_with("Item-")
         });
 
-        focused_window_app_name = match window {
-            Some(window) => window.app_name().unwrap_or_default(),
-            None => "".to_string(),
-        };
-
         let window_image = match window {
             Some(window) => match window.capture_image() {
                 Ok(image) => Some(image),
@@ -343,25 +283,10 @@ where
         };
     }
 
-    let focused_window_app_name = if focused_window_app_name == "" {
-        "unknown".to_string()
-    } else {
-        focused_window_app_name
-    };
+    // 编码图像为 PNG 格式并返回
+    let image_buffer = snow_shot_app_utils::encode_image(&image, snow_shot_app_utils::ImageEncoder::Png);
 
-    // 简单处理下 FOCUS_WINDOW_APP_NAME 的变量占位
-    let file_path = PathBuf::from(file_path.replace(
-        focus_window_app_name_variable_name.as_str(),
-        &focused_window_app_name,
-    ));
-
-    save_and_copy_image(
-        write_image_to_clipboard,
-        image,
-        file_path,
-        copy_to_clipboard,
-    )
-    .await
+    Ok(Response::new(image_buffer))
 }
 
 pub async fn init_ui_elements(ui_elements: tauri::State<'_, Mutex<UIElements>>) -> Result<(), ()> {
@@ -665,26 +590,16 @@ pub async fn set_draw_window_style(window: tauri::Window) {
     snow_shot_app_os::utils::set_draw_window_style(window);
 }
 
-#[derive(Serialize, Clone)]
-pub struct CaptureFullScreenResult {
-    monitor_rect: ElementRect,
-}
-
 /**
  * 捕获全屏
  */
-pub async fn capture_full_screen<F>(
+pub async fn capture_full_screen(
     app_handle: tauri::AppHandle,
-    write_image_to_clipboard: F,
     enable_multiple_monitor: bool,
-    file_path: String,
-    copy_to_clipboard: bool,
     capture_history_file_path: String,
     correct_hdr_color_algorithm: CorrectHdrColorAlgorithm,
     correct_color_filter: bool,
-) -> Result<CaptureFullScreenResult, String>
-where
-    F: Fn(&image::DynamicImage) -> Result<(), String> + Send + 'static,
+) -> Result<Response, String>
 {
     // 激活的显示器
     let (mouse_x, mouse_y) = snow_shot_app_utils::get_mouse_position(&app_handle)?;
@@ -776,13 +691,8 @@ where
         }
     };
 
-    save_and_copy_image(
-        write_image_to_clipboard,
-        active_monitor_image,
-        PathBuf::from(file_path),
-        copy_to_clipboard,
-    )
-    .await?;
+    // 编码图像为 PNG 格式
+    let image_buffer = snow_shot_app_utils::encode_image(&active_monitor_image, snow_shot_app_utils::ImageEncoder::Png);
 
     // 写入到截图历史
     let capture_history_file_path = PathBuf::from(capture_history_file_path);
@@ -796,7 +706,5 @@ where
         }
     }
 
-    Ok(CaptureFullScreenResult {
-        monitor_rect: active_monitor_crop_region,
-    })
+    Ok(Response::new(image_buffer))
 }

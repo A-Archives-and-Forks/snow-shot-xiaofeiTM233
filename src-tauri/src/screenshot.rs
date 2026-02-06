@@ -7,7 +7,7 @@ use snow_shot_app_os::ui_automation::UIElements;
 use snow_shot_app_shared::ElementRect;
 use snow_shot_app_utils::monitor_info::CorrectHdrColorAlgorithm;
 use snow_shot_global_state::WebViewSharedBufferState;
-use snow_shot_tauri_commands_screenshot::{CaptureFullScreenResult, WindowElement};
+use snow_shot_tauri_commands_screenshot::WindowElement;
 
 #[command]
 pub async fn capture_current_monitor(
@@ -44,27 +44,9 @@ pub async fn capture_all_monitors(
  */
 #[command]
 pub async fn capture_focused_window(
-    app: tauri::AppHandle,
-    file_path: String,
-    copy_to_clipboard: bool,
-    focus_window_app_name_variable_name: String,
     correct_hdr_color_algorithm: CorrectHdrColorAlgorithm,
-) -> Result<(), String> {
+) -> Result<Response, String> {
     snow_shot_tauri_commands_screenshot::capture_focused_window(
-        move |image| match app.clipboard().write_image(&tauri::image::Image::new(
-            image.as_bytes(),
-            image.width(),
-            image.height(),
-        )) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!(
-                "[capture_focused_window] Failed to write image to clipboard: {}",
-                e
-            )),
-        },
-        file_path,
-        copy_to_clipboard,
-        focus_window_app_name_variable_name,
         correct_hdr_color_algorithm,
     )
     .await
@@ -121,28 +103,13 @@ pub async fn set_draw_window_style(window: tauri::Window) {
 pub async fn capture_full_screen(
     app: tauri::AppHandle,
     enable_multiple_monitor: bool,
-    file_path: String,
-    copy_to_clipboard: bool,
     capture_history_file_path: String,
     correct_hdr_color_algorithm: CorrectHdrColorAlgorithm,
     correct_color_filter: bool,
-) -> Result<CaptureFullScreenResult, String> {
+) -> Result<Response, String> {
     snow_shot_tauri_commands_screenshot::capture_full_screen(
-        app.clone(),
-        move |image| match app.clipboard().write_image(&tauri::image::Image::new(
-            image.to_rgba8().as_raw(),
-            image.width(),
-            image.height(),
-        )) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!(
-                "[capture_full_screen] Failed to write image to clipboard: {}",
-                e
-            )),
-        },
+        app,
         enable_multiple_monitor,
-        file_path,
-        copy_to_clipboard,
         capture_history_file_path,
         correct_hdr_color_algorithm,
         correct_color_filter,
