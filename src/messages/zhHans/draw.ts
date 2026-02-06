@@ -186,9 +186,9 @@ export const draw = {
 	"draw.doubleClickAction.none": "无",
 	"draw.fixedContentDoubleClickAction.switchThumbnail": "切换缩略模式",
 	"draw.fixedContentDoubleClickAction.closeWindow": "关闭窗口",
-	"draw.copyImageFileToClipboard": "复制图片文件到剪贴板",
+	"draw.copyImageFileToClipboard": "以文件形式复制到剪贴板",
 	"draw.copyImageFileToClipboard.tip":
-		"复制截图时先将图片写入到文件然后复制文件路径到剪贴板，开启该选项后默认启用“复制后自动保存”。目前仅支持保存普通截图",
+		"将图片以文件形式复制到剪贴板。粘贴时可以粘贴为文件（如在文件管理器中），目前仅支持普通截图",
 	"draw.cloudSaveUrlFormat": "云端链接格式",
 	"draw.cloudSaveUrlFormat.origin": "原始链接",
 	"draw.cloudSaveUrlFormat.markdown": "Markdown 链接",
