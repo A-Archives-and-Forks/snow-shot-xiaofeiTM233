@@ -1,7 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { HdrColorAlgorithm } from "@/types/appSettings";
 import {
-	type CaptureFullScreenResult,
 	type ImageBuffer,
 	ImageBufferType,
 	ImageEncoder,
@@ -21,22 +20,25 @@ export const setDrawWindowStyle = async () => {
 
 /**
  * 捕获焦点窗口
- * @param filePath 文件路径
- * @param copyToClipboard 是否复制到剪贴板
+ * @returns 图像数据（ImageBuffer）
  */
 export const captureFocusedWindow = async (
-	filePath: string,
-	copyToClipboard: boolean,
-	focusWindowAppNameVariableName: string,
 	correctHdrColorAlgorithm: HdrColorAlgorithm,
-) => {
-	const result = await invoke("capture_focused_window", {
-		filePath,
-		copyToClipboard,
-		focusWindowAppNameVariableName,
+): Promise<ImageBuffer | undefined> => {
+	const result = await invoke<ArrayBuffer>("capture_focused_window", {
 		correctHdrColorAlgorithm,
 	});
-	return result;
+
+	if (result.byteLength === 0) {
+		return undefined;
+	}
+
+	return {
+		encoder: ImageEncoder.Png,
+		data: new Blob([result]),
+		buffer: result,
+		bufferType: ImageBufferType.Pixels,
+	};
 };
 
 export const captureAllMonitors = async (
@@ -71,19 +73,25 @@ export const captureAllMonitors = async (
 
 export const captureFullScreen = async (
 	enableMultipleMonitor: boolean,
-	filePath: string,
-	copyToClipboard: boolean,
 	captureHistoryFilePath: string,
 	correctHdrColorAlgorithm: HdrColorAlgorithm,
 	correctColorFilter: boolean,
-): Promise<CaptureFullScreenResult> => {
-	const result = await invoke<CaptureFullScreenResult>("capture_full_screen", {
+): Promise<ImageBuffer | undefined> => {
+	const result = await invoke<ArrayBuffer>("capture_full_screen", {
 		enableMultipleMonitor,
-		filePath,
-		copyToClipboard,
 		captureHistoryFilePath,
 		correctHdrColorAlgorithm,
 		correctColorFilter,
 	});
-	return result;
+
+	if (result.byteLength === 0) {
+		return undefined;
+	}
+
+	return {
+		encoder: ImageEncoder.Png,
+		data: new Blob([result]),
+		buffer: result,
+		bufferType: ImageBufferType.Pixels,
+	};
 };

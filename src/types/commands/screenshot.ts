@@ -28,7 +28,3 @@ export type WindowElement = {
 	element_rect: ElementRect;
 	window_id: number;
 };
-
-export type CaptureFullScreenResult = {
-	monitor_rect: ElementRect;
-};

@@ -1,7 +1,8 @@
 import { emit } from "@tauri-apps/api/event";
-import * as tauriLog from "@tauri-apps/plugin-log";
+import { saveFile } from "@/commands";
 import { captureFocusedWindow } from "@/commands/screenshot";
-import { FOCUS_WINDOW_APP_NAME_ENV_VARIABLE } from "@/constants/components/chat";
+import { copyToClipboard } from "@/pages/draw/actions";
+
 import { type AppSettingsData, AppSettingsGroup } from "@/types/appSettings";
 import { getCorrectHdrColorAlgorithm } from "@/utils/appSettings";
 import { playCameraShutterSound } from "@/utils/audio";
@@ -24,33 +25,65 @@ export const executeScreenshot = async (
 export const executeScreenshotFocusedWindow = async (
 	appSettings: AppSettingsData,
 ) => {
-	const imagePath = await getImagePathFromSettings(
-		appSettings,
-		"focused-window",
-	);
-	if (!imagePath) {
-		tauriLog.error(
-			"[executeScreenshotFocusedWindow] Failed to get image path from settings",
-		);
-
-		return;
-	}
+	let imageBuffer: Awaited<ReturnType<typeof captureFocusedWindow>> | undefined;
 
 	try {
 		const captureFocusedWindowPromise = captureFocusedWindow(
-			imagePath.filePath,
-			appSettings[AppSettingsGroup.FunctionScreenshot]
-				.focusedWindowCopyToClipboard,
-			FOCUS_WINDOW_APP_NAME_ENV_VARIABLE,
 			getCorrectHdrColorAlgorithm(appSettings),
 		);
 		playCameraShutterSound();
-		await captureFocusedWindowPromise;
+		imageBuffer = await captureFocusedWindowPromise;
 	} catch (error) {
 		appError(
 			"[executeScreenshotFocusedWindow] Failed to capture focused window",
 			error,
 		);
+		return;
+	}
+
+	if (!imageBuffer) {
+		appError(
+			"[executeScreenshotFocusedWindow] Failed to capture focused window, imageBuffer is undefined",
+		);
+		return;
+	}
+
+	// 前端检查 autoSaveOnCopy 配置，遵循区域截图的逻辑
+	const enableAutoSave =
+		appSettings[AppSettingsGroup.FunctionScreenshot].autoSaveOnCopy;
+	const enableFocusedAutoSave =
+		appSettings[AppSettingsGroup.FunctionScreenshot]
+			.focusedWindowCopyToClipboard;
+
+	// 复制到剪贴板
+	if (enableFocusedAutoSave) {
+		try {
+			await copyToClipboard(imageBuffer.buffer, appSettings, undefined);
+		} catch (error) {
+			appError(
+				"[executeScreenshotFocusedWindow] Failed to copy to clipboard",
+				error,
+			);
+		}
+	}
+
+	// 保存到文件
+	if (enableAutoSave) {
+		const imagePath = await getImagePathFromSettings(
+			appSettings,
+			"focused-window",
+		);
+		if (imagePath) {
+			try {
+				await saveFile(
+					imagePath.filePath,
+					imageBuffer.buffer,
+					imagePath.imageFormat,
+				);
+			} catch (error) {
+				appError("[executeScreenshotFocusedWindow] Failed to save file", error);
+			}
+		}
 	}
 };
 
