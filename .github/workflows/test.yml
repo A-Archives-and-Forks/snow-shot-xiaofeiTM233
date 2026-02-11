@@ -16,6 +16,48 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
 
+            # 获取 Excalidraw 的 commit hash
+            - name: Get Excalidraw Commit Hash
+              id: excalidraw-info
+              run: |
+                $hash = git ls-remote https://github.com/mg-chao/excalidraw.git refs/heads/custom/master | Select-Object -First 1 | ForEach-Object { $_.Split()[0] }
+                echo "hash=$hash" >> $env:GITHUB_OUTPUT
+              shell: pwsh
+
+            # 缓存 Excalidraw 构建
+            - name: Cache Excalidraw Build
+              id: cache-excalidraw
+              uses: actions/cache@v4
+              with:
+                path: excalidraw
+                key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
+
+            # 构建 Excalidraw
+            - name: Build Excalidraw
+              if: steps.cache-excalidraw.outputs.cache-hit != 'true'
+              run: |
+                  git clone https://github.com/mg-chao/excalidraw.git
+                  cd excalidraw
+                  git checkout custom/master
+                  npm install -g yarn
+                  yarn install --frozen-lockfile
+                  yarn build:packages
+              shell: bash
+
+            # 保存 Excalidraw 缓存
+            - name: Save Excalidraw Cache
+              if: steps.cache-excalidraw.outputs.cache-hit != 'true'
+              uses: actions/cache/save@v4
+              with:
+                path: excalidraw
+                key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
+
+            # 移动 Excalidraw 目录
+            - name: Move Excalidraw to Sibling Directory
+              run: |
+                Move-Item -Path ./excalidraw -Destination ../excalidraw
+              shell: pwsh
+
             # 安装 Node.js 和 pnpm
             - name: Setup node
               uses: actions/setup-node@v4
@@ -39,6 +81,8 @@ jobs:
               uses: swatinem/rust-cache@v2
               with:
                   workspaces: src-tauri -> target
+                  shared-key: "snow-shot-windows-build" 
+                  cache-on-failure: true
 
             # 配置 pnpm 缓存
             - name: Setup pnpm cache
@@ -47,39 +91,7 @@ jobs:
                   node-version: 20
                   cache: pnpm
 
-            # 安装 yarn
-            - name: Install yarn
-              run: npm install -g yarn
-
-            # 准备 Excalidraw 依赖
-            - name: Clone Excalidraw
-              run: |
-                  cd ..
-                  git clone https://github.com/mg-chao/excalidraw.git
-                  cd excalidraw
-                  git checkout custom/master
-              shell: bash
-
-            # 配置 yarn 缓存
-            - name: Cache yarn dependencies
-              uses: actions/cache@v4
-              with:
-                  path: |
-                      ~/.yarn/cache
-                      ~/.cache/yarn
-                  key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-yarn-
-
-            # 安装 Excalidraw 依赖
-            - name: Install Excalidraw dependencies
-              run: |
-                  cd ../excalidraw
-                  yarn install --frozen-lockfile
-                  cd ../snow-shot
-              shell: bash
-
-            # 创建 .env 文件以支持联网功能
+            # 创建 .env 文件
             - name: Create .env file
               run: echo "PUBLIC_ONLINE_STATUS=true" > .env
               shell: bash
@@ -88,12 +100,15 @@ jobs:
             - name: Install app dependencies and build web
               run: pnpm install --frozen-lockfile
 
-            # 构建 Excalidraw
-            - name: Build Excalidraw
-              run: pnpm update:excalidraw
+            # 链接 Excalidraw
+            - name: Link Excalidraw
+              run: |
+                 pnpm update @mg-chao/excalidraw
+              shell: pwsh
 
             # 下载并配置 onnxruntime (Windows only)
             - name: Download and setup onnxruntime (Windows)
+              id: onnx-setup
               run: |
                   # 下载 onnxruntime
                   Invoke-WebRequest -Uri "https://github.com/supertone-inc/onnxruntime-build/releases/download/v1.22.2/onnxruntime-win-x64-static_lib-1.22.2.zip" -OutFile "onnxruntime.zip"
