@@ -119,9 +119,6 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 
 	const [getAppSettings] = useStateSubscriber(AppSettingsPublisher, undefined);
 
-	const appFunctionSettingsRef =
-		useRef<AppSettingsData[AppSettingsGroup.AppFunction]>(undefined);
-
 	const { isReadyStatus } = usePluginServiceContext();
 	const {
 		configs: defaultAppFunctionComponentConfigs,
@@ -442,10 +439,7 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 
 			await Promise.all(
 				appFunctionComponentConfigsKeys.map(async (key) => {
-					const config = defaultAppFunctionComponentConfigs[key as AppFunction];
 					const currentShortcutKey = settings[key as AppFunction].shortcutKey;
-					const prevShortcutKey = (previousAppFunctionSettingsRef.current ??
-						settings)[key as AppFunction].shortcutKey;
 
 					try {
 						if (!currentShortcutKey) {
@@ -456,9 +450,20 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 							if (keys.includes("PrintScreen")) {
 								keyStatus[key as AppFunction] = ShortcutKeyStatus.PrintScreen;
 							} else {
-								// 检查快捷键是否已注册（不调用 isRegistered，避免重复注册）
-								// 直接根据 onKeyChange 的返回值判断
-								keyStatus[key as AppFunction] = ShortcutKeyStatus.Registered;
+								// 检查快捷键是否已注册
+								const isRegisteredKey = await Promise.all(
+									keys.map(async (key) => {
+										if (!key) return false;
+										try {
+											return await isRegistered(key);
+										} catch {
+											return false;
+										}
+									}),
+								);
+								keyStatus[key as AppFunction] = isRegisteredKey.some(Boolean)
+									? ShortcutKeyStatus.Registered
+									: ShortcutKeyStatus.Unregistered;
 							}
 						}
 					} catch {
@@ -471,7 +476,7 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 			previousAppFunctionSettingsRef.current = settings;
 			setUpdateShortcutKeyStatusLoading(false);
 		},
-		[appFunctionComponentConfigsKeys, defaultAppFunctionComponentConfigs],
+		[appFunctionComponentConfigsKeys],
 	);
 
 	const [appFunctionSettings, setAppFunctionSettings] =
