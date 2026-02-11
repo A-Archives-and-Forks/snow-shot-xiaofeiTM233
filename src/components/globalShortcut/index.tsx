@@ -338,16 +338,14 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 						icon: buttonIcon,
 						onClick,
 						onKeyChange: async (value: string, prevValue: string) => {
-							// 处理之前的快捷键
+							// 处理之前的快捷键 - 先注销所有旧的快捷键
 							if (prevValue) {
 								const prevKeys = prevValue.split(",").map((k) => trim(k));
 								await Promise.all(
 									prevKeys.map(async (key) => {
 										if (!key) return;
 										try {
-											if (await isRegistered(key)) {
-												await unregister(key);
-											}
+											await unregister(key);
 										} catch (error) {
 											appError(
 												`[GlobalShortcut] unregister prev key "${key}" failed`,
@@ -363,15 +361,12 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 								return false;
 							}
 
-							// 处理新的快捷键
+							// 处理新的快捷键 - 注册所有新的快捷键
 							const newKeys = value.split(",").map((k) => trim(k));
 							await Promise.all(
 								newKeys.map(async (key) => {
 									if (!key) return;
 									try {
-										if (await isRegistered(key)) {
-											await unregister(key);
-										}
 										await register(key, async (event) => {
 											if (event.state !== "Released") {
 												return;
