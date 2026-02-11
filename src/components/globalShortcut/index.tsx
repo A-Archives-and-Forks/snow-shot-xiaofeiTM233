@@ -117,11 +117,10 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 		undefined,
 	);
 
-	const [getAppSettings] = useStateSubscriber(
-		AppSettingsPublisher,
-		// useCallback((settings: AppSettingsData) => {}, []),
-		undefined,
-	);
+	const [getAppSettings] = useStateSubscriber(AppSettingsPublisher, undefined);
+
+	const appFunctionSettingsRef =
+		useRef<AppSettingsData[AppSettingsGroup.AppFunction]>(undefined);
 
 	const { isReadyStatus } = usePluginServiceContext();
 	const {
@@ -457,20 +456,9 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 							if (keys.includes("PrintScreen")) {
 								keyStatus[key as AppFunction] = ShortcutKeyStatus.PrintScreen;
 							} else {
-								// 检查快捷键是否已注册
-								const isRegisteredKey = await Promise.all(
-									keys.map(async (key) => {
-										if (!key) return false;
-										try {
-											return await isRegistered(key);
-										} catch {
-											return false;
-										}
-									}),
-								);
-								keyStatus[key as AppFunction] = isRegisteredKey.some(Boolean)
-									? ShortcutKeyStatus.Registered
-									: ShortcutKeyStatus.Unregistered;
+								// 检查快捷键是否已注册（不调用 isRegistered，避免重复注册）
+								// 直接根据 onKeyChange 的返回值判断
+								keyStatus[key as AppFunction] = ShortcutKeyStatus.Registered;
 							}
 						}
 					} catch {
