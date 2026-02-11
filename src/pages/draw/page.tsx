@@ -831,10 +831,38 @@ const DrawPageCore: React.FC<{
 					return;
 				}
 
+				// 获取滚动截图的实际图像数据
+				const imageData = await scrollScreenshotGetImageData(true);
+				if (!imageData) {
+					message.error(
+						<FormattedMessage id="draw.scrollScreenshotSizeError" />,
+					);
+					return;
+				}
+
+				// 将图像数据转换为 ArrayBuffer
+				const captureResult = await new Promise<ArrayBuffer | undefined>(
+					(resolve) => {
+						if (imageData instanceof HTMLCanvasElement) {
+							imageData.toBlob(
+								async (blob) => {
+									resolve(await blob?.arrayBuffer());
+								},
+								"image/png",
+								1,
+							);
+						} else if (imageData instanceof ArrayBuffer) {
+							resolve(imageData);
+						} else {
+							resolve(undefined);
+						}
+					},
+				);
+
 				saveCaptureHistory(
-					undefined,
+					captureResult,
 					CaptureHistorySource.ScrollScreenshotSave,
-				); // 滚动截图不保存编辑结果
+				); // 保存滚动截图的完整图像数据
 
 				const imagePath =
 					(await getImagePathFromSettings(
@@ -1109,7 +1137,36 @@ const DrawPageCore: React.FC<{
 				return;
 			}
 
-			saveCaptureHistory(undefined, CaptureHistorySource.ScrollScreenshotCopy);
+			// 获取滚动截图的实际图像数据
+			const imageData = await scrollScreenshotGetImageData(true);
+			if (!imageData) {
+				message.error(<FormattedMessage id="draw.scrollScreenshotSizeError" />);
+				return;
+			}
+
+			// 将图像数据转换为 ArrayBuffer
+			const captureResult = await new Promise<ArrayBuffer | undefined>(
+				(resolve) => {
+					if (imageData instanceof HTMLCanvasElement) {
+						imageData.toBlob(
+							async (blob) => {
+								resolve(await blob?.arrayBuffer());
+							},
+							"image/png",
+							1,
+						);
+					} else if (imageData instanceof ArrayBuffer) {
+						resolve(imageData);
+					} else {
+						resolve(undefined);
+					}
+				},
+			);
+
+			saveCaptureHistory(
+				captureResult,
+				CaptureHistorySource.ScrollScreenshotCopy,
+			);
 
 			const filePath = (
 				await getImagePathFromSettings(getAppSettings(), "auto")
