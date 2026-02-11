@@ -75,7 +75,7 @@ export const KeyButton: React.FC<{
 	width,
 	maxWidth,
 	buttonProps,
-	maxLength = 1,
+	maxLength = 10,
 	onCancel,
 	speicalKeys,
 }) => {
