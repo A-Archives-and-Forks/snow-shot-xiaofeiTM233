@@ -12,6 +12,7 @@ import {
 	unregisterAll,
 } from "@tauri-apps/plugin-global-shortcut";
 import { Tooltip } from "antd";
+import { trim } from "es-toolkit";
 import React, {
 	createContext,
 	useCallback,
@@ -337,50 +338,68 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 						icon: buttonIcon,
 						onClick,
 						onKeyChange: async (value: string, prevValue: string) => {
+							// 处理之前的快捷键
 							if (prevValue) {
-								try {
-									if (await isRegistered(prevValue)) {
-										await unregister(prevValue);
-									}
-								} catch (error) {
-									appError(
-										"[GlobalShortcut] unregister prevValue failed",
-										error,
-									);
-								}
+								const prevKeys = prevValue.split(",").map((k) => trim(k));
+								await Promise.all(
+									prevKeys.map(async (key) => {
+										if (!key) return;
+										try {
+											if (await isRegistered(key)) {
+												await unregister(key);
+											}
+										} catch (error) {
+											appError(
+												`[GlobalShortcut] unregister prev key "${key}" failed`,
+												error,
+											);
+										}
+									}),
+								);
 							}
 
+							// 如果没有新值，直接返回
 							if (!value) {
 								return false;
 							}
 
-							try {
-								if (await isRegistered(value)) {
-									await unregister(value);
-								}
-							} catch (error) {
-								appError("[GlobalShortcut] unregister value failed", error);
-							}
+							// 处理新的快捷键
+							const newKeys = value.split(",").map((k) => trim(k));
+							await Promise.all(
+								newKeys.map(async (key) => {
+									if (!key) return;
+									try {
+										if (await isRegistered(key)) {
+											await unregister(key);
+										}
+										await register(key, async (event) => {
+											if (event.state !== "Released") {
+												return;
+											}
 
-							await register(value, async (event) => {
-								if (event.state !== "Released") {
-									return;
-								}
+											if (
+												getAppSettings()[
+													AppSettingsGroup.FunctionGlobalShortcut
+												].disableOnFocusedFullScreenWindow &&
+												(await hasFocusedFullScreenWindow())
+											) {
+												return;
+											}
 
-								if (
-									getAppSettings()[AppSettingsGroup.FunctionGlobalShortcut]
-										.disableOnFocusedFullScreenWindow &&
-									(await hasFocusedFullScreenWindow())
-								) {
-									return;
-								}
+											if (getTrayIconState()?.disableShortcut) {
+												return;
+											}
 
-								if (getTrayIconState()?.disableShortcut) {
-									return;
-								}
-
-								onClick();
-							});
+											onClick();
+										});
+									} catch (error) {
+										appError(
+											`[GlobalShortcut] register key "${key}" failed`,
+											error,
+										);
+									}
+								}),
+							);
 
 							return true;
 						},
@@ -431,28 +450,33 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 				appFunctionComponentConfigsKeys.map(async (key) => {
 					const config = defaultAppFunctionComponentConfigs[key as AppFunction];
 					const currentShortcutKey = settings[key as AppFunction].shortcutKey;
+					const prevShortcutKey = (previousAppFunctionSettingsRef.current ??
+						settings)[key as AppFunction].shortcutKey;
 
 					try {
-						const isSuccess = await config.onKeyChange(
-							currentShortcutKey,
-							(previousAppFunctionSettingsRef.current ?? settings)[
-								key as AppFunction
-							].shortcutKey,
-						);
-
 						if (!currentShortcutKey) {
 							keyStatus[key as AppFunction] = ShortcutKeyStatus.None;
 						} else {
-							keyStatus[key as AppFunction] = isSuccess
-								? ShortcutKeyStatus.Registered
-								: ShortcutKeyStatus.Unregistered;
-						}
-
-						if (
-							keyStatus[key as AppFunction] === ShortcutKeyStatus.Registered &&
-							currentShortcutKey === "PrintScreen"
-						) {
-							keyStatus[key as AppFunction] = ShortcutKeyStatus.PrintScreen;
+							// 检查是否是 PrintScreen
+							const keys = currentShortcutKey.split(",").map((k) => trim(k));
+							if (keys.includes("PrintScreen")) {
+								keyStatus[key as AppFunction] = ShortcutKeyStatus.PrintScreen;
+							} else {
+								// 检查快捷键是否已注册
+								const isRegisteredKey = await Promise.all(
+									keys.map(async (key) => {
+										if (!key) return false;
+										try {
+											return await isRegistered(key);
+										} catch {
+											return false;
+										}
+									}),
+								);
+								keyStatus[key as AppFunction] = isRegisteredKey.some(Boolean)
+									? ShortcutKeyStatus.Registered
+									: ShortcutKeyStatus.Unregistered;
+							}
 						}
 					} catch {
 						keyStatus[key as AppFunction] = ShortcutKeyStatus.Error;

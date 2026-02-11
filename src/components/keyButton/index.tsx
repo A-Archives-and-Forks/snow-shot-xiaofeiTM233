@@ -65,7 +65,7 @@ export const KeyButton: React.FC<{
 	width?: number;
 	maxWidth?: number;
 	buttonProps?: ButtonProps;
-	maxLength: number;
+	maxLength?: number;
 	onCancel?: () => void;
 	speicalKeys?: string[];
 }> = ({
@@ -75,7 +75,7 @@ export const KeyButton: React.FC<{
 	width,
 	maxWidth,
 	buttonProps,
-	maxLength,
+	maxLength = 1,
 	onCancel,
 	speicalKeys,
 }) => {
@@ -330,7 +330,7 @@ export const KeyButton: React.FC<{
 						</div>
 					);
 				})}
-				{maxLength > 1 && (
+				{maxLength !== undefined && maxLength !== 1 && (
 					<Button
 						block
 						icon={<PlusOutlined />}

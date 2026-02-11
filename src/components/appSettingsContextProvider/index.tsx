@@ -666,7 +666,6 @@ const AppSettingsContextProviderCore: React.FC<{
 					// 格式化处理下
 					keyEventSettingsKey = keyEventSettingsKey
 						.split(",")
-						.slice(0, 1) // 快捷键不支持多个键，这里也限制下
 						.map((item) => trim(item))
 						.filter((val) => {
 							if (settingsKeySet.has(val)) {
@@ -677,7 +676,9 @@ const AppSettingsContextProviderCore: React.FC<{
 						})
 						.join(", ");
 
-					settingsKeySet.add(keyEventSettingsKey);
+					keyEventSettingsKey.split(",").forEach((keyStr) => {
+						settingsKeySet.add(keyStr);
+					});
 
 					keyEventSettings[key] = {
 						shortcutKey: keyEventSettingsKey,
