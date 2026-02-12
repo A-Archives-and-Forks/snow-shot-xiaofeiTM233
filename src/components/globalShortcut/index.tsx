@@ -337,52 +337,63 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 						icon: buttonIcon,
 						onClick,
 						onKeyChange: async (value: string, prevValue: string) => {
-							if (prevValue) {
+							// 解析快捷键列表（逗号分隔）
+							const parseKeys = (str: string): string[] =>
+								str
+									.split(",")
+									.map((k) => k.trim())
+									.filter((k) => k.length > 0);
+
+							const newKeys = parseKeys(value);
+							const oldKeys = parseKeys(prevValue);
+
+							// 找出需要注销和注册的快捷键
+							const keysToUnregister = oldKeys.filter(
+								(k) => !newKeys.includes(k),
+							);
+							const keysToRegister = newKeys.filter(
+								(k) => !oldKeys.includes(k),
+							);
+
+							// 注销不再需要的快捷键
+							for (const k of keysToUnregister) {
 								try {
-									if (await isRegistered(prevValue)) {
-										await unregister(prevValue);
+									if (await isRegistered(k)) {
+										await unregister(k);
 									}
 								} catch (error) {
-									appError(
-										"[GlobalShortcut] unregister prevValue failed",
-										error,
-									);
+									appError("[GlobalShortcut] unregister failed", error);
 								}
 							}
 
-							if (!value) {
-								return false;
+							// 注册新的快捷键
+							for (const k of keysToRegister) {
+								try {
+									if (await isRegistered(k)) {
+										await unregister(k);
+									}
+									await register(k, async (event) => {
+										if (event.state !== "Released") {
+											return;
+										}
+										if (
+											getAppSettings()[AppSettingsGroup.FunctionGlobalShortcut]
+												?.disableOnFocusedFullScreenWindow &&
+											(await hasFocusedFullScreenWindow())
+										) {
+											return;
+										}
+										if (getTrayIconState()?.disableShortcut) {
+											return;
+										}
+										onClick();
+									});
+								} catch (error) {
+									appError(`[GlobalShortcut] register ${k} failed`, error);
+								}
 							}
 
-							try {
-								if (await isRegistered(value)) {
-									await unregister(value);
-								}
-							} catch (error) {
-								appError("[GlobalShortcut] unregister value failed", error);
-							}
-
-							await register(value, async (event) => {
-								if (event.state !== "Released") {
-									return;
-								}
-
-								if (
-									getAppSettings()[AppSettingsGroup.FunctionGlobalShortcut]
-										.disableOnFocusedFullScreenWindow &&
-									(await hasFocusedFullScreenWindow())
-								) {
-									return;
-								}
-
-								if (getTrayIconState()?.disableShortcut) {
-									return;
-								}
-
-								onClick();
-							});
-
-							return true;
+							return newKeys.length > 0;
 						},
 					};
 
