@@ -1381,8 +1381,13 @@ const DrawPageCore: React.FC<{
 
 				return;
 			} else if (drawPageStateRef.current === DrawPageState.WaitRelease) {
-				// 重置为激活状态
+				// 窗口关闭后，重置为激活状态
 				drawPageStateRef.current = DrawPageState.Active;
+				// 清除定时器
+				if (releaseExecuteScreenshotTimerRef.current?.timer) {
+					clearInterval(releaseExecuteScreenshotTimerRef.current.timer);
+					releaseExecuteScreenshotTimerRef.current = undefined;
+				}
 			}
 
 			excuteScreenshot(payload.type, payload);
@@ -1402,7 +1407,7 @@ const DrawPageCore: React.FC<{
 
 				if (releaseExecuteScreenshotTimerRef.current?.timer) {
 					clearInterval(releaseExecuteScreenshotTimerRef.current.timer);
-					executeScreenshotFunc(releaseExecuteScreenshotTimerRef.current.type);
+					releaseExecuteScreenshotTimerRef.current = undefined;
 				}
 			}
 
