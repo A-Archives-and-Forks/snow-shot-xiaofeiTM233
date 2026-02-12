@@ -304,7 +304,9 @@ export const HomePage = () => {
 																	AppSettingsGroup.AppFunction,
 																	{
 																		[key as AppFunction]: {
-																			...appFunctionSettings,
+																			...appFunctionSettings?.[
+																				key as AppFunction
+																			],
 																			shortcutKey: value,
 																		},
 																	},

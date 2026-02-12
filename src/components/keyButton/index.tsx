@@ -174,18 +174,33 @@ export const KeyButton: React.FC<{
 			return;
 		}
 
-		keyConfigListRef.current[inputAnyKeyConfigIndexRef.current].recordKeys =
-			convertKeyConfigToString(recordKeys, spicalRecordKeys);
+		const newRecordKeys = convertKeyConfigToString(
+			recordKeys,
+			spicalRecordKeys,
+		);
+		const currentIndex = inputAnyKeyConfigIndexRef.current;
+
+		// 同时更新 ref 和 state
+		keyConfigListRef.current[currentIndex].recordKeys = newRecordKeys;
+
+		setKeyConfigList((pre) => {
+			const newList = [...pre];
+			if (newList[currentIndex]) {
+				newList[currentIndex] = {
+					...newList[currentIndex],
+					recordKeys: newRecordKeys,
+				};
+			}
+			return newList;
+		});
 
 		setInputAnyKeyConfigIndex(undefined);
-
-		updateKeyConfig();
 	}, [
 		recordKeys,
 		setInputAnyKeyConfigIndex,
 		spicalRecordKeys,
 		stopRecord,
-		updateKeyConfig,
+		setKeyConfigList,
 	]);
 
 	useEffect(() => {
@@ -218,11 +233,13 @@ export const KeyButton: React.FC<{
 				onOk={() => {
 					stopRecordAndSave();
 					setConfirmLoading(true);
+					// 使用 ref 获取最新值，因为 state 更新是异步的
 					onKeyChange(
-						keyConfigList
+						keyConfigListRef.current
 							.map((item) => {
 								return item.recordKeys;
 							})
+							.filter((key) => key.length > 0)
 							.join(", "),
 					).finally(() => {
 						setConfirmLoading(false);
