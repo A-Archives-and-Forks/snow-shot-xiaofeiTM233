@@ -347,13 +347,14 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 							const newKeys = parseKeys(value);
 							const oldKeys = parseKeys(prevValue);
 
-							// 找出需要注销和注册的快捷键
-							const keysToUnregister = oldKeys.filter(
-								(k) => !newKeys.includes(k),
-							);
-							const keysToRegister = newKeys.filter(
-								(k) => !oldKeys.includes(k),
-							);
+							// 如果 prevValue 与 value 相同（首次加载），需要注册所有快捷键
+							const isFirstLoad = value === prevValue;
+							const keysToUnregister = isFirstLoad
+								? []
+								: oldKeys.filter((k) => !newKeys.includes(k));
+							const keysToRegister = isFirstLoad
+								? newKeys
+								: newKeys.filter((k) => !oldKeys.includes(k));
 
 							// 注销不再需要的快捷键
 							for (const k of keysToUnregister) {
