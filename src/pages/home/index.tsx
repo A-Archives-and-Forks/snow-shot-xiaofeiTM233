@@ -304,7 +304,9 @@ export const HomePage = () => {
 																	AppSettingsGroup.AppFunction,
 																	{
 																		[key as AppFunction]: {
-																			...appFunctionSettings,
+																			...appFunctionSettings?.[
+																				key as AppFunction
+																			],
 																			shortcutKey: value,
 																		},
 																	},
@@ -314,7 +316,7 @@ export const HomePage = () => {
 																	false,
 																);
 															}}
-															maxLength={1}
+															maxLength={5}
 														/>
 													</FunctionButton>
 												</div>
