@@ -132,7 +132,8 @@ export const KeyButton: React.FC<{
 				};
 			});
 		setKeyConfigList(configList);
-		if (configList.length === 1 && configList[0].recordKeys === "") {
+		// 如果没有快捷键，自动开始录制第一个
+		if (configList.every((item) => item.recordKeys === "")) {
 			setTimeout(() => {
 				setInputAnyKeyConfigIndex(0);
 				startRecord();

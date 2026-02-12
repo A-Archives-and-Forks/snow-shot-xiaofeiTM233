@@ -314,7 +314,7 @@ export const HomePage = () => {
 																	false,
 																);
 															}}
-															maxLength={1}
+															maxLength={5}
 														/>
 													</FunctionButton>
 												</div>
