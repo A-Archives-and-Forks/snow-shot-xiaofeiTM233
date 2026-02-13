@@ -1411,6 +1411,8 @@ const DrawPageCore: React.FC<{
 				}
 			}
 
+			// 窗口关闭后重置状态
+			drawPageStateRef.current = DrawPageState.Init;
 			getCurrentWindow().close();
 		});
 
