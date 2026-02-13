@@ -675,11 +675,6 @@ const DrawPageCore: React.FC<{
 			setCaptureStateAction(true);
 			drawToolbarActionRef.current?.setEnable(false);
 
-			const captureAllMonitorsPromise =
-				captureAllMonitorsAction(excuteScreenshotType);
-			const initCaptureBoundingBoxInfoPromise =
-				initCaptureBoundingBoxInfoAndShowWindow();
-
 			setScreenshotType({
 				type: excuteScreenshotType,
 				params,
@@ -695,7 +690,7 @@ const DrawPageCore: React.FC<{
 
 			let imageBuffer: ImageBuffer | ImageSharedBufferData | undefined;
 			try {
-				imageBuffer = await captureAllMonitorsPromise;
+				imageBuffer = await captureAllMonitorsAction(excuteScreenshotType);
 			} catch {
 				imageBuffer = undefined;
 			}
@@ -707,13 +702,14 @@ const DrawPageCore: React.FC<{
 				excuteScreenshotType !== ScreenshotType.SwitchCaptureHistory
 			) {
 				sendErrorMessage(intl.formatMessage({ id: "draw.captureError" }));
-				await initCaptureBoundingBoxInfoPromise;
 				finishCapture();
 				return;
 			}
 
 			imageBufferRef.current = imageBuffer;
-			await initCaptureBoundingBoxInfoPromise;
+
+			// 只有在截图成功时才显示窗口
+			await initCaptureBoundingBoxInfoAndShowWindow();
 
 			// 防止用户提前退出报错
 			if (getCaptureEvent()?.event !== CaptureEvent.onExecuteScreenshot) {
