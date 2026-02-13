@@ -537,7 +537,15 @@ const DrawPageCore: React.FC<{
 				undefined,
 				getAppSettings()[AppSettingsGroup.SystemScreenshot]
 					.enableMultipleMonitor,
-			),
+			).catch((error) => {
+				appError("[DrawPageCore] getMonitorsBoundingBox error", error);
+				message.error(<FormattedMessage id="draw.getMousePositionError" />);
+				// 返回默认的 bounding box
+				return {
+					rect: { min_x: 0, min_y: 0, max_x: 100, max_y: 100 },
+					monitor_rect_list: [],
+				};
+			}),
 			getMousePosition().catch((error) => {
 				appError("[DrawPageCore] getMousePosition error", error);
 				message.error(<FormattedMessage id="draw.getMousePositionError" />);
@@ -545,15 +553,30 @@ const DrawPageCore: React.FC<{
 			}),
 		]);
 
-		const rTree = new Flatbush(captureBoundingBox.monitor_rect_list.length);
-		captureBoundingBox.monitor_rect_list.forEach(({ rect }) => {
+		// 检查 captureBoundingBox 是否有效
+		let validBoundingBox = captureBoundingBox;
+		if (
+			!captureBoundingBox ||
+			!captureBoundingBox.rect ||
+			captureBoundingBox.rect.max_x <= captureBoundingBox.rect.min_x ||
+			captureBoundingBox.rect.max_y <= captureBoundingBox.rect.min_y
+		) {
+			appWarn("[DrawPageCore] Invalid captureBoundingBox, using default");
+			validBoundingBox = {
+				rect: { min_x: 0, min_y: 0, max_x: 100, max_y: 100 },
+				monitor_rect_list: [],
+			};
+		}
+
+		const rTree = new Flatbush(validBoundingBox.monitor_rect_list.length);
+		validBoundingBox.monitor_rect_list.forEach(({ rect }) => {
 			rTree.add(rect.min_x, rect.min_y, rect.max_x, rect.max_y);
 		});
 		rTree.finish();
 
 		captureBoundingBoxInfoRef.current = new CaptureBoundingBoxInfo(
-			captureBoundingBox.rect,
-			captureBoundingBox.monitor_rect_list,
+			validBoundingBox.rect,
+			validBoundingBox.monitor_rect_list,
 			new MousePosition(mousePosition[0], mousePosition[1]),
 		);
 
@@ -661,21 +684,21 @@ const DrawPageCore: React.FC<{
 			} catch {
 				imageBuffer = undefined;
 			}
-			await initCaptureBoundingBoxInfoPromise;
 
-			// 如果截图失败了，等窗口显示后，结束截图
+			// 如果截图失败了，不显示窗口，直接结束截图
 			// 切换截图历史时，不进行截图，只进行显示
 			if (
 				!imageBuffer &&
 				excuteScreenshotType !== ScreenshotType.SwitchCaptureHistory
 			) {
 				sendErrorMessage(intl.formatMessage({ id: "draw.captureError" }));
-
+				await initCaptureBoundingBoxInfoPromise;
 				finishCapture();
 				return;
 			}
 
 			imageBufferRef.current = imageBuffer;
+			await initCaptureBoundingBoxInfoPromise;
 
 			// 防止用户提前退出报错
 			if (getCaptureEvent()?.event !== CaptureEvent.onExecuteScreenshot) {
