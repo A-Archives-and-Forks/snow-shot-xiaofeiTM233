@@ -28,12 +28,15 @@ export const setWindowRect = async (
 	appWindow: TauriWindow,
 	rect: ElementRect,
 ) => {
+	// 边界检查：确保窗口位置在屏幕范围内
+	const minX = Math.max(0, rect.min_x);
+	const minY = Math.max(0, rect.min_y);
+	const maxX = Math.max(minX, rect.max_x);
+	const maxY = Math.max(minY, rect.max_y);
+
 	// 设置两次位置，防止窗口缩放变化
-	const windowPosition = new PhysicalPosition(rect.min_x, rect.min_y);
-	const windowSize = new PhysicalSize(
-		rect.max_x - rect.min_x,
-		rect.max_y - rect.min_y,
-	);
+	const windowPosition = new PhysicalPosition(minX, minY);
+	const windowSize = new PhysicalSize(maxX - minX, maxY - minY);
 
 	if (getPlatform() === "macos") {
 		// macOS 的情况有些特殊，特殊处理下

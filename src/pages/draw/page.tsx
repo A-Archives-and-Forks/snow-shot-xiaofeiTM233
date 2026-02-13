@@ -1432,6 +1432,9 @@ const DrawPageCore: React.FC<{
 					clearInterval(releaseExecuteScreenshotTimerRef.current.timer);
 					releaseExecuteScreenshotTimerRef.current = undefined;
 				}
+			} else {
+				// force=true 时，直接重置状态
+				drawPageStateRef.current = DrawPageState.Init;
 			}
 
 			// 窗口关闭后重置状态
