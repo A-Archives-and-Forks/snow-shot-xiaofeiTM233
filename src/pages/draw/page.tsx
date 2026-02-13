@@ -441,6 +441,15 @@ const DrawPageCore: React.FC<{
 			}
 
 			drawPageStateRef.current = DrawPageState.Release;
+
+			// 触发 release-draw-page 事件，重置状态
+			await releaseDrawPage();
+
+			// 等待窗口关闭完成
+			await new Promise((resolve) => {
+				setTimeout(resolve, 100);
+			});
+
 			await Promise.all([
 				createDrawWindow(),
 				// 隔一段时间释放，防止释放中途用户唤起
@@ -482,8 +491,14 @@ const DrawPageCore: React.FC<{
 				layerContainerRef.current.style.opacity = "0";
 			}
 
+			// 先设置状态为 WaitRelease，再调用 releasePage
 			drawPageStateRef.current = DrawPageState.WaitRelease;
-			releasePage();
+			await releasePage();
+
+			// 等待状态被重置为 Init
+			await new Promise((resolve) => {
+				setTimeout(resolve, 50);
+			});
 
 			if (clearScrollScreenshot) {
 				scrollScreenshotClear();
@@ -1432,9 +1447,6 @@ const DrawPageCore: React.FC<{
 					clearInterval(releaseExecuteScreenshotTimerRef.current.timer);
 					releaseExecuteScreenshotTimerRef.current = undefined;
 				}
-			} else {
-				// force=true 时，直接重置状态
-				drawPageStateRef.current = DrawPageState.Init;
 			}
 
 			// 窗口关闭后重置状态
