@@ -1365,9 +1365,7 @@ const DrawPageCore: React.FC<{
 				return;
 			}
 
-			if (drawPageStateRef.current === DrawPageState.Init) {
-				return;
-			} else if (drawPageStateRef.current === DrawPageState.Release) {
+			if (drawPageStateRef.current === DrawPageState.Release) {
 				// 这时候可能窗口还在加载中，每隔一段时间触发下截图
 				if (releaseExecuteScreenshotTimerRef.current?.timer) {
 					clearInterval(releaseExecuteScreenshotTimerRef.current.timer);
