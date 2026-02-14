@@ -441,11 +441,17 @@ const DrawPageCore: React.FC<{
 			}
 
 			drawPageStateRef.current = DrawPageState.Release;
-			await Promise.all([
-				createDrawWindow(),
-				// 隔一段时间释放，防止释放中途用户唤起
-				closeWindowAfterDelay(1000 * 3),
-			]);
+			try {
+				await Promise.all([
+					createDrawWindow(),
+					// 隔一段时间释放，防止释放中途用户唤起
+					closeWindowAfterDelay(1000 * 3),
+				]);
+			} catch (error) {
+				appError("[DrawPageCore] releasePage error", error);
+				// 如果创建窗口失败，重置状态以便下次截图可以正常执行
+				drawPageStateRef.current = DrawPageState.WaitRelease;
+			}
 		}, 1000 * 16);
 	}, []);
 
@@ -661,7 +667,14 @@ const DrawPageCore: React.FC<{
 			} catch {
 				imageBuffer = undefined;
 			}
-			await initCaptureBoundingBoxInfoPromise;
+			try {
+				await initCaptureBoundingBoxInfoPromise;
+			} catch (error) {
+				appError(
+					"[DrawPageCore] initCaptureBoundingBoxInfoAndShowWindow error",
+					error,
+				);
+			}
 
 			// 如果截图失败了，等窗口显示后，结束截图
 			// 切换截图历史时，不进行截图，只进行显示
@@ -679,6 +692,8 @@ const DrawPageCore: React.FC<{
 
 			// 防止用户提前退出报错
 			if (getCaptureEvent()?.event !== CaptureEvent.onExecuteScreenshot) {
+				capturingRef.current = false;
+				setCaptureStateAction(false);
 				return;
 			}
 
@@ -701,6 +716,8 @@ const DrawPageCore: React.FC<{
 			} catch (error) {
 				// 防止用户提前退出报错
 				if (getCaptureEvent()?.event !== CaptureEvent.onExecuteScreenshot) {
+					capturingRef.current = false;
+					setCaptureStateAction(false);
 					return;
 				}
 
@@ -1365,9 +1382,7 @@ const DrawPageCore: React.FC<{
 				return;
 			}
 
-			if (drawPageStateRef.current === DrawPageState.Init) {
-				return;
-			} else if (drawPageStateRef.current === DrawPageState.Release) {
+			if (drawPageStateRef.current === DrawPageState.Release) {
 				// 这时候可能窗口还在加载中，每隔一段时间触发下截图
 				if (releaseExecuteScreenshotTimerRef.current?.timer) {
 					clearInterval(releaseExecuteScreenshotTimerRef.current.timer);
