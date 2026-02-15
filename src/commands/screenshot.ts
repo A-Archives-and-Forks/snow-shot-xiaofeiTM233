@@ -41,6 +41,11 @@ export const captureFocusedWindow = async (
 	};
 };
 
+/** 获取当前焦点窗口的应用名称 */
+export const getFocusedWindowAppName = (): Promise<string> => {
+	return invoke<string>("get_focused_window_app_name");
+};
+
 export const captureAllMonitors = async (
 	enableMultipleMonitor: boolean,
 	correctHdrColorAlgorithm: HdrColorAlgorithm,

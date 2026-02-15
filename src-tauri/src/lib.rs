@@ -232,6 +232,7 @@ pub fn run() {
             screenshot::capture_current_monitor,
             screenshot::capture_all_monitors,
             screenshot::capture_focused_window,
+            screenshot::get_focused_window_app_name,
             screenshot::get_window_elements,
             screenshot::init_ui_elements,
             screenshot::get_element_from_position,
