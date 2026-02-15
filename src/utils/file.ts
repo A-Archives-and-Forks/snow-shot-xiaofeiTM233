@@ -2,13 +2,17 @@ import { join as joinPath, pictureDir, videoDir } from "@tauri-apps/api/path";
 import * as dialog from "@tauri-apps/plugin-dialog";
 import dayjs from "dayjs";
 import { createDir } from "@/commands/file";
+import { getFocusedWindowAppName } from "@/commands/screenshot";
 import { type AppSettingsData, AppSettingsGroup } from "@/types/appSettings";
 import { ImageFormat, type ImagePath } from "@/types/utils/file";
 
-const parseTemplate = (template: string): string => {
+const parseTemplate = (template: string, appName?: string): string => {
 	const regex = /\{\{([^}]+)\}\}/g;
 
 	return template.replace(regex, (match, content) => {
+		if (content === "FOCUS_WINDOW_APP_NAME") {
+			return appName ?? "Unknown";
+		}
 		if (content.match(/^[YMDHmsAa\-_:\s/.]+$/)) {
 			return dayjs().format(content);
 		}
@@ -19,14 +23,15 @@ const parseTemplate = (template: string): string => {
 /**
  * 生成图片文件名
  * @param format 格式模板，例如 "SnowShot_{YYYY-MM-DD_HH-mm-ss}"
+ * @param appName 可选的窗口应用名称
  * @returns 生成的文件名
  */
-export const generateImageFileName = (format: string) => {
+export const generateImageFileName = (format: string, appName?: string) => {
 	if (!format) {
 		return "";
 	}
 
-	return parseTemplate(format);
+	return parseTemplate(format, appName);
 };
 
 export const joinImagePath = (filePath: string, imageFormat: ImageFormat) => {
@@ -101,11 +106,14 @@ export const getImagePathFromSettings = async (
 		case "fast":
 			fileName = generateImageFileName(outputSettings.fastSaveFileNameFormat);
 			break;
-		case "focused-window":
+		case "focused-window": {
+			const appName = await getFocusedWindowAppName();
 			fileName = generateImageFileName(
 				outputSettings.focusedWindowFileNameFormat,
+				appName || "Screenshot",
 			);
 			break;
+		}
 		case "full-screen":
 			fileName = generateImageFileName(outputSettings.fullScreenFileNameFormat);
 			break;

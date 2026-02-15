@@ -52,6 +52,12 @@ pub async fn capture_focused_window(
     .await
 }
 
+/// 获取当前焦点窗口的应用名称
+#[command]
+pub fn get_focused_window_app_name() -> String {
+    snow_shot_tauri_commands_screenshot::get_focused_window_app_name()
+}
+
 #[command]
 pub async fn init_ui_elements(ui_elements: tauri::State<'_, Mutex<UIElements>>) -> Result<(), ()> {
     snow_shot_tauri_commands_screenshot::init_ui_elements(ui_elements).await

@@ -289,6 +289,35 @@ pub async fn capture_focused_window(
     Ok(Response::new(image_buffer))
 }
 
+/// 获取当前焦点窗口的应用名称
+pub fn get_focused_window_app_name() -> String {
+    #[cfg(target_os = "windows")]
+    {
+        let hwnd = snow_shot_app_os::utils::get_focused_window();
+        let focused_window = xcap::Window::new(xcap::ImplWindow::new(hwnd));
+        focused_window.app_name().unwrap_or_default()
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        String::new()
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let window_list = xcap::Window::all().unwrap_or_default();
+        let window = window_list.iter().find(|w| {
+            w.is_focused().unwrap_or(false)
+                && w.y().unwrap_or(0) != 0
+                && !w.title().unwrap_or_default().starts_with("Item-")
+        });
+        match window {
+            Some(w) => w.app_name().unwrap_or_default(),
+            None => String::new(),
+        }
+    }
+}
+
 pub async fn init_ui_elements(ui_elements: tauri::State<'_, Mutex<UIElements>>) -> Result<(), ()> {
     let mut ui_elements = ui_elements.lock().await;
 
