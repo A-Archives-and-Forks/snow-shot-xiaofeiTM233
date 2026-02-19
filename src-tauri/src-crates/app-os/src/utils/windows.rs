@@ -529,14 +529,23 @@ pub fn restart_with_admin() -> Result<(), String> {
     let exe_path = current_exe.to_string_lossy();
 
     unsafe {
+        // 使用 cmd.exe 延迟启动新进程，确保旧进程有足够时间退出并释放单实例锁
+        // ping 127.0.0.1 -n 2 大约延迟 1 秒
+        let cmd_args = format!(
+            "/C ping 127.0.0.1 -n 2 > nul && \"{}\"",
+            exe_path
+        );
+
         let mut sei: SHELLEXECUTEINFOW = std::mem::zeroed();
         sei.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
         sei.fMask = SEE_MASK_NOCLOSEPROCESS;
         let verb = "runas\0".encode_utf16().collect::<Vec<u16>>();
-        let file = exe_path.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
+        let file = "cmd.exe\0".encode_utf16().collect::<Vec<u16>>();
+        let args = cmd_args.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
         sei.lpVerb = PCWSTR::from_raw(verb.as_ptr());
         sei.lpFile = PCWSTR::from_raw(file.as_ptr());
-        sei.nShow = windows::Win32::UI::WindowsAndMessaging::SW_SHOW.0 as i32;
+        sei.lpParameters = PCWSTR::from_raw(args.as_ptr());
+        sei.nShow = windows::Win32::UI::WindowsAndMessaging::SW_HIDE.0 as i32;
 
         let result = ShellExecuteExW(&mut sei);
         if result.is_err() {
@@ -548,7 +557,7 @@ pub fn restart_with_admin() -> Result<(), String> {
             return Err("[restart_with_admin] ShellExecuteExW failed".into());
         }
 
-        // 如果提权成功，新进程启动后，当前进程可以退出
+        // 如果提权成功，退出当前进程让单实例锁释放
         std::process::exit(0);
     }
 }
@@ -568,14 +577,23 @@ pub fn restart() -> Result<(), String> {
     let exe_path = current_exe.to_string_lossy();
 
     unsafe {
+        // 使用 cmd.exe 延迟启动新进程，确保旧进程有足够时间退出并释放单实例锁
+        // ping 127.0.0.1 -n 2 大约延迟 1 秒
+        let cmd_args = format!(
+            "/C ping 127.0.0.1 -n 2 > nul && \"{}\"",
+            exe_path
+        );
+
         let mut sei: SHELLEXECUTEINFOW = std::mem::zeroed();
         sei.cbSize = std::mem::size_of::<SHELLEXECUTEINFOW>() as u32;
         sei.fMask = SEE_MASK_NOCLOSEPROCESS;
         let verb = "open\0".encode_utf16().collect::<Vec<u16>>();
-        let file = exe_path.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
+        let file = "cmd.exe\0".encode_utf16().collect::<Vec<u16>>();
+        let args = cmd_args.encode_utf16().chain(Some(0)).collect::<Vec<u16>>();
         sei.lpVerb = PCWSTR::from_raw(verb.as_ptr());
         sei.lpFile = PCWSTR::from_raw(file.as_ptr());
-        sei.nShow = windows::Win32::UI::WindowsAndMessaging::SW_SHOW.0 as i32;
+        sei.lpParameters = PCWSTR::from_raw(args.as_ptr());
+        sei.nShow = windows::Win32::UI::WindowsAndMessaging::SW_HIDE.0 as i32;
 
         let result = ShellExecuteExW(&mut sei);
         if result.is_err() {
@@ -587,7 +605,7 @@ pub fn restart() -> Result<(), String> {
             return Err("[restart] ShellExecuteExW failed".into());
         }
 
-        // 如果成功，新进程启动后，当前进程可以退出
+        // 退出当前进程，让单实例锁释放
         std::process::exit(0);
     }
 }
