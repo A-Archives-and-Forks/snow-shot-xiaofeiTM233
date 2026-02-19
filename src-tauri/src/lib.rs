@@ -280,6 +280,7 @@ pub fn run() {
             core::auto_start_enable,
             core::auto_start_disable,
             core::restart_with_admin,
+            core::restart,
             core::write_bitmap_image_to_clipboard,
             #[cfg(target_os = "windows")]
             core::write_bitmap_image_to_clipboard_with_shared_buffer,

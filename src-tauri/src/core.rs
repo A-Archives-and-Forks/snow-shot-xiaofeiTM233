@@ -395,6 +395,11 @@ pub async fn restart_with_admin() -> Result<(), String> {
 }
 
 #[command]
+pub async fn restart() -> Result<(), String> {
+    snow_shot_tauri_commands_core::restart().await
+}
+
+#[command]
 pub async fn write_bitmap_image_to_clipboard(
     request: tauri::ipc::Request<'_>,
 ) -> Result<(), String> {
