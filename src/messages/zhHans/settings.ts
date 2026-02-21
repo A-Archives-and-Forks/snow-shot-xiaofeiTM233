@@ -454,6 +454,8 @@ export const settings = {
 	"settings.functionSettings.translationSettings.apiConfig.apiType": "翻译服务",
 	"settings.functionSettings.translationSettings.apiConfig.apiType.deepL":
 		"DeepL",
+	"settings.functionSettings.translationSettings.apiConfig.apiType.custom":
+		"自定义",
 	"settings.functionSettings.translationSettings.apiConfig.apiUri": "API 地址",
 	"settings.functionSettings.translationSettings.apiConfig.apiUri.tip":
 		"请直接指向翻译接口，如：https://api-free.deepl.com/v2/translate",
@@ -470,6 +472,14 @@ export const settings = {
 		"高质量模型",
 	"settings.functionSettings.translationSettings.apiConfig.deeplPreferQualityOptimized.tip":
 		"如果开启，DeepL 会优先使用延迟更高、质量更高的翻译模型",
+	"settings.functionSettings.translationSettings.apiConfig.maxRequestsPerSecond":
+		"每秒最大请求数",
+	"settings.functionSettings.translationSettings.apiConfig.maxRequestsPerSecond.tip":
+		"请求数超过该限制时会进入排队状态，直到下一秒钟开始",
+	"settings.functionSettings.translationSettings.apiConfig.maxParagraphCount":
+		"每次请求最大段落数",
+	"settings.functionSettings.translationSettings.apiConfig.maxParagraphCount.tip":
+		"每次发送给翻译服务的段落数量，如果段落数量过多，可能会导致接口的响应变慢",
 	"settings.functionSettings.trayIconSettings": "托盘",
 	"settings.functionSettings.trayIconSettings.iconClickAction": "左键点击后",
 	"settings.functionSettings.trayIconSettings.iconClickAction.screenshot":

@@ -18,6 +18,7 @@ import { type ChatModel, getChatModelsWithCache } from "@/services/tools/chat";
 import {
 	getTranslationTypesWithCache,
 	translate,
+	translateTextCustomWithLimits,
 	translateTextDeepL,
 } from "@/services/tools/translation";
 import {
@@ -202,6 +203,8 @@ export const useTranslationRequest = (options?: {
 			switch (apiConfigType) {
 				case TranslationApiType.DeepL:
 					return intl.formatMessage({ id: "tools.translation.type.deepl" });
+				case TranslationApiType.Custom:
+					return intl.formatMessage({ id: "tools.translation.type.custom" });
 				default:
 					return apiConfigType;
 			}
@@ -302,14 +305,16 @@ export const useTranslationRequest = (options?: {
 			}
 
 			if ("translationApiConfig" in config) {
-				if (config.type === TranslationApiType.DeepL) {
+				const apiConfig = config.translationApiConfig;
+
+				if (apiConfig.api_type === TranslationApiType.DeepL) {
 					setStartTranslateLoading(true);
 
 					let result: DeepLTranslateResult | undefined;
 					try {
 						result = await translateTextDeepL(
-							config.translationApiConfig.api_uri,
-							config.translationApiConfig.api_key,
+							apiConfig.api_uri,
+							apiConfig.api_key,
 							params.sourceContent,
 							convertLanguageCodeToDeepLSourceLanguageCode(
 								params.sourceLanguage,
@@ -317,11 +322,48 @@ export const useTranslationRequest = (options?: {
 							convertLanguageCodeToDeepLTargetLanguageCode(
 								params.targetLanguage,
 							),
-							config.translationApiConfig.deepl_prefer_quality_optimized ??
-								false,
+							apiConfig.deepl_prefer_quality_optimized ?? false,
 						);
 					} catch (error) {
 						appError("[customTranslation] translateTextDeepL error", error);
+					}
+
+					setStartTranslateLoading(false);
+
+					if (!result) {
+						return {
+							success: false,
+						};
+					}
+
+					options?.onComplete?.(
+						result.translations.map((item) => ({
+							content: item.text,
+						})),
+						params.requestId,
+					);
+
+					return {
+						success: true,
+						result: result.translations.map((item) => ({
+							content: item.text,
+						})),
+					};
+				}
+
+				if (apiConfig.api_type === TranslationApiType.Custom) {
+					setStartTranslateLoading(true);
+
+					let result: Awaited<ReturnType<typeof translateTextCustomWithLimits>>;
+					try {
+						result = await translateTextCustomWithLimits(
+							apiConfig,
+							params.sourceContent,
+							params.sourceLanguage,
+							params.targetLanguage,
+						);
+					} catch (error) {
+						appError("[customTranslation] translateTextCustom error", error);
 					}
 
 					setStartTranslateLoading(false);
