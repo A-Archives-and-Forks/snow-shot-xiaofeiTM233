@@ -16,53 +16,46 @@ export type CustomTranslateResult = {
 };
 
 /**
- * 速率限制器 - 控制每秒最大请求数
+ * 速率限制器 - 使用队列实现，按固定间隔处理请求
  */
 class RateLimiter {
-	private requestsThisSecond = 0;
-	private currentSecond = Math.floor(Date.now() / 1000);
-	private queue: Array<{ resolve: () => void; timer: NodeJS.Timeout }> = [];
+	private queue: Array<() => void> = [];
+	private processing = false;
+	private lastRequestTime = 0;
 
 	constructor(private maxRequestsPerSecond: number) {}
 
 	async acquire(): Promise<void> {
-		const now = Math.floor(Date.now() / 1000);
-
-		// 新的一秒开始，重置计数器
-		if (now > this.currentSecond) {
-			this.currentSecond = now;
-			this.requestsThisSecond = 0;
-		}
-
-		// 如果当前秒内请求数未达上限，直接执行
-		if (this.requestsThisSecond < this.maxRequestsPerSecond) {
-			this.requestsThisSecond++;
-			return;
-		}
-
-		// 计算需要等待的时间（到下一秒开始的毫秒数）
-		const msUntilNextSecond = 1000 - (Date.now() % 1000);
-
-		// 加入队列等待下一秒
 		return new Promise((resolve) => {
-			const timer = setTimeout(() => {
-				// 从队列中移除自己
-				const index = this.queue.findIndex((item) => item.resolve === resolve);
-				if (index !== -1) {
-					this.queue.splice(index, 1);
-				}
-				// 重置计数器并执行
-				const nowInner = Math.floor(Date.now() / 1000);
-				if (nowInner > this.currentSecond) {
-					this.currentSecond = nowInner;
-					this.requestsThisSecond = 0;
-				}
-				this.requestsThisSecond++;
-				resolve();
-			}, msUntilNextSecond);
-
-			this.queue.push({ resolve, timer });
+			this.queue.push(resolve);
+			this.processQueue();
 		});
+	}
+
+	private async processQueue(): Promise<void> {
+		if (this.processing || this.queue.length === 0) return;
+
+		this.processing = true;
+
+		while (this.queue.length > 0) {
+			const now = Date.now();
+			const minInterval = 1000 / this.maxRequestsPerSecond;
+			const timeSinceLastRequest = now - this.lastRequestTime;
+
+			if (timeSinceLastRequest < minInterval && this.lastRequestTime > 0) {
+				await new Promise((r) =>
+					setTimeout(r, minInterval - timeSinceLastRequest),
+				);
+			}
+
+			const resolve = this.queue.shift();
+			if (resolve) {
+				this.lastRequestTime = Date.now();
+				resolve();
+			}
+		}
+
+		this.processing = false;
 	}
 }
 
