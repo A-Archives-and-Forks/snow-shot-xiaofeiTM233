@@ -341,24 +341,28 @@ export const translateTextGoogle = async (
 	for (const text of sourceContent) {
 		await googleRateLimiter.acquire();
 
-		const params = new URLSearchParams({
-			client: "gtx",
-			sl: sl === "auto" ? "auto" : sl,
-			tl,
-			dt: "t",
-			q: text,
-		});
-
 		try {
-			const response = await serviceBaseFetch(
+			const params = new URLSearchParams({
+				client: "gtx",
+				sl: sl === "auto" ? "auto" : sl,
+				tl,
+				dt: "t",
+				q: text,
+			});
+
+			const response = await fetch(
 				`https://translate.googleapis.com/translate_a/single?${params.toString()}`,
 				{
 					method: "GET",
 				},
 			);
 
-			if (response instanceof ServiceResponse) {
-				response.success();
+			if (!response.ok) {
+				console.error(
+					"[translateTextGoogle] HTTP error:",
+					response.status,
+					response.statusText,
+				);
 				continue;
 			}
 
@@ -394,43 +398,59 @@ export const translateTextMicrosoft = async (
 
 	const translations: CustomTranslateResult["translations"] = [];
 
+	// 获取 token（每个翻译会话只需要一次）
+	let token: string | null = null;
+	try {
+		const tokenResponse = await fetch(
+			"https://edge.microsoft.com/translate/auth",
+			{
+				method: "GET",
+			},
+		);
+
+		if (tokenResponse.ok) {
+			token = await tokenResponse.text();
+		}
+	} catch (error) {
+		console.error("[translateTextMicrosoft] Failed to get token:", error);
+	}
+
+	if (!token) {
+		console.error("[translateTextMicrosoft] No token available");
+		return undefined;
+	}
+
 	for (const text of sourceContent) {
 		await microsoftRateLimiter.acquire();
 
 		try {
-			// 首先获取 token
-			const tokenResponse = await serviceBaseFetch(
-				"https://edge.microsoft.com/translate/auth",
-				{ method: "GET" },
-			);
+			const params = new URLSearchParams({
+				"api-version": "3.0",
+				to: tl,
+			});
 
-			if (tokenResponse instanceof ServiceResponse) {
-				tokenResponse.success();
-				continue;
+			if (sl) {
+				params.set("from", sl);
 			}
 
-			const token = await tokenResponse.text();
-
-			// 然后进行翻译
-			const response = await serviceBaseFetch(
-				"https://api.cognitive.microsofttranslator.com/translate",
+			const response = await fetch(
+				`https://api.cognitive.microsofttranslator.com/translate?${params.toString()}`,
 				{
 					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${token}`,
 					},
-					data: [{ Text: text }],
-					params: {
-						"api-version": "3.0",
-						from: sl || undefined,
-						to: tl,
-					},
+					body: JSON.stringify([{ Text: text }]),
 				},
 			);
 
-			if (response instanceof ServiceResponse) {
-				response.success();
+			if (!response.ok) {
+				console.error(
+					"[translateTextMicrosoft] HTTP error:",
+					response.status,
+					response.statusText,
+				);
 				continue;
 			}
 
