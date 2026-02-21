@@ -297,3 +297,157 @@ export const translateTextCustomWithLimits = async (
 };
 
 export const translateTextCustom = translateTextCustomOnce;
+
+/**
+ * 谷歌翻译语言代码映射
+ */
+const googleLanguageCodeMap: Record<string, string> = {
+	auto: "auto",
+	"zh-CHS": "zh-CN",
+	"zh-CHT": "zh-TW",
+	en: "en",
+	ja: "ja",
+};
+
+/**
+ * 微软翻译语言代码映射
+ */
+const microsoftLanguageCodeMap: Record<string, string> = {
+	auto: "",
+	"zh-CHS": "zh-Hans",
+	"zh-CHT": "zh-Hant",
+	en: "en",
+	ja: "ja",
+};
+
+// 谷歌翻译速率限制器（每秒最多 5 个请求）
+const googleRateLimiter = new RateLimiter(5);
+// 微软翻译速率限制器（每秒最多 5 个请求）
+const microsoftRateLimiter = new RateLimiter(5);
+
+/**
+ * 谷歌翻译
+ */
+export const translateTextGoogle = async (
+	sourceContent: string[],
+	sourceLanguage: string,
+	targetLanguage: string,
+): Promise<CustomTranslateResult | undefined> => {
+	const sl = googleLanguageCodeMap[sourceLanguage] ?? sourceLanguage;
+	const tl = googleLanguageCodeMap[targetLanguage] ?? targetLanguage;
+
+	const translations: CustomTranslateResult["translations"] = [];
+
+	for (const text of sourceContent) {
+		await googleRateLimiter.acquire();
+
+		const params = new URLSearchParams({
+			client: "gtx",
+			sl: sl === "auto" ? "auto" : sl,
+			tl,
+			dt: "t",
+			q: text,
+		});
+
+		try {
+			const response = await serviceBaseFetch(
+				`https://translate.googleapis.com/translate_a/single?${params.toString()}`,
+				{
+					method: "GET",
+				},
+			);
+
+			if (response instanceof ServiceResponse) {
+				response.success();
+				continue;
+			}
+
+			const data = await response.json();
+			// 谷歌翻译返回格式: [[["翻译文本", "原文", null, null, 10], ...], null, "检测到的语言", ...]
+			const translatedText = Array.isArray(data?.[0])
+				? data[0].map((item: string[]) => item?.[0] ?? "").join("")
+				: "";
+			const detectedLang = data?.[2] ?? sourceLanguage;
+
+			translations.push({
+				text: translatedText,
+				detected_source_lang: detectedLang,
+			});
+		} catch (error) {
+			console.error("[translateTextGoogle] error", error);
+		}
+	}
+
+	return translations.length > 0 ? { translations } : undefined;
+};
+
+/**
+ * 微软翻译 (Bing Translator)
+ */
+export const translateTextMicrosoft = async (
+	sourceContent: string[],
+	sourceLanguage: string,
+	targetLanguage: string,
+): Promise<CustomTranslateResult | undefined> => {
+	const sl = microsoftLanguageCodeMap[sourceLanguage] ?? sourceLanguage;
+	const tl = microsoftLanguageCodeMap[targetLanguage] ?? targetLanguage;
+
+	const translations: CustomTranslateResult["translations"] = [];
+
+	for (const text of sourceContent) {
+		await microsoftRateLimiter.acquire();
+
+		try {
+			// 首先获取 token
+			const tokenResponse = await serviceBaseFetch(
+				"https://edge.microsoft.com/translate/auth",
+				{ method: "GET" },
+			);
+
+			if (tokenResponse instanceof ServiceResponse) {
+				tokenResponse.success();
+				continue;
+			}
+
+			const token = await tokenResponse.text();
+
+			// 然后进行翻译
+			const response = await serviceBaseFetch(
+				"https://api.cognitive.microsofttranslator.com/translate",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+					data: [{ Text: text }],
+					params: {
+						"api-version": "3.0",
+						from: sl || undefined,
+						to: tl,
+					},
+				},
+			);
+
+			if (response instanceof ServiceResponse) {
+				response.success();
+				continue;
+			}
+
+			const data = await response.json();
+			// 微软翻译返回格式: [{"detectedLanguage":{"language":"en"},"translations":[{"text":"翻译文本","to":"zh-Hans"}]}]
+			const result = data?.[0];
+			const translatedText = result?.translations?.[0]?.text ?? "";
+			const detectedLang = result?.detectedLanguage?.language ?? sourceLanguage;
+
+			translations.push({
+				text: translatedText,
+				detected_source_lang: detectedLang,
+			});
+		} catch (error) {
+			console.error("[translateTextMicrosoft] error", error);
+		}
+	}
+
+	return translations.length > 0 ? { translations } : undefined;
+};

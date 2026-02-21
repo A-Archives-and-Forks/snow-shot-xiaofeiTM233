@@ -1542,32 +1542,34 @@ export const FunctionSettingsPage = () => {
 												name={["api_type"]}
 											>
 												{({ api_type }) => {
-													return (
-														<Col span={12}>
-															<ProFormText.Password
-																name="api_key"
-																label={
-																	<IconLabel
-																		label={
-																			<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey" />
-																		}
-																		tooltipTitle={
-																			<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey.tip" />
-																		}
-																	/>
-																}
-																rules={[
-																	{
-																		required:
-																			api_type === TranslationApiType.DeepL,
-																		message: intl.formatMessage({
-																			id: "settings.functionSettings.translationSettings.apiConfig.apiKey.required",
-																		}),
-																	},
-																]}
-															/>
-														</Col>
-													);
+													if (api_type === TranslationApiType.DeepL) {
+														return (
+															<Col span={12}>
+																<ProFormText.Password
+																	name="api_key"
+																	label={
+																		<IconLabel
+																			label={
+																				<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey" />
+																			}
+																			tooltipTitle={
+																				<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey.tip" />
+																			}
+																		/>
+																	}
+																	rules={[
+																		{
+																			required: true,
+																			message: intl.formatMessage({
+																				id: "settings.functionSettings.translationSettings.apiConfig.apiKey.required",
+																			}),
+																		},
+																	]}
+																/>
+															</Col>
+														);
+													}
+													return null;
 												}}
 											</ProFormDependency>
 

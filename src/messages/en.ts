@@ -188,6 +188,8 @@ export const en = {
 	"tools.translation.domain": "Translation Domain",
 	"tools.translation.type.youdao": "Youdao Translate",
 	"tools.translation.type.deepseek": "DeepSeek",
+	"tools.translation.type.google": "Google Translate",
+	"tools.translation.type.microsoft": "Microsoft Translate",
 	"tools.translation.domain.general": "General",
 	"tools.translation.domain.computers": "Computers",
 	"tools.translation.domain.medicine": "Medicine",

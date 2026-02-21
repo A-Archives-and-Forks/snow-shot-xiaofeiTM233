@@ -20,6 +20,8 @@ import {
 	translate,
 	translateTextCustomWithLimits,
 	translateTextDeepL,
+	translateTextGoogle,
+	translateTextMicrosoft,
 } from "@/services/tools/translation";
 import {
 	type AppSettingsData,
@@ -219,6 +221,18 @@ export const useTranslationRequest = (options?: {
 	useEffect(() => {
 		setSupportedTranslationTypesLoading(true);
 		setSupportedTranslationTypes([
+			// 谷歌翻译（内置）
+			{
+				type: TranslationType.Google,
+				name: intl.formatMessage({ id: "tools.translation.type.google" }),
+				isOfficial: true,
+			},
+			// 微软翻译（内置）
+			{
+				type: TranslationType.Microsoft,
+				name: intl.formatMessage({ id: "tools.translation.type.microsoft" }),
+				isOfficial: true,
+			},
 			...(chatApiConfigList?.map((item): TranslationServiceConfig => {
 				return {
 					type: `${CUSTOM_MODEL_PREFIX}${item.api_model}`,
@@ -271,6 +285,7 @@ export const useTranslationRequest = (options?: {
 		officialChatModels,
 		officialTranslationTypes,
 		getTranslationApiConfigTypeName,
+		intl,
 	]);
 
 	// 请求翻译的加载
@@ -507,6 +522,50 @@ export const useTranslationRequest = (options?: {
 				if (result.success) {
 					return;
 				}
+			}
+
+			// 谷歌翻译
+			if (translationType === TranslationType.Google) {
+				setStartTranslateLoading(true);
+				const result = await translateTextGoogle(
+					sourceContent,
+					sourceLanguage,
+					targetLanguage,
+				);
+				setStartTranslateLoading(false);
+
+				if (result) {
+					const translatedResults = result.translations.map((item) => ({
+						content: item.text,
+					}));
+					options?.onComplete?.(translatedResults, requestId);
+					setTranslatedContent(
+						translatedResults.map((item) => item.content).join("\n"),
+					);
+				}
+				return;
+			}
+
+			// 微软翻译
+			if (translationType === TranslationType.Microsoft) {
+				setStartTranslateLoading(true);
+				const result = await translateTextMicrosoft(
+					sourceContent,
+					sourceLanguage,
+					targetLanguage,
+				);
+				setStartTranslateLoading(false);
+
+				if (result) {
+					const translatedResults = result.translations.map((item) => ({
+						content: item.text,
+					}));
+					options?.onComplete?.(translatedResults, requestId);
+					setTranslatedContent(
+						translatedResults.map((item) => item.content).join("\n"),
+					);
+				}
+				return;
 			}
 
 			setStartTranslateLoading(true);
