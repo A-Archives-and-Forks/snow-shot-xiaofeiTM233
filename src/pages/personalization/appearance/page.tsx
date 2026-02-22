@@ -262,14 +262,7 @@ export const AppearancePage = () => {
 							<ProForm.Item
 								name="skinPath"
 								label={
-									<IconLabel
-										label={
-											<FormattedMessage id="settings.themeSkinSettings.skinPath" />
-										}
-										tooltipTitle={
-											<FormattedMessage id="settings.themeSkinSettings.skinPath.tip" />
-										}
-									/>
+									<FormattedMessage id="settings.themeSkinSettings.skinPath" />
 								}
 								required={false}
 							>

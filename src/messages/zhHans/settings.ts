@@ -151,13 +151,13 @@ export const settings = {
 		"快捷键启动时自动创建新会话",
 	"settings.functionSettings.chatSettings.autoCreateNewSessionOnCloseWindow":
 		"关闭窗口时自动创建新会话",
-	"settings.functionSettings.chatSettings.apiConfig": "API 配置",
+	"settings.functionSettings.chatSettings.apiConfig": "LLM 配置",
 	"settings.functionSettings.chatSettings.apiConfig.tip":
 		"仅支持兼容 OpenAI SDK 的 API 配置，新增配置后将自动支持 AI 翻译",
-	"settings.functionSettings.chatSettings.apiConfig.add": "添加 API 配置",
+	"settings.functionSettings.chatSettings.apiConfig.add": "添加 LLM 配置",
 	"settings.functionSettings.chatSettings.apiConfig.apiKey": "API Key",
 	"settings.functionSettings.chatSettings.apiConfig.apiKey.tip":
-		"注意该配置在本地明文保存（也不会上传到云端）",
+		"该配置在本地明文保存且不会上传到云端",
 	"settings.functionSettings.chatSettings.apiConfig.apiKey.required":
 		"请输入 API Key",
 	"settings.functionSettings.chatSettings.apiConfig.apiUri": "API 地址",
@@ -222,9 +222,9 @@ export const settings = {
 		"截取当前具有焦点的窗口时复制到剪贴板",
 	"settings.functionSettings.screenshotSettings.fullScreenCopyToClipboard":
 		"截取全屏时复制到剪贴板",
-	"settings.functionSettings.screenshotSettings.saveToCloud": "保存到云端",
+	"settings.functionSettings.screenshotSettings.saveToCloud": "保存到云端按钮",
 	"settings.functionSettings.screenshotSettings.saveToCloud.tip":
-		"工具栏新增保存到云端按钮，快速保存到云端并复制结果到剪贴板",
+		"工具栏新增「保存到云端」按钮，点击后自动保存到云端并复制结果到剪贴板",
 	"settings.functionSettings.screenshotSettings.cloudSaveUrl.type":
 		"云端保存协议",
 	"settings.functionSettings.screenshotSettings.cloudProxyUrl":
@@ -253,9 +253,9 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.autoSave":
 		"复制后自动保存",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.fastSave":
-		"一键快速保存",
+		"快速保存按钮",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.fastSave.tip":
-		"工具栏新增一个快速保存按钮，点击后自动保存到指定路径",
+		"工具栏新增「快速保存」按钮，点击后自动保存到指定路径",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.directory":
 		"文件保存目录",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.saveFileFormat":
@@ -439,7 +439,7 @@ export const settings = {
 		"截图的固定到屏幕不受影响",
 	"settings.functionSettings.fixedContentSettings.autoOcr": "自动文本识别",
 	"settings.functionSettings.fixedContentSettings.autoCopyToClipboard":
-		"固定截图后自动复制到剪贴板",
+		"固定到屏幕后自动复制到剪贴板",
 	"settings.functionSettings.fixedContentSettings.initialPosition.monitorCenter":
 		"显示器居中",
 	"settings.functionSettings.fixedContentSettings.initialPosition.mousePosition":
@@ -461,11 +461,11 @@ export const settings = {
 		"请直接指向翻译接口，如：https://api-free.deepl.com/v2/translate",
 	"settings.functionSettings.translationSettings.apiConfig.apiKey": "API Key",
 	"settings.functionSettings.translationSettings.apiConfig.apiKey.tip":
-		"注意该配置在本地明文保存（也不会上传到云端）",
+		"该配置在本地明文保存且不会上传到云端",
 	"settings.functionSettings.translationSettings.apiConfig.apiUri.required":
 		"请输入 API 地址",
 	"settings.functionSettings.translationSettings.apiConfig.add":
-		"添加 API 配置",
+		"添加 LLM 配置",
 	"settings.functionSettings.translationSettings.apiConfig.apiKey.required":
 		"请输入 API Key",
 	"settings.functionSettings.translationSettings.apiConfig.deeplPreferQualityOptimized":
