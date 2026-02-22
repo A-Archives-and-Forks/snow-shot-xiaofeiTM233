@@ -151,13 +151,13 @@ export const settings = {
 		"快捷鍵啟動時自動建立新工作階段",
 	"settings.functionSettings.chatSettings.autoCreateNewSessionOnCloseWindow":
 		"關閉視窗時自動建立新工作階段",
-	"settings.functionSettings.chatSettings.apiConfig": "API 配置",
+	"settings.functionSettings.chatSettings.apiConfig": "LLM 配置",
 	"settings.functionSettings.chatSettings.apiConfig.tip":
 		"僅支援相容 OpenAI SDK 的 API 配置，新增配置後將自動支援 AI 翻譯",
-	"settings.functionSettings.chatSettings.apiConfig.add": "新增 API 配置",
+	"settings.functionSettings.chatSettings.apiConfig.add": "新增 LLM 配置",
 	"settings.functionSettings.chatSettings.apiConfig.apiKey": "API Key",
 	"settings.functionSettings.chatSettings.apiConfig.apiKey.tip":
-		"注意該配置在本機明文儲存（也不會上傳到雲端）",
+		"該配置在本機明文儲存且不會上傳到雲端",
 	"settings.functionSettings.chatSettings.apiConfig.apiKey.required":
 		"請輸入 API Key",
 	"settings.functionSettings.chatSettings.apiConfig.apiUri": "API 位址",
@@ -222,9 +222,9 @@ export const settings = {
 		"擷取目前具有焦點的視窗時複製到剪貼簿",
 	"settings.functionSettings.screenshotSettings.fullScreenCopyToClipboard":
 		"擷取全螢幕時複製到剪貼簿",
-	"settings.functionSettings.screenshotSettings.saveToCloud": "儲存到雲端",
+	"settings.functionSettings.screenshotSettings.saveToCloud": "儲存到雲端按鈕",
 	"settings.functionSettings.screenshotSettings.saveToCloud.tip":
-		"工具列新增儲存到雲端按鈕，快速儲存到雲端並複製結果到剪貼簿",
+		"工具列新增「儲存到雲端」按鈕，點擊後自動儲存到雲端並複製結果到剪貼簿",
 	"settings.functionSettings.screenshotSettings.cloudSaveUrl.type":
 		"雲端儲存協定",
 	"settings.functionSettings.screenshotSettings.cloudProxyUrl":
@@ -253,9 +253,9 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.autoSave":
 		"複製後自動儲存",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.fastSave":
-		"一鍵快速儲存",
+		"快速儲存按鈕",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.fastSave.tip":
-		"工具列新增一個快速儲存按鈕，點擊後自動儲存到指定路徑",
+		"工具列新增「快速儲存」按鈕，點擊後自動儲存到指定路徑",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.directory":
 		"檔案儲存目錄",
 	"settings.functionSettings.screenshotSettings.autoSaveFileMode.saveFileFormat":
@@ -439,7 +439,7 @@ export const settings = {
 		"截圖的固定到螢幕不受影響",
 	"settings.functionSettings.fixedContentSettings.autoOcr": "自動文字辨識",
 	"settings.functionSettings.fixedContentSettings.autoCopyToClipboard":
-		"固定截圖後自動複製到剪貼簿",
+		"固定到螢幕後自動複製到剪貼簿",
 	"settings.functionSettings.fixedContentSettings.initialPosition.monitorCenter":
 		"螢幕置中",
 	"settings.functionSettings.fixedContentSettings.initialPosition.mousePosition":
@@ -461,11 +461,11 @@ export const settings = {
 		"請直接指向翻譯介面，如：https://api-free.deepl.com/v2/translate",
 	"settings.functionSettings.translationSettings.apiConfig.apiKey": "API Key",
 	"settings.functionSettings.translationSettings.apiConfig.apiKey.tip":
-		"注意該配置在本機明文儲存（也不會上傳到雲端）",
+		"該配置在本機明文儲存且不會上傳到雲端",
 	"settings.functionSettings.translationSettings.apiConfig.apiUri.required":
 		"請輸入 API 位址",
 	"settings.functionSettings.translationSettings.apiConfig.add":
-		"新增 API 配置",
+		"新增 LLM 配置",
 	"settings.functionSettings.translationSettings.apiConfig.apiKey.required":
 		"請輸入 API Key",
 	"settings.functionSettings.translationSettings.apiConfig.deeplPreferQualityOptimized":

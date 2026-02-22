@@ -64,7 +64,7 @@ export const draw = {
 	"draw.ocrDetectTool": "文本识别",
 	"draw.ocrTranslateTool": "文本识别翻译",
 	"draw.showOrHideOcrResult": "显示文本识别结果",
-	"draw.fixedTool": "固定到屏幕",
+	"draw.fixedTool": "截图并固定到屏幕",
 	"draw.extraToolsTool": "额外工具",
 	"draw.dragSelectRect": "整体移动选区",
 	"draw.lockWidthHeightPicker": "保持选区宽高一致",

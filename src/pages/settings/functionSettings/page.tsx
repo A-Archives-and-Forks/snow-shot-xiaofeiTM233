@@ -888,7 +888,9 @@ export const FunctionSettingsPage = () => {
 								}
 							/>
 						</Col>
+					</Row>
 
+					<Row gutter={token.marginLG}>
 						<Col span={12}>
 							<ProFormSwitch
 								name="fastSave"
@@ -903,6 +905,24 @@ export const FunctionSettingsPage = () => {
 										}
 									/>
 								}
+							/>
+						</Col>
+
+						<Col span={12}>
+							<ProFormSwitch
+								name="saveToCloud"
+								layout="horizontal"
+								label={
+									<IconLabel
+										label={
+											<FormattedMessage id="settings.functionSettings.screenshotSettings.saveToCloud" />
+										}
+										tooltipTitle={
+											<FormattedMessage id="settings.functionSettings.screenshotSettings.saveToCloud.tip" />
+										}
+									/>
+								}
+								valuePropName="checked"
 							/>
 						</Col>
 					</Row>
@@ -956,26 +976,6 @@ export const FunctionSettingsPage = () => {
 									]}
 								/>
 							</ProForm.Item>
-						</Col>
-					</Row>
-
-					<Row gutter={token.marginLG}>
-						<Col span={12}>
-							<ProFormSwitch
-								name="saveToCloud"
-								layout="horizontal"
-								label={
-									<IconLabel
-										label={
-											<FormattedMessage id="settings.functionSettings.screenshotSettings.saveToCloud" />
-										}
-										tooltipTitle={
-											<FormattedMessage id="settings.functionSettings.screenshotSettings.saveToCloud.tip" />
-										}
-									/>
-								}
-								valuePropName="checked"
-							/>
 						</Col>
 					</Row>
 
