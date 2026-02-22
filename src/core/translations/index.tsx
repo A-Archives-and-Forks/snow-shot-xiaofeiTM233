@@ -18,7 +18,10 @@ import { type ChatModel, getChatModelsWithCache } from "@/services/tools/chat";
 import {
 	getTranslationTypesWithCache,
 	translate,
+	translateTextCustomWithLimits,
 	translateTextDeepL,
+	translateTextGoogle,
+	translateTextMicrosoft,
 } from "@/services/tools/translation";
 import {
 	type AppSettingsData,
@@ -202,6 +205,8 @@ export const useTranslationRequest = (options?: {
 			switch (apiConfigType) {
 				case TranslationApiType.DeepL:
 					return intl.formatMessage({ id: "tools.translation.type.deepl" });
+				case TranslationApiType.Custom:
+					return intl.formatMessage({ id: "tools.translation.type.custom" });
 				default:
 					return apiConfigType;
 			}
@@ -216,6 +221,18 @@ export const useTranslationRequest = (options?: {
 	useEffect(() => {
 		setSupportedTranslationTypesLoading(true);
 		setSupportedTranslationTypes([
+			// 谷歌翻译（内置）
+			{
+				type: TranslationType.Google,
+				name: intl.formatMessage({ id: "tools.translation.type.google" }),
+				isOfficial: true,
+			},
+			// 微软翻译（内置）
+			{
+				type: TranslationType.Microsoft,
+				name: intl.formatMessage({ id: "tools.translation.type.microsoft" }),
+				isOfficial: true,
+			},
 			...(chatApiConfigList?.map((item): TranslationServiceConfig => {
 				return {
 					type: `${CUSTOM_MODEL_PREFIX}${item.api_model}`,
@@ -268,6 +285,7 @@ export const useTranslationRequest = (options?: {
 		officialChatModels,
 		officialTranslationTypes,
 		getTranslationApiConfigTypeName,
+		intl,
 	]);
 
 	// 请求翻译的加载
@@ -302,14 +320,16 @@ export const useTranslationRequest = (options?: {
 			}
 
 			if ("translationApiConfig" in config) {
-				if (config.type === TranslationApiType.DeepL) {
+				const apiConfig = config.translationApiConfig;
+
+				if (apiConfig.api_type === TranslationApiType.DeepL) {
 					setStartTranslateLoading(true);
 
 					let result: DeepLTranslateResult | undefined;
 					try {
 						result = await translateTextDeepL(
-							config.translationApiConfig.api_uri,
-							config.translationApiConfig.api_key,
+							apiConfig.api_uri,
+							apiConfig.api_key,
 							params.sourceContent,
 							convertLanguageCodeToDeepLSourceLanguageCode(
 								params.sourceLanguage,
@@ -317,11 +337,48 @@ export const useTranslationRequest = (options?: {
 							convertLanguageCodeToDeepLTargetLanguageCode(
 								params.targetLanguage,
 							),
-							config.translationApiConfig.deepl_prefer_quality_optimized ??
-								false,
+							apiConfig.deepl_prefer_quality_optimized ?? false,
 						);
 					} catch (error) {
 						appError("[customTranslation] translateTextDeepL error", error);
+					}
+
+					setStartTranslateLoading(false);
+
+					if (!result) {
+						return {
+							success: false,
+						};
+					}
+
+					options?.onComplete?.(
+						result.translations.map((item) => ({
+							content: item.text,
+						})),
+						params.requestId,
+					);
+
+					return {
+						success: true,
+						result: result.translations.map((item) => ({
+							content: item.text,
+						})),
+					};
+				}
+
+				if (apiConfig.api_type === TranslationApiType.Custom) {
+					setStartTranslateLoading(true);
+
+					let result: Awaited<ReturnType<typeof translateTextCustomWithLimits>>;
+					try {
+						result = await translateTextCustomWithLimits(
+							apiConfig,
+							params.sourceContent,
+							params.sourceLanguage,
+							params.targetLanguage,
+						);
+					} catch (error) {
+						appError("[customTranslation] translateTextCustom error", error);
 					}
 
 					setStartTranslateLoading(false);
@@ -465,6 +522,50 @@ export const useTranslationRequest = (options?: {
 				if (result.success) {
 					return;
 				}
+			}
+
+			// 谷歌翻译
+			if (translationType === TranslationType.Google) {
+				setStartTranslateLoading(true);
+				const result = await translateTextGoogle(
+					sourceContent,
+					sourceLanguage,
+					targetLanguage,
+				);
+				setStartTranslateLoading(false);
+
+				if (result) {
+					const translatedResults = result.translations.map((item) => ({
+						content: item.text,
+					}));
+					options?.onComplete?.(translatedResults, requestId);
+					setTranslatedContent(
+						translatedResults.map((item) => item.content).join("\n"),
+					);
+				}
+				return;
+			}
+
+			// 微软翻译
+			if (translationType === TranslationType.Microsoft) {
+				setStartTranslateLoading(true);
+				const result = await translateTextMicrosoft(
+					sourceContent,
+					sourceLanguage,
+					targetLanguage,
+				);
+				setStartTranslateLoading(false);
+
+				if (result) {
+					const translatedResults = result.translations.map((item) => ({
+						content: item.text,
+					}));
+					options?.onComplete?.(translatedResults, requestId);
+					setTranslatedContent(
+						translatedResults.map((item) => item.content).join("\n"),
+					);
+				}
+				return;
 			}
 
 			setStartTranslateLoading(true);

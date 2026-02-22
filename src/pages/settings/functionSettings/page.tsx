@@ -557,6 +557,12 @@ export const FunctionSettingsPage = () => {
 				}),
 				value: TranslationApiType.DeepL,
 			},
+			{
+				label: intl.formatMessage({
+					id: "settings.functionSettings.translationSettings.apiConfig.apiType.custom",
+				}),
+				value: TranslationApiType.Custom,
+			},
 		];
 	}, [intl]);
 
@@ -1532,29 +1538,40 @@ export const FunctionSettingsPage = () => {
 													]}
 												/>
 											</Col>
-											<Col span={12}>
-												<ProFormText.Password
-													name="api_key"
-													label={
-														<IconLabel
-															label={
-																<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey" />
-															}
-															tooltipTitle={
-																<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey.tip" />
-															}
-														/>
+											<ProFormDependency<{ api_type: TranslationApiType }>
+												name={["api_type"]}
+											>
+												{({ api_type }) => {
+													if (api_type === TranslationApiType.DeepL) {
+														return (
+															<Col span={12}>
+																<ProFormText.Password
+																	name="api_key"
+																	label={
+																		<IconLabel
+																			label={
+																				<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey" />
+																			}
+																			tooltipTitle={
+																				<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.apiKey.tip" />
+																			}
+																		/>
+																	}
+																	rules={[
+																		{
+																			required: true,
+																			message: intl.formatMessage({
+																				id: "settings.functionSettings.translationSettings.apiConfig.apiKey.required",
+																			}),
+																		},
+																	]}
+																/>
+															</Col>
+														);
 													}
-													rules={[
-														{
-															required: true,
-															message: intl.formatMessage({
-																id: "settings.functionSettings.translationSettings.apiConfig.apiKey.required",
-															}),
-														},
-													]}
-												/>
-											</Col>
+													return null;
+												}}
+											</ProFormDependency>
 
 											<ProFormDependency<{ api_type: TranslationApiType }>
 												name={["api_type"]}
@@ -1577,6 +1594,53 @@ export const FunctionSettingsPage = () => {
 																	}
 																/>
 															</Col>
+														);
+													}
+
+													if (api_type === TranslationApiType.Custom) {
+														return (
+															<>
+																<Col span={12}>
+																	<ProFormDigit
+																		name="max_requests_per_second"
+																		label={
+																			<IconLabel
+																				label={
+																					<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.maxRequestsPerSecond" />
+																				}
+																				tooltipTitle={
+																					<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.maxRequestsPerSecond.tip" />
+																				}
+																			/>
+																		}
+																		min={1}
+																		max={100}
+																		fieldProps={{
+																			precision: 0,
+																		}}
+																	/>
+																</Col>
+																<Col span={12}>
+																	<ProFormDigit
+																		name="max_paragraph_count"
+																		label={
+																			<IconLabel
+																				label={
+																					<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.maxParagraphCount" />
+																				}
+																				tooltipTitle={
+																					<FormattedMessage id="settings.functionSettings.translationSettings.apiConfig.maxParagraphCount.tip" />
+																				}
+																			/>
+																		}
+																		min={1}
+																		max={100}
+																		fieldProps={{
+																			precision: 0,
+																		}}
+																	/>
+																</Col>
+															</>
 														);
 													}
 

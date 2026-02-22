@@ -188,11 +188,48 @@ export const en = {
 	"tools.translation.domain": "Translation Domain",
 	"tools.translation.type.youdao": "Youdao Translate",
 	"tools.translation.type.deepseek": "DeepSeek",
+	"tools.translation.type.google": "Google Translate",
+	"tools.translation.type.microsoft": "Microsoft Translate",
 	"tools.translation.domain.general": "General",
 	"tools.translation.domain.computers": "Computers",
 	"tools.translation.domain.medicine": "Medicine",
 	"tools.translation.domain.finance": "Finance",
 	"tools.translation.domain.game": "Gaming",
+	"tools.translation.type.deepl": "DeepL Translate",
+	"tools.translation.type.custom": "Custom",
+	"settings.functionSettings.translationSettings": "Translation",
+	"settings.functionSettings.translationSettings.apiConfig":
+		"API Configuration",
+	"settings.functionSettings.translationSettings.apiConfig.apiType":
+		"Translation Service",
+	"settings.functionSettings.translationSettings.apiConfig.apiType.deepL":
+		"DeepL",
+	"settings.functionSettings.translationSettings.apiConfig.apiType.custom":
+		"Custom",
+	"settings.functionSettings.translationSettings.apiConfig.apiUri": "API URL",
+	"settings.functionSettings.translationSettings.apiConfig.apiUri.tip":
+		"Please point directly to the translation endpoint, e.g.: https://api-free.deepl.com/v2/translate",
+	"settings.functionSettings.translationSettings.apiConfig.apiUri.required":
+		"Please enter API URL",
+	"settings.functionSettings.translationSettings.apiConfig.apiKey": "API Key",
+	"settings.functionSettings.translationSettings.apiConfig.apiKey.tip":
+		"Note that this configuration is stored in plaintext locally (and is not uploaded to the cloud)",
+	"settings.functionSettings.translationSettings.apiConfig.apiKey.required":
+		"Please enter API Key",
+	"settings.functionSettings.translationSettings.apiConfig.add":
+		"Add API Configuration",
+	"settings.functionSettings.translationSettings.apiConfig.deeplPreferQualityOptimized":
+		"High Quality Model",
+	"settings.functionSettings.translationSettings.apiConfig.deeplPreferQualityOptimized.tip":
+		"If enabled, DeepL will prioritize using the higher latency, higher quality translation model",
+	"settings.functionSettings.translationSettings.apiConfig.maxRequestsPerSecond":
+		"Max Requests Per Second",
+	"settings.functionSettings.translationSettings.apiConfig.maxRequestsPerSecond.tip":
+		"Requests exceeding this limit will be queued until the next second begins",
+	"settings.functionSettings.translationSettings.apiConfig.maxParagraphCount":
+		"Max Paragraphs Per Request",
+	"settings.functionSettings.translationSettings.apiConfig.maxParagraphCount.tip":
+		"Number of paragraphs sent to the translation service per request, too many paragraphs may slow down the interface response",
 	"settings.systemSettings.networkSettings": "Network Settings",
 	"settings.systemSettings.networkSettings.proxy": "System Proxy",
 	"settings.chatSettings.thinkingBudgetTokens": "Thinking Budget Tokens",

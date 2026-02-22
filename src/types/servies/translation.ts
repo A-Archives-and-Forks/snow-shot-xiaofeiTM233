@@ -4,6 +4,8 @@ export enum TranslationType {
 	QwenTurbo = 2,
 	QwenPlus = 3,
 	QwenMax = 4,
+	Microsoft = 5,
+	Google = 6,
 }
 
 export enum TranslationDomain {

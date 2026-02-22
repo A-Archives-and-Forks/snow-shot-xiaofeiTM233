@@ -70,14 +70,27 @@ export type ChatApiConfig = {
 
 export enum TranslationApiType {
 	DeepL = "translation_api_deepl",
+	Custom = "translation_api_custom",
 }
 
-export type TranslationApiConfig = {
-	api_type: TranslationApiType;
+export type DeepLApiConfig = {
+	api_type: TranslationApiType.DeepL;
 	api_uri: string;
 	api_key: string;
 	deepl_prefer_quality_optimized?: boolean;
 };
+
+export type CustomApiConfig = {
+	api_type: TranslationApiType.Custom;
+	api_uri: string;
+	api_key?: string;
+	/** 每秒最大请求数，默认为 5 */
+	max_requests_per_second?: number;
+	/** 每次请求最大段落数，默认为 1 */
+	max_paragraph_count?: number;
+};
+
+export type TranslationApiConfig = DeepLApiConfig | CustomApiConfig;
 
 export enum AppSettingsGroup {
 	Common = "common",
