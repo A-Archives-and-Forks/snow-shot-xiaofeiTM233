@@ -134,8 +134,25 @@ jobs:
             - name: Install yarn
               run: npm install -g yarn
 
+            # 获取 Excalidraw 的 commit hash
+            - name: Get Excalidraw Commit Hash
+              id: excalidraw-info
+              run: |
+                  hash=$(git ls-remote https://github.com/mg-chao/excalidraw.git refs/heads/custom/master | awk '{print $1}')
+                  echo "hash=$hash" >> $GITHUB_OUTPUT
+              shell: bash
+
+            # 缓存 Excalidraw 构建
+            - name: Cache Excalidraw Build
+              id: cache-excalidraw
+              uses: actions/cache@v4
+              with:
+                path: ../excalidraw
+                key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
+
             # 准备 Excalidraw 依赖
             - name: Clone Excalidraw
+              if: steps.cache-excalidraw.outputs.cache-hit != 'true'
               run: |
                   cd ..
                   git clone https://github.com/mg-chao/excalidraw.git
@@ -145,6 +162,7 @@ jobs:
 
             # 配置 yarn 缓存
             - name: Cache yarn dependencies
+              if: steps.cache-excalidraw.outputs.cache-hit != 'true'
               uses: actions/cache@v4
               with:
                   path: |
@@ -156,11 +174,20 @@ jobs:
 
             # 安装 Excalidraw 依赖
             - name: Install Excalidraw dependencies
+              if: steps.cache-excalidraw.outputs.cache-hit != 'true'
               run: |
                   cd ../excalidraw
                   yarn install --frozen-lockfile
                   cd ../snow-shot
               shell: bash
+
+            # 保存 Excalidraw 缓存
+            - name: Save Excalidraw Cache
+              if: steps.cache-excalidraw.outputs.cache-hit != 'true'
+              uses: actions/cache/save@v4
+              with:
+                path: ../excalidraw
+                key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
 
             # 创建 .env 文件以支持联网功能
             - name: Create .env file
