@@ -1,10 +1,25 @@
-import { CheckOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import { Button, type ButtonProps, Flex, Modal, Space, theme } from "antd";
+import {
+	CheckOutlined,
+	DeleteOutlined,
+	ExclamationCircleOutlined,
+	PlusOutlined,
+} from "@ant-design/icons";
+import {
+	Alert,
+	Button,
+	type ButtonProps,
+	Flex,
+	Modal,
+	message,
+	Space,
+	theme,
+} from "antd";
 import { trim } from "es-toolkit";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRecordHotkeys } from "react-hotkeys-hook";
 import { FormattedMessage } from "react-intl";
+import { checkAccessibilityPermission } from "tauri-plugin-macos-permissions-api";
 import { listenKeyStart, listenKeyStop } from "@/commands/listenKey";
 import { formatKey } from "@/utils/format";
 import { appError } from "@/utils/log";
@@ -82,6 +97,7 @@ export const KeyButton: React.FC<{
 	const { token } = theme.useToken();
 
 	const [open, setOpen] = useState(false);
+	const [permissionError, setPermissionError] = useState<string | null>(null);
 
 	const keyConfigListRef = useRef<KeyConfig[]>([]);
 	const [keyConfigList, _setKeyConfigList] = useState<KeyConfig[]>([]);
@@ -203,17 +219,53 @@ export const KeyButton: React.FC<{
 		setKeyConfigList,
 	]);
 
+	const checkPermission = useCallback(async () => {
+		const platform = getPlatform();
+		if (platform !== "macos") {
+			return true;
+		}
+
+		try {
+			const hasPermission = await checkAccessibilityPermission();
+			if (!hasPermission) {
+				setPermissionError("macos.permission.accessibility");
+				return false;
+			}
+			setPermissionError(null);
+			return true;
+		} catch (error) {
+			console.error("[KeyButton] Permission check failed:", error);
+			appError("[KeyButton] Permission check error", error);
+			return false;
+		}
+	}, []);
+
 	useEffect(() => {
 		if (open) {
-			listenKeyStart().catch((error) => {
-				appError("[KeyButton] listenKeyStart error", error);
+			checkPermission().then((hasPermission) => {
+				if (!hasPermission) {
+					return;
+				}
+				listenKeyStart()
+					.then(() => {
+						console.log("[KeyButton] listenKeyStart success");
+					})
+					.catch((error) => {
+						console.error("[KeyButton] listenKeyStart failed:", error);
+						appError("[KeyButton] listenKeyStart error", error);
+					});
 			});
 		} else {
-			listenKeyStop().catch((error) => {
-				appError("[KeyButton] listenKeyStop error", error);
-			});
+			listenKeyStop()
+				.then(() => {
+					console.log("[KeyButton] listenKeyStop success");
+				})
+				.catch((error) => {
+					console.error("[KeyButton] listenKeyStop failed:", error);
+					appError("[KeyButton] listenKeyStop error", error);
+				});
 		}
-	}, [open]);
+	}, [open, checkPermission]);
 
 	const formatKeyText = useMemo(() => {
 		return formatKey(keyValue);
@@ -228,6 +280,7 @@ export const KeyButton: React.FC<{
 					onCancel?.();
 					setOpen(false);
 					setSpicalRecordKeys({});
+					setPermissionError(null);
 				}}
 				confirmLoading={confirmLoading}
 				onOk={() => {
@@ -244,9 +297,26 @@ export const KeyButton: React.FC<{
 					).finally(() => {
 						setConfirmLoading(false);
 						setOpen(false);
+						setPermissionError(null);
 					});
 				}}
 			>
+				{permissionError && (
+					<Alert
+						message={
+							<FormattedMessage id="settings.keyConfig.permissionError" />
+						}
+						description={
+							<FormattedMessage id="settings.keyConfig.permissionError.description" />
+						}
+						type="error"
+						showIcon
+						icon={<ExclamationCircleOutlined />}
+						style={{ marginBottom: token.margin }}
+						closable
+						onClose={() => setPermissionError(null)}
+					/>
+				)}
 				{keyConfigList.map((keyConfig) => {
 					return (
 						<div key={keyConfig.index}>
@@ -388,6 +458,7 @@ export const KeyButton: React.FC<{
 				onClick={(e) => {
 					buttonProps?.onClick?.(e);
 					setOpen(true);
+					setPermissionError(null);
 				}}
 				title={formatKeyText}
 			>

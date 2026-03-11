@@ -26,23 +26,28 @@ impl DeviceEventHandlerService {
     }
 
     pub fn get_device_event_handler(&mut self) -> Result<&DeviceEventsHandlerInnerThread, String> {
-        if self.device_event_handler.is_some() {
-            return Ok(&self.device_event_handler.as_ref().unwrap());
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            if !macos_accessibility_client::accessibility::application_is_trusted() {
-                return Err(format!(
-                    "[DeviceEventHandlerService] Accessibility is not enabled"
-                ));
-            }
-        }
-
-        let handler = DeviceEventsHandlerInnerThread::new(Duration::from_millis(1000 / self.fps));
-
-        self.device_event_handler = Some(handler);
-        Ok(&self.device_event_handler.as_ref().unwrap())
+    	if self.device_event_handler.is_some() {
+    		return Ok(&self.device_event_handler.as_ref().unwrap());
+    	}
+   
+    	#[cfg(target_os = "macos")]
+    	{
+    		log::info!("[DeviceEventHandlerService] Checking macOS accessibility permission...");
+    		if !macos_accessibility_client::accessibility::application_is_trusted() {
+    			log::error!("[DeviceEventHandlerService] Accessibility is not enabled - user needs to grant permission in System Settings > Privacy & Security > Accessibility");
+    			return Err(format!(
+    				"[DeviceEventHandlerService] Accessibility is not enabled - please grant permission in System Settings > Privacy & Security > Accessibility"
+    			));
+    		}
+    		log::info!("[DeviceEventHandlerService] Accessibility permission granted successfully");
+    	}
+   
+    	log::info!("[DeviceEventHandlerService] Creating device event handler with FPS: {}", self.fps);
+    	let handler = DeviceEventsHandlerInnerThread::new(Duration::from_millis(1000 / self.fps));
+   
+    	self.device_event_handler = Some(handler);
+    	log::info!("[DeviceEventHandlerService] Device event handler created successfully");
+    	Ok(&self.device_event_handler.as_ref().unwrap())
     }
 
     pub fn on_mouse_move<Callback: Fn(&MousePosition) + Sync + Send + 'static>(
