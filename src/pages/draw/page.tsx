@@ -1335,7 +1335,9 @@ const DrawPageCore: React.FC<{
 						undefined,
 						imagePath,
 					);
-					await writeFilePathToClipboard(imagePath.filePath);
+					if (enableCopyImageFileToClipboard) {
+						await writeFilePathToClipboard(imagePath.filePath);
+					}
 				}
 			}
 		}
