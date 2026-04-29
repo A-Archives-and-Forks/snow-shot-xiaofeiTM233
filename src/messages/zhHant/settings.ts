@@ -184,6 +184,12 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings": "截圖",
 	"settings.functionSettings.screenshotSettings.findChildrenElements":
 		"偵測視窗子元素",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist":
+		"視窗自動框選黑名單",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.tip":
+		"在黑名單中的視窗在截圖時不會被自動框選，需輸入完整的視窗標題進行比對，可用於排除公司浮水印等軟體的干擾",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder":
+		"輸入視窗標題後按 Enter 新增",
 	"settings.functionSettings.screenshotSettings.colorPickerShowMode":
 		"取色器模式",
 	"settings.functionSettings.screenshotSettings.beyondSelectRect":

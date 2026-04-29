@@ -31,13 +31,17 @@ export const captureCurrentMonitor = async (
 	};
 };
 
-export const getWindowElements = async () => {
-	const result = await invoke<WindowElement[]>("get_window_elements");
+export const getWindowElements = async (blacklist?: string[]) => {
+	const result = await invoke<WindowElement[]>("get_window_elements", {
+		blacklist: blacklist && blacklist.length > 0 ? blacklist : null,
+	});
 	return result;
 };
 
-export const initUiElementsCache = async () => {
-	const result = await invoke<void>("init_ui_elements_cache");
+export const initUiElementsCache = async (blacklist?: string[]) => {
+	const result = await invoke<void>("init_ui_elements_cache", {
+		blacklist: blacklist && blacklist.length > 0 ? blacklist : null,
+	});
 	return result;
 };
 

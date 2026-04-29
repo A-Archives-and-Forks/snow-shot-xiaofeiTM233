@@ -877,6 +877,7 @@ const AppSettingsContextProviderCore: React.FC<{
 								api_key: `${item.api_key ?? ""}`,
 								api_type: item.api_type,
 								deepl_prefer_quality_optimized:
+									"deepl_prefer_quality_optimized" in item &&
 									typeof item.deepl_prefer_quality_optimized === "boolean"
 										? item.deepl_prefer_quality_optimized
 										: false,
@@ -919,6 +920,12 @@ const AppSettingsContextProviderCore: React.FC<{
 
 				settings = {
 					findChildrenElements,
+					windowAutoSelectBlacklist: Array.isArray(
+						newSettings?.windowAutoSelectBlacklist,
+					)
+						? newSettings.windowAutoSelectBlacklist
+						: (prevSettings?.windowAutoSelectBlacklist ??
+							defaultAppSettingsData[group].windowAutoSelectBlacklist),
 					shortcutCanleTip:
 						typeof newSettings?.shortcutCanleTip === "boolean"
 							? newSettings.shortcutCanleTip

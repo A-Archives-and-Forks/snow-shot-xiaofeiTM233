@@ -2,6 +2,11 @@ use image::DynamicImage;
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::Serialize;
 use snow_shot_app_os::ui_automation::UIElements;
+
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::HWND;
+#[cfg(target_os = "windows")]
+use std::ffi::c_void;
 use snow_shot_app_shared::ElementRect;
 use snow_shot_app_utils::monitor_info::{
     CaptureOption, ColorFormat, CorrectHdrColorAlgorithm, MonitorList,
@@ -329,13 +334,17 @@ pub async fn init_ui_elements(ui_elements: tauri::State<'_, Mutex<UIElements>>) 
 
 pub async fn init_ui_elements_cache(
     ui_elements: tauri::State<'_, Mutex<UIElements>>,
+    blacklist: Option<Vec<String>>,
 ) -> Result<(), String> {
     let mut ui_elements = ui_elements.lock().await;
 
-    match ui_elements.init_cache() {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("[init_ui_elements_cache] error: {:?}", e)),
+    ui_elements.init_cache().map_err(|e| format!("[init_ui_elements_cache] error: {:?}", e))?;
+
+    if let Some(blacklist) = blacklist {
+        ui_elements.set_blacklist(&blacklist);
     }
+
+    Ok(())
 }
 
 #[derive(PartialEq, Eq, Serialize, Clone, Debug, Copy, Hash)]
@@ -346,6 +355,7 @@ pub struct WindowElement {
 
 pub async fn get_window_elements(
     #[allow(unused_variables)] window: tauri::Window,
+    blacklist: Option<Vec<String>>,
 ) -> Result<Vec<WindowElement>, ()> {
     // 获取所有窗口，简单筛选下需要的窗口，然后获取窗口所有元素
     let windows = {
@@ -384,10 +394,21 @@ pub async fn get_window_elements(
             let window = {
                 #[cfg(target_os = "windows")]
                 {
-                    use std::ffi::c_void;
-                    use windows::Win32::Foundation::HWND;
+                    let w = xcap::ImplWindow::new(HWND(*window_hwnd as *mut c_void));
 
-                    xcap::ImplWindow::new(HWND(*window_hwnd as *mut c_void))
+                    // 黑名单过滤：检查应用名是否在黑名单中
+                    if let Some(ref bl) = blacklist {
+                        if let Ok(app_name) = w.app_name() {
+                            let app_name_lower = app_name.to_lowercase();
+                            for item in bl {
+                                if app_name_lower.contains(&item.to_lowercase()) {
+                                    return None;
+                                }
+                            }
+                        }
+                    }
+
+                    w
                 }
                 #[cfg(target_os = "macos")]
                 {

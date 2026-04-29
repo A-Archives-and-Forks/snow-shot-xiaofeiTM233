@@ -194,6 +194,12 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings": "Screenshot Settings",
 	"settings.functionSettings.screenshotSettings.findChildrenElements":
 		"Find Window Child Elements",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist":
+		"Window Auto-Select Blacklist",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.tip":
+		"Windows in the blacklist will not be auto-selected during screenshots. Requires exact match of the full window title. Use this to exclude watermark software interference.",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder":
+		"Type window title and press Enter to add",
 	"settings.functionSettings.screenshotSettings.colorPickerShowMode":
 		"Color Picker Mode",
 	"settings.functionSettings.screenshotSettings.beyondSelectRect":

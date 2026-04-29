@@ -184,6 +184,12 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings": "截图",
 	"settings.functionSettings.screenshotSettings.findChildrenElements":
 		"查找窗口子元素",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist":
+		"窗口自动框选黑名单",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.tip":
+		"在黑名单中的窗口在截图时不会被自动框选，需输入完整的窗口标题进行匹配，可用于排除公司水印等软件的干扰",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder":
+		"输入窗口标题后按回车添加",
 	"settings.functionSettings.screenshotSettings.colorPickerShowMode":
 		"颜色拾取器模式",
 	"settings.functionSettings.screenshotSettings.beyondSelectRect":

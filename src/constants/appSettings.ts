@@ -231,6 +231,7 @@ Priority order (highest to lowest):
 	},
 	[AppSettingsGroup.FunctionScreenshot]: {
 		findChildrenElements: true,
+		windowAutoSelectBlacklist: [],
 		shortcutCanleTip: false,
 		autoSaveOnCopy: false,
 		doubleClickAction: DoubleClickAction.Copy,
