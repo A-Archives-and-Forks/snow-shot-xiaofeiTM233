@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::c_void;
 use std::mem;
 
@@ -48,6 +48,8 @@ pub struct UIElements {
     element_children_next_sibling_cache: HashMap<ElementLevel, ElementChildrenNextSiblingCacheItem>,
     window_rect_map: HashMap<ElementLevel, uiautomation::types::Rect>,
     window_index_level_map: HashMap<i32, ElementLevel>,
+    window_app_name_map: HashMap<i32, String>,
+    blacklisted_window_indices: HashSet<i32>,
 }
 
 unsafe impl Send for UIElements {}
@@ -80,6 +82,8 @@ impl UIElements {
             element_children_next_sibling_cache: HashMap::new(),
             window_rect_map: HashMap::new(),
             window_index_level_map: HashMap::new(),
+            window_app_name_map: HashMap::new(),
+            blacklisted_window_indices: HashSet::new(),
         }
     }
 
@@ -191,6 +195,8 @@ impl UIElements {
         self.element_children_next_sibling_cache.clear();
         self.window_rect_map.clear();
         self.window_index_level_map.clear();
+        self.window_app_name_map.clear();
+        self.blacklisted_window_indices.clear();
 
         // 桌面的窗口索引应该是最高，因为其优先级最低
         let mut current_level = ElementLevel::root();
@@ -260,12 +266,13 @@ impl UIElements {
                         uiautomation::types::Handle::from(window_hwnd as isize),
                     )
                 {
-                    Some((UIElementWrapper { element }, element_rect))
+                    let app_name = window.app_name().unwrap_or_default();
+                    Some((UIElementWrapper { element }, element_rect, app_name))
                 } else {
                     None
                 }
             })
-            .collect::<Vec<(UIElementWrapper, uiautomation::types::Rect)>>();
+            .collect::<Vec<(UIElementWrapper, uiautomation::types::Rect, String)>>();
 
         // 窗口层级
         current_level.window_index = 0;
@@ -276,6 +283,7 @@ impl UIElements {
             current_level.next_element();
 
             let current_child_rect = current_child.1;
+            let app_name = &current_child.2;
 
             let (current_child_rect, _) = self.insert_element_cache(
                 &mut parent_tree_token,
@@ -288,9 +296,28 @@ impl UIElements {
                 .insert(current_level.clone(), current_child_rect);
             self.window_index_level_map
                 .insert(current_level.window_index, current_level.clone());
+            self.window_app_name_map
+                .insert(current_level.window_index, app_name.clone());
         }
 
         Ok(())
+    }
+
+    /**
+     * 设置子元素查找黑名单
+     * 黑名单中的应用名对应的窗口不会被遍历子元素
+     */
+    pub fn set_blacklist(&mut self, blacklist: &[String]) {
+        self.blacklisted_window_indices.clear();
+        for (window_index, app_name) in &self.window_app_name_map {
+            let app_name_lower = app_name.to_lowercase();
+            for item in blacklist {
+                if app_name_lower.contains(&item.to_lowercase()) {
+                    self.blacklisted_window_indices.insert(*window_index);
+                    break;
+                }
+            }
+        }
     }
 
     pub fn get_element_from_point(
@@ -461,6 +488,14 @@ impl UIElements {
                         .new_node(uiautomation::types::Rect::new(0, 0, i32::MAX, i32::MAX)),
                 ),
             };
+
+        // 检查该窗口是否在黑名单中，如果是则不遍历子元素
+        if self
+            .blacklisted_window_indices
+            .contains(&parent_level.window_index)
+        {
+            return Err(UIAutomationError::Blacklisted);
+        }
 
         // 父元素必然命中了 mouse position，所以直接取第一个元素
         let mut current_level = ElementLevel::root();

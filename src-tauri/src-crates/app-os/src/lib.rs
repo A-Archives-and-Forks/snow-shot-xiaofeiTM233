@@ -123,4 +123,6 @@ pub enum UIAutomationError {
     #[cfg(target_os = "windows")]
     #[error("UIAutomation error")]
     UIAError(#[from] uiautomation::errors::Error),
+    #[error("Window is blacklisted")]
+    Blacklisted,
 }

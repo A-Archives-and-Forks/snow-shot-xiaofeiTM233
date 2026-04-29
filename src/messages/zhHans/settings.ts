@@ -184,6 +184,12 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings": "截图",
 	"settings.functionSettings.screenshotSettings.findChildrenElements":
 		"查找窗口子元素",
+	"settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist":
+		"子元素查找黑名单",
+	"settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.tip":
+		"在黑名单中的应用不会进行窗口子元素的自动框选，可用于排除公司水印等软件的干扰",
+	"settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.placeholder":
+		"输入应用名称后按回车添加",
 	"settings.functionSettings.screenshotSettings.colorPickerShowMode":
 		"颜色拾取器模式",
 	"settings.functionSettings.screenshotSettings.beyondSelectRect":

@@ -425,6 +425,8 @@ export type AppSettingsData = {
 	[AppSettingsGroup.FunctionScreenshot]: {
 		/** 选取窗口子元素 */
 		findChildrenElements: boolean;
+		/** 查找窗口子元素黑名单（应用名/窗口名称） */
+		findChildrenElementsBlacklist: string[];
 		/** 截图快捷键提示 */
 		shortcutCanleTip: boolean;
 		/** 复制后自动保存文件 */

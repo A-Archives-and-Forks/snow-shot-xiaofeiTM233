@@ -802,6 +802,42 @@ export const FunctionSettingsPage = () => {
 						</Col>
 					</Row>
 
+					{currentPlatform !== "macos" && (
+						<ProFormDependency name={["findChildrenElements"]}>
+							{({ findChildrenElements }) =>
+								findChildrenElements && (
+									<Row gutter={token.marginLG}>
+										<Col span={24}>
+											<ProForm.Item
+												name="findChildrenElementsBlacklist"
+												label={
+													<IconLabel
+														label={
+															<FormattedMessage id="settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist" />
+														}
+														tooltipTitle={
+															<FormattedMessage id="settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.tip" />
+														}
+													/>
+												}
+												required={false}
+											>
+												<Select
+													mode="tags"
+													style={{ width: "100%" }}
+													placeholder={intl.formatMessage({
+														id: "settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.placeholder",
+													})}
+													tokenSeparators={[",", "，"]}
+												/>
+											</ProForm.Item>
+										</Col>
+									</Row>
+								)
+							}
+						</ProFormDependency>
+					)}
+
 					{isReadyStatus?.(PLUGIN_ID_RAPID_OCR) && (
 						<Row gutter={token.marginLG}>
 							<Col span={12}>

@@ -66,13 +66,17 @@ pub async fn init_ui_elements(ui_elements: tauri::State<'_, Mutex<UIElements>>) 
 #[command]
 pub async fn init_ui_elements_cache(
     ui_elements: tauri::State<'_, Mutex<UIElements>>,
+    blacklist: Option<Vec<String>>,
 ) -> Result<(), String> {
-    snow_shot_tauri_commands_screenshot::init_ui_elements_cache(ui_elements).await
+    snow_shot_tauri_commands_screenshot::init_ui_elements_cache(ui_elements, blacklist).await
 }
 
 #[command]
-pub async fn get_window_elements(window: tauri::Window) -> Result<Vec<WindowElement>, ()> {
-    snow_shot_tauri_commands_screenshot::get_window_elements(window).await
+pub async fn get_window_elements(
+    window: tauri::Window,
+    blacklist: Option<Vec<String>>,
+) -> Result<Vec<WindowElement>, ()> {
+    snow_shot_tauri_commands_screenshot::get_window_elements(window, blacklist).await
 }
 
 #[command]
