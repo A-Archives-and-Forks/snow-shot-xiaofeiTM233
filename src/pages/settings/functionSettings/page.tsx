@@ -647,6 +647,9 @@ export const FunctionSettingsPage = () => {
 		SelectProps["options"]
 	>([]);
 	useEffect(() => {
+		if (!isReadyStatus?.(PLUGIN_ID_AI_CHAT)) {
+			return;
+		}
 		getVisionModelList().then((visionModelList) => {
 			const officialVisionModelList = visionModelList.filter(
 				(model) => model.isOfficial,
@@ -693,7 +696,7 @@ export const FunctionSettingsPage = () => {
 
 			setHtmlVisionModelOptions(htmlVisionModelOptions);
 		});
-	}, [getVisionModelList, intl]);
+	}, [getVisionModelList, intl, isReadyStatus]);
 
 	const doubleClickActionOptions = useMemo(() => {
 		return [
