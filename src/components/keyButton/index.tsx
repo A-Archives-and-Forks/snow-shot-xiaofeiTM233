@@ -391,16 +391,17 @@ export const KeyButton: React.FC<{
 				}}
 				title={formatKeyText}
 			>
-				<div
+				<span
 					style={{
 						width,
 						maxWidth,
 						textOverflow: "ellipsis",
 						overflow: "hidden",
+						display: "inline-block",
 					}}
 				>
 					{formatKeyText}
-				</div>
+				</span>
 				{buttonProps?.children}
 			</Button>
 		</>

@@ -33,25 +33,28 @@ export const FunctionButton: React.FC<{
 					<IconLabel icon={icon} label={label} />
 				</Flex>
 			</Button>
-			<div
-				style={{
-					position: "absolute",
-					height: "100%",
-					zIndex: zIndexs.Main_FunctionButtonInput,
-					right: 0,
-					top: 0,
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "flex-end",
-					paddingLeft: token.padding,
-					paddingRight: token.padding,
-				}}
-				onClick={(e) => {
-					e.stopPropagation();
-				}}
-			>
-				{children}
-			</div>
+			{children && (
+				<div
+					style={{
+						position: "absolute",
+						height: "100%",
+						zIndex: zIndexs.Main_FunctionButtonInput,
+						right: 0,
+						top: 0,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "flex-end",
+						paddingLeft: token.padding,
+						paddingRight: token.padding,
+						left: "auto",
+					}}
+					onClick={(e) => {
+						e.stopPropagation();
+					}}
+				>
+					{children}
+				</div>
+			)}
 		</div>
 	);
 };
