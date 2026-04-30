@@ -809,14 +809,14 @@ export const FunctionSettingsPage = () => {
 									<Row gutter={token.marginLG}>
 										<Col span={24}>
 											<ProForm.Item
-												name="findChildrenElementsBlacklist"
+												name="windowAutoSelectBlacklist"
 												label={
 													<IconLabel
 														label={
-															<FormattedMessage id="settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist" />
+															<FormattedMessage id="settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist" />
 														}
 														tooltipTitle={
-															<FormattedMessage id="settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.tip" />
+															<FormattedMessage id="settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.tip" />
 														}
 													/>
 												}
@@ -826,7 +826,7 @@ export const FunctionSettingsPage = () => {
 													mode="tags"
 													style={{ width: "100%" }}
 													placeholder={intl.formatMessage({
-														id: "settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.placeholder",
+														id: "settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder",
 													})}
 													tokenSeparators={[",", "，"]}
 												/>

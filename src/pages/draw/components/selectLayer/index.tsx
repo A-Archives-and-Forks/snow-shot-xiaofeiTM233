@@ -124,7 +124,7 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 	const [isEnable, setIsEnable] = useState(false);
 
 	const [findChildrenElements, setFindChildrenElements] = useState(false);
-	const findChildrenElementsBlacklistRef = useRef<string[]>([]);
+	const windowAutoSelectBlacklistRef = useRef<string[]>([]);
 	const [
 		enableTabFindChildrenElements,
 		setEnableTabFindChildrenElements,
@@ -150,10 +150,10 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 				setFindChildrenElements(
 					settings[AppSettingsGroup.FunctionScreenshot].findChildrenElements,
 				);
-				findChildrenElementsBlacklistRef.current =
+				windowAutoSelectBlacklistRef.current =
 					settings[
 						AppSettingsGroup.FunctionScreenshot
-					].findChildrenElementsBlacklist;
+					].windowAutoSelectBlacklist;
 				setEnableTabFindChildrenElements(
 					settings[AppSettingsGroup.Cache].enableTabFindChildrenElements,
 				);
@@ -390,11 +390,11 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 		const windowElementsPromise =
 			getScreenshotType()?.type === ScreenshotType.SwitchCaptureHistory
 				? Promise.resolve([])
-				: getWindowElements(findChildrenElementsBlacklistRef.current);
+				: getWindowElements(windowAutoSelectBlacklistRef.current);
 
 		const rectList: ElementRect[] = [];
 		const initUiElementsCachePromise = initUiElementsCache(
-			findChildrenElementsBlacklistRef.current,
+			windowAutoSelectBlacklistRef.current,
 		);
 		const map = new Map<number, number>();
 

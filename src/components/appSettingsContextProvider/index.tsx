@@ -920,12 +920,12 @@ const AppSettingsContextProviderCore: React.FC<{
 
 				settings = {
 					findChildrenElements,
-					findChildrenElementsBlacklist: Array.isArray(
-						newSettings?.findChildrenElementsBlacklist,
+					windowAutoSelectBlacklist: Array.isArray(
+						newSettings?.windowAutoSelectBlacklist,
 					)
-						? newSettings.findChildrenElementsBlacklist
-						: (prevSettings?.findChildrenElementsBlacklist ??
-							defaultAppSettingsData[group].findChildrenElementsBlacklist),
+						? newSettings.windowAutoSelectBlacklist
+						: (prevSettings?.windowAutoSelectBlacklist ??
+							defaultAppSettingsData[group].windowAutoSelectBlacklist),
 					shortcutCanleTip:
 						typeof newSettings?.shortcutCanleTip === "boolean"
 							? newSettings.shortcutCanleTip

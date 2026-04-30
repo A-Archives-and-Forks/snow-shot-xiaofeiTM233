@@ -194,11 +194,11 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings": "Screenshot Settings",
 	"settings.functionSettings.screenshotSettings.findChildrenElements":
 		"Find Window Child Elements",
-	"settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist":
-		"Child Element Blacklist",
-	"settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.tip":
-		"Applications in the blacklist will not have their child elements auto-selected during screenshots. Use this to exclude watermark software interference.",
-	"settings.functionSettings.screenshotSettings.findChildrenElementsBlacklist.placeholder":
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist":
+		"Window Auto-Select Blacklist",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.tip":
+		"Applications in the blacklist will not be auto-selected during screenshots. Use this to exclude watermark software interference.",
+	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder":
 		"Type application name and press Enter to add",
 	"settings.functionSettings.screenshotSettings.colorPickerShowMode":
 		"Color Picker Mode",
