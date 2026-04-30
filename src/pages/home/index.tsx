@@ -249,7 +249,7 @@ export const HomePage = () => {
 														shortcutKeyStatus?.[key as AppFunction],
 													);
 
-											let children = <></>;
+											let children: React.ReactNode;
 											if (
 												shortcutKeyStatus?.[key as AppFunction] ===
 												ShortcutKeyStatus.None
