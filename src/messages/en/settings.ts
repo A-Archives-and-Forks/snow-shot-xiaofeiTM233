@@ -197,9 +197,9 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist":
 		"Window Auto-Select Blacklist",
 	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.tip":
-		"Applications in the blacklist will not be auto-selected during screenshots. Use this to exclude watermark software interference.",
+		"Applications in the blacklist will not be auto-selected during screenshots. Use this to exclude watermark software interference. Supports application names and process filenames (e.g., explorer.exe).",
 	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder":
-		"Type application name and press Enter to add",
+		"Type application name or process filename and press Enter to add",
 	"settings.functionSettings.screenshotSettings.colorPickerShowMode":
 		"Color Picker Mode",
 	"settings.functionSettings.screenshotSettings.beyondSelectRect":

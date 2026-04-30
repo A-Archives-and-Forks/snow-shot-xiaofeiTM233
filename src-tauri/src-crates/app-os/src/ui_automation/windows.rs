@@ -19,6 +19,11 @@ use snow_shot_app_shared::ElementRect;
 use snow_shot_app_utils::monitor_info::MonitorList;
 use std::sync::Arc;
 use windows::Win32::Foundation::HWND;
+use windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId;
+use windows::Win32::System::Diagnostics::ToolHelp::{
+    CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+    TH32CS_SNAPPROCESS,
+};
 use xcap::ImplWindow;
 use xcap::Window;
 
@@ -49,6 +54,7 @@ pub struct UIElements {
     window_rect_map: HashMap<ElementLevel, uiautomation::types::Rect>,
     window_index_level_map: HashMap<i32, ElementLevel>,
     window_app_name_map: HashMap<i32, String>,
+    window_process_name_map: HashMap<i32, String>,
     blacklisted_window_indices: HashSet<i32>,
 }
 
@@ -83,6 +89,7 @@ impl UIElements {
             window_rect_map: HashMap::new(),
             window_index_level_map: HashMap::new(),
             window_app_name_map: HashMap::new(),
+            window_process_name_map: HashMap::new(),
             blacklisted_window_indices: HashSet::new(),
         }
     }
@@ -196,6 +203,7 @@ impl UIElements {
         self.window_rect_map.clear();
         self.window_index_level_map.clear();
         self.window_app_name_map.clear();
+        self.window_process_name_map.clear();
         self.blacklisted_window_indices.clear();
 
         // 桌面的窗口索引应该是最高，因为其优先级最低
@@ -267,12 +275,25 @@ impl UIElements {
                     )
                 {
                     let app_name = window.app_name().unwrap_or_default();
-                    Some((UIElementWrapper { element }, element_rect, app_name))
+                    Some((UIElementWrapper { element }, element_rect, app_name, window_hwnd))
                 } else {
                     None
                 }
             })
-            .collect::<Vec<(UIElementWrapper, uiautomation::types::Rect, String)>>();
+            .collect::<Vec<(UIElementWrapper, uiautomation::types::Rect, String, usize)>>();
+
+        // 收集所有窗口 PID 并批量获取进程名
+        let pids: Vec<u32> = children_list
+            .iter()
+            .map(|child| {
+                let hwnd = child.3;
+                let mut pid: u32 = 0;
+                unsafe { GetWindowThreadProcessId(HWND(hwnd as *mut c_void), Some(&mut pid)) };
+                pid
+            })
+            .collect();
+
+        let pid_to_process_name = build_pid_process_name_map(&pids);
 
         // 窗口层级
         current_level.window_index = 0;
@@ -284,6 +305,13 @@ impl UIElements {
 
             let current_child_rect = current_child.1;
             let app_name = &current_child.2;
+            let hwnd = current_child.3;
+
+            let process_name = {
+                let mut pid: u32 = 0;
+                unsafe { GetWindowThreadProcessId(HWND(hwnd as *mut c_void), Some(&mut pid)) };
+                pid_to_process_name.get(&pid).cloned().unwrap_or_default()
+            };
 
             let (current_child_rect, _) = self.insert_element_cache(
                 &mut parent_tree_token,
@@ -298,21 +326,31 @@ impl UIElements {
                 .insert(current_level.window_index, current_level.clone());
             self.window_app_name_map
                 .insert(current_level.window_index, app_name.clone());
+            self.window_process_name_map
+                .insert(current_level.window_index, process_name);
         }
 
         Ok(())
     }
 
     /**
-     * 设置子元素查找黑名单
-     * 黑名单中的应用名对应的窗口不会被遍历子元素
+     * 设置窗口自动框选黑名单
+     * 黑名单中的应用名或进程名对应的窗口不会被自动框选
      */
     pub fn set_blacklist(&mut self, blacklist: &[String]) {
         self.blacklisted_window_indices.clear();
         for (window_index, app_name) in &self.window_app_name_map {
             let app_name_lower = app_name.to_lowercase();
+            let process_name_lower = self
+                .window_process_name_map
+                .get(window_index)
+                .map(|n| n.to_lowercase())
+                .unwrap_or_default();
             for item in blacklist {
-                if app_name_lower.contains(&item.to_lowercase()) {
+                let item_lower = item.to_lowercase();
+                if app_name_lower.contains(&item_lower)
+                    || process_name_lower.contains(&item_lower)
+                {
                     self.blacklisted_window_indices.insert(*window_index);
                     break;
                 }
@@ -687,4 +725,49 @@ impl Drop for UIElements {
         self.automation_walker = None;
         self.root_element = None;
     }
+}
+
+/// 通过 ToolHelp 枚举所有进程，构建 PID -> 进程名(exe 文件名) 的映射
+fn build_pid_process_name_map(pids: &[u32]) -> HashMap<u32, String> {
+    let mut map = HashMap::new();
+    let pid_set: HashSet<u32> = pids.iter().copied().collect();
+
+    if pid_set.is_empty() {
+        return map;
+    }
+
+    unsafe {
+        let snapshot = match CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
+            Ok(h) => h,
+            Err(_) => return map,
+        };
+
+        let mut entry = PROCESSENTRY32W {
+            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+            ..Default::default()
+        };
+
+        if Process32FirstW(snapshot, &mut entry).is_ok() {
+            loop {
+                if pid_set.contains(&entry.th32ProcessID) {
+                    let exe_name = String::from_utf16_lossy(
+                        &entry.szExeFile[..entry
+                            .szExeFile
+                            .iter()
+                            .position(|&c| c == 0)
+                            .unwrap_or(entry.szExeFile.len())],
+                    );
+                    map.insert(entry.th32ProcessID, exe_name);
+                }
+
+                if Process32NextW(snapshot, &mut entry).is_err() {
+                    break;
+                }
+            }
+        }
+
+        let _ = windows::Win32::Foundation::CloseHandle(snapshot);
+    }
+
+    map
 }

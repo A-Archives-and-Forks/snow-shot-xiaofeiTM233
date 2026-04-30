@@ -187,9 +187,9 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist":
 		"視窗自動框選黑名單",
 	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.tip":
-		"在黑名單中的應用在截圖時不會被自動框選，可用於排除公司浮水印等軟體的干擾",
+		"在黑名單中的應用在截圖時不會被自動框選，可用於排除公司浮水印等軟體的干擾。支援應用名稱和進程檔案名稱（如 explorer.exe）",
 	"settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder":
-		"輸入應用名稱後按 Enter 新增",
+		"輸入應用名稱或進程檔案名稱後按 Enter 新增",
 	"settings.functionSettings.screenshotSettings.colorPickerShowMode":
 		"取色器模式",
 	"settings.functionSettings.screenshotSettings.beyondSelectRect":
