@@ -334,7 +334,7 @@ pub async fn init_ui_elements(ui_elements: tauri::State<'_, Mutex<UIElements>>) 
 
 pub async fn init_ui_elements_cache(
     ui_elements: tauri::State<'_, Mutex<UIElements>>,
-    blacklist: Option<Vec<String>>,
+    #[allow(unused_variables)] blacklist: Option<Vec<String>>,
 ) -> Result<(), String> {
     let mut ui_elements = ui_elements.lock().await;
 
@@ -356,7 +356,7 @@ pub struct WindowElement {
 
 pub async fn get_window_elements(
     #[allow(unused_variables)] window: tauri::Window,
-    blacklist: Option<Vec<String>>,
+    #[allow(unused_variables)] blacklist: Option<Vec<String>>,
 ) -> Result<Vec<WindowElement>, ()> {
     // 获取所有窗口，简单筛选下需要的窗口，然后获取窗口所有元素
     let windows = {

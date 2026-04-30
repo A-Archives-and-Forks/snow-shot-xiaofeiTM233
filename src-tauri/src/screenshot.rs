@@ -1,6 +1,6 @@
 use tauri::command;
 use tauri::ipc::Response;
-use tauri_plugin_clipboard_manager::ClipboardExt;
+
 use tokio::sync::Mutex;
 
 use snow_shot_app_os::ui_automation::UIElements;
