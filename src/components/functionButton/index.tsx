@@ -1,4 +1,4 @@
-import { Button, Flex, theme } from "antd";
+import { Button, Flex, Spin, theme } from "antd";
 import type React from "react";
 import { useState } from "react";
 import { zIndexs } from "@/utils/zIndex";
@@ -16,7 +16,6 @@ export const FunctionButton: React.FC<{
 		<div style={{ position: "relative" }}>
 			<Button
 				size="large"
-				loading={loading}
 				block
 				style={{ paddingRight: 0 }}
 				onClick={async () => {
@@ -33,25 +32,42 @@ export const FunctionButton: React.FC<{
 					<IconLabel icon={icon} label={label} />
 				</Flex>
 			</Button>
-			<div
-				style={{
-					position: "absolute",
-					height: "100%",
-					zIndex: zIndexs.Main_FunctionButtonInput,
-					right: 0,
-					top: 0,
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "flex-end",
-					paddingLeft: token.padding,
-					paddingRight: token.padding,
-				}}
-				onClick={(e) => {
-					e.stopPropagation();
-				}}
-			>
-				{children}
-			</div>
+			{loading && (
+				<div
+					style={{
+						position: "absolute",
+						inset: 0,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						backgroundColor: "rgba(255, 255, 255, 0.6)",
+						zIndex: zIndexs.Main_FunctionButtonInput - 1,
+					}}
+				>
+					<Spin />
+				</div>
+			)}
+			{children && (
+				<div
+					style={{
+						position: "absolute",
+						height: "100%",
+						zIndex: zIndexs.Main_FunctionButtonInput,
+						right: 0,
+						top: 0,
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "flex-end",
+						paddingLeft: token.padding,
+						paddingRight: token.padding,
+					}}
+					onClick={(e) => {
+						e.stopPropagation();
+					}}
+				>
+					{children}
+				</div>
+			)}
 		</div>
 	);
 };
