@@ -145,49 +145,42 @@ jobs:
             # 缓存 Excalidraw 构建
             - name: Cache Excalidraw Build
               id: cache-excalidraw
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
-                path: ../excalidraw
+                path: excalidraw
                 key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
 
             # 准备 Excalidraw 依赖
             - name: Clone Excalidraw
               if: steps.cache-excalidraw.outputs.cache-hit != 'true'
               run: |
-                  cd ..
                   git clone https://github.com/mg-chao/excalidraw.git
                   cd excalidraw
                   git checkout custom/master
               shell: bash
 
-            # 配置 yarn 缓存
-            - name: Cache yarn dependencies
-              if: steps.cache-excalidraw.outputs.cache-hit != 'true'
-              uses: actions/cache@v4
-              with:
-                  path: |
-                      ~/.yarn/cache
-                      ~/.cache/yarn
-                  key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-yarn-
-
             # 安装 Excalidraw 依赖
             - name: Install Excalidraw dependencies
               if: steps.cache-excalidraw.outputs.cache-hit != 'true'
               run: |
-                  cd ../excalidraw
+                  cd excalidraw
                   yarn install --frozen-lockfile
-                  cd ../snow-shot
+                  cd ..
               shell: bash
 
             # 保存 Excalidraw 缓存
             - name: Save Excalidraw Cache
               if: steps.cache-excalidraw.outputs.cache-hit != 'true'
-              uses: actions/cache/save@v4
+              uses: actions/cache/save@v5
               with:
-                path: ../excalidraw
+                path: excalidraw
                 key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
+
+            # 移动 Excalidraw 到上级目录（供 pnpm file: 依赖使用）
+            - name: Move Excalidraw to Sibling Directory
+              run: |
+                  mv excalidraw ../excalidraw
+              shell: bash
 
             # 创建 .env 文件以支持联网功能
             - name: Create .env file

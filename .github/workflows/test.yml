@@ -27,7 +27,7 @@ jobs:
             # 缓存 Excalidraw 构建
             - name: Cache Excalidraw Build
               id: cache-excalidraw
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                 path: excalidraw
                 key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
@@ -47,7 +47,7 @@ jobs:
             # 保存 Excalidraw 缓存
             - name: Save Excalidraw Cache
               if: steps.cache-excalidraw.outputs.cache-hit != 'true'
-              uses: actions/cache/save@v4
+              uses: actions/cache/save@v5
               with:
                 path: excalidraw
                 key: excalidraw-build-${{ steps.excalidraw-info.outputs.hash }}
