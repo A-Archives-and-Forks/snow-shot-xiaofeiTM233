@@ -22,7 +22,8 @@ snow-shot-global-state = { workspace = true }
 webview2-com = "0.38.0"
 windows-core = { version = "0.61" }
 windows = { workspace = true, features = [
-    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Threading",
     "Win32_Foundation",
     "Win32_UI_WindowsAndMessaging",
 ] }

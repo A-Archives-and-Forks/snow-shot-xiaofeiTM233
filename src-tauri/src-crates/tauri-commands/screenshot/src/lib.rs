@@ -10,10 +10,11 @@ use std::ffi::c_void;
 #[cfg(target_os = "windows")]
 use windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId;
 #[cfg(target_os = "windows")]
-use windows::Win32::System::Diagnostics::ToolHelp::{
-    CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
-    TH32CS_SNAPPROCESS,
-};
+use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+#[cfg(target_os = "windows")]
+use windows::Win32::System::Diagnostics::Debug::PROCESS_NAME_WIN32;
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::{CloseHandle, PWSTR};
 use snow_shot_app_shared::ElementRect;
 use snow_shot_app_utils::monitor_info::{
     CaptureOption, ColorFormat, CorrectHdrColorAlgorithm, MonitorList,
@@ -54,52 +55,6 @@ pub async fn capture_current_monitor(
     );
 
     Ok(Response::new(image_buffer))
-}
-
-/// 通过 ToolHelp 枚举所有进程，构建 PID -> 进程名(exe 文件名) 的映射
-#[cfg(target_os = "windows")]
-fn build_pid_process_name_map(pids: &[u32]) -> std::collections::HashMap<u32, String> {
-    let mut map = std::collections::HashMap::new();
-    let pid_set: std::collections::HashSet<u32> = pids.iter().copied().collect();
-
-    if pid_set.is_empty() {
-        return map;
-    }
-
-    unsafe {
-        let snapshot = match CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
-            Ok(h) => h,
-            Err(_) => return map,
-        };
-
-        let mut entry = PROCESSENTRY32W {
-            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
-            ..Default::default()
-        };
-
-        if Process32FirstW(snapshot, &mut entry).is_ok() {
-            loop {
-                if pid_set.contains(&entry.th32ProcessID) {
-                    let exe_name = String::from_utf16_lossy(
-                        &entry.szExeFile[..entry
-                            .szExeFile
-                            .iter()
-                            .position(|&c| c == 0)
-                            .unwrap_or(entry.szExeFile.len())],
-                    );
-                    map.insert(entry.th32ProcessID, exe_name);
-                }
-
-                if Process32NextW(snapshot, &mut entry).is_err() {
-                    break;
-                }
-            }
-        }
-
-        let _ = windows::Win32::Foundation::CloseHandle(snapshot);
-    }
-
-    map
 }
 
 pub async fn capture_all_monitors(
@@ -345,52 +300,6 @@ pub async fn capture_focused_window(
     let image_buffer = snow_shot_app_utils::encode_image(&image, snow_shot_app_utils::ImageEncoder::Png);
 
     Ok(Response::new(image_buffer))
-}
-
-/// 通过 ToolHelp 枚举所有进程，构建 PID -> 进程名(exe 文件名) 的映射
-#[cfg(target_os = "windows")]
-fn build_pid_process_name_map(pids: &[u32]) -> std::collections::HashMap<u32, String> {
-    let mut map = std::collections::HashMap::new();
-    let pid_set: std::collections::HashSet<u32> = pids.iter().copied().collect();
-
-    if pid_set.is_empty() {
-        return map;
-    }
-
-    unsafe {
-        let snapshot = match CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
-            Ok(h) => h,
-            Err(_) => return map,
-        };
-
-        let mut entry = PROCESSENTRY32W {
-            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
-            ..Default::default()
-        };
-
-        if Process32FirstW(snapshot, &mut entry).is_ok() {
-            loop {
-                if pid_set.contains(&entry.th32ProcessID) {
-                    let exe_name = String::from_utf16_lossy(
-                        &entry.szExeFile[..entry
-                            .szExeFile
-                            .iter()
-                            .position(|&c| c == 0)
-                            .unwrap_or(entry.szExeFile.len())],
-                    );
-                    map.insert(entry.th32ProcessID, exe_name);
-                }
-
-                if Process32NextW(snapshot, &mut entry).is_err() {
-                    break;
-                }
-            }
-        }
-
-        let _ = windows::Win32::Foundation::CloseHandle(snapshot);
-    }
-
-    map
 }
 
 /// 获取当前焦点窗口的应用名称
@@ -881,94 +790,28 @@ pub async fn capture_full_screen(
     Ok(Response::new(image_buffer))
 }
 
-/// 通过 ToolHelp 枚举所有进程，构建 PID -> 进程名(exe 文件名) 的映射
+/// 通过 OpenProcess + QueryFullProcessImageNameW 按需获取指定 PID 的进程文件名
 #[cfg(target_os = "windows")]
 fn build_pid_process_name_map(pids: &[u32]) -> std::collections::HashMap<u32, String> {
     let mut map = std::collections::HashMap::new();
-    let pid_set: std::collections::HashSet<u32> = pids.iter().copied().collect();
-
-    if pid_set.is_empty() {
-        return map;
-    }
-
-    unsafe {
-        let snapshot = match CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
-            Ok(h) => h,
-            Err(_) => return map,
-        };
-
-        let mut entry = PROCESSENTRY32W {
-            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
-            ..Default::default()
-        };
-
-        if Process32FirstW(snapshot, &mut entry).is_ok() {
-            loop {
-                if pid_set.contains(&entry.th32ProcessID) {
-                    let exe_name = String::from_utf16_lossy(
-                        &entry.szExeFile[..entry
-                            .szExeFile
-                            .iter()
-                            .position(|&c| c == 0)
-                            .unwrap_or(entry.szExeFile.len())],
-                    );
-                    map.insert(entry.th32ProcessID, exe_name);
-                }
-
-                if Process32NextW(snapshot, &mut entry).is_err() {
-                    break;
-                }
-            }
+    for &pid in pids {
+        if map.contains_key(&pid) {
+            continue;
         }
-
-        let _ = windows::Win32::Foundation::CloseHandle(snapshot);
-    }
-
-    map
-}
-
-/// 通过 ToolHelp 枚举所有进程，构建 PID -> 进程名(exe 文件名) 的映射
-#[cfg(target_os = "windows")]
-fn build_pid_process_name_map(pids: &[u32]) -> std::collections::HashMap<u32, String> {
-    let mut map = std::collections::HashMap::new();
-    let pid_set: std::collections::HashSet<u32> = pids.iter().copied().collect();
-
-    if pid_set.is_empty() {
-        return map;
-    }
-
-    unsafe {
-        let snapshot = match CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
-            Ok(h) => h,
-            Err(_) => return map,
-        };
-
-        let mut entry = PROCESSENTRY32W {
-            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
-            ..Default::default()
-        };
-
-        if Process32FirstW(snapshot, &mut entry).is_ok() {
-            loop {
-                if pid_set.contains(&entry.th32ProcessID) {
-                    let exe_name = String::from_utf16_lossy(
-                        &entry.szExeFile[..entry
-                            .szExeFile
-                            .iter()
-                            .position(|&c| c == 0)
-                            .unwrap_or(entry.szExeFile.len())],
-                    );
-                    map.insert(entry.th32ProcessID, exe_name);
-                }
-
-                if Process32NextW(snapshot, &mut entry).is_err() {
-                    break;
-                }
+        unsafe {
+            let handle = match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
+                Ok(h) => h,
+                Err(_) => continue,
+            };
+            let mut buffer = [0u16; 260];
+            let mut size = buffer.len() as u32;
+            if QueryFullProcessImageNameW(handle, PROCESS_NAME_WIN32, PWSTR(buffer.as_mut_ptr()), &mut size).is_ok() {
+                let path = String::from_utf16_lossy(&buffer[..size as usize]);
+                let exe_name = path.rsplit('\\').next().unwrap_or(&path).to_string();
+                map.insert(pid, exe_name);
             }
+            let _ = CloseHandle(handle);
         }
-
-        let _ = windows::Win32::Foundation::CloseHandle(snapshot);
     }
-
     map
 }

@@ -20,10 +20,9 @@ use snow_shot_app_utils::monitor_info::MonitorList;
 use std::sync::Arc;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId;
-use windows::Win32::System::Diagnostics::ToolHelp::{
-    CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
-    TH32CS_SNAPPROCESS,
-};
+use windows::Win32::System::Threading::{OpenProcess, QueryFullProcessImageNameW, PROCESS_QUERY_LIMITED_INFORMATION};
+use windows::Win32::System::Diagnostics::Debug::PROCESS_NAME_WIN32;
+use windows::Win32::Foundation::{CloseHandle, PWSTR};
 use xcap::ImplWindow;
 use xcap::Window;
 
@@ -727,47 +726,27 @@ impl Drop for UIElements {
     }
 }
 
-/// 通过 ToolHelp 枚举所有进程，构建 PID -> 进程名(exe 文件名) 的映射
+/// 通过 OpenProcess + QueryFullProcessImageNameW 按需获取指定 PID 的进程文件名
 fn build_pid_process_name_map(pids: &[u32]) -> HashMap<u32, String> {
     let mut map = HashMap::new();
-    let pid_set: HashSet<u32> = pids.iter().copied().collect();
-
-    if pid_set.is_empty() {
-        return map;
-    }
-
-    unsafe {
-        let snapshot = match CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
-            Ok(h) => h,
-            Err(_) => return map,
-        };
-
-        let mut entry = PROCESSENTRY32W {
-            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
-            ..Default::default()
-        };
-
-        if Process32FirstW(snapshot, &mut entry).is_ok() {
-            loop {
-                if pid_set.contains(&entry.th32ProcessID) {
-                    let exe_name = String::from_utf16_lossy(
-                        &entry.szExeFile[..entry
-                            .szExeFile
-                            .iter()
-                            .position(|&c| c == 0)
-                            .unwrap_or(entry.szExeFile.len())],
-                    );
-                    map.insert(entry.th32ProcessID, exe_name);
-                }
-
-                if Process32NextW(snapshot, &mut entry).is_err() {
-                    break;
-                }
-            }
+    for &pid in pids {
+        if map.contains_key(&pid) {
+            continue;
         }
-
-        let _ = windows::Win32::Foundation::CloseHandle(snapshot);
+        unsafe {
+            let handle = match OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) {
+                Ok(h) => h,
+                Err(_) => continue,
+            };
+            let mut buffer = [0u16; 260];
+            let mut size = buffer.len() as u32;
+            if QueryFullProcessImageNameW(handle, PROCESS_NAME_WIN32, PWSTR(buffer.as_mut_ptr()), &mut size).is_ok() {
+                let path = String::from_utf16_lossy(&buffer[..size as usize]);
+                let exe_name = path.rsplit('\\').next().unwrap_or(&path).to_string();
+                map.insert(pid, exe_name);
+            }
+            let _ = CloseHandle(handle);
+        }
     }
-
     map
 }
