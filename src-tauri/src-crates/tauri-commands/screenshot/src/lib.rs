@@ -340,6 +340,7 @@ pub async fn init_ui_elements_cache(
 
     ui_elements.init_cache().map_err(|e| format!("[init_ui_elements_cache] error: {:?}", e))?;
 
+    #[cfg(target_os = "windows")]
     if let Some(blacklist) = blacklist {
         ui_elements.set_blacklist(&blacklist);
     }
