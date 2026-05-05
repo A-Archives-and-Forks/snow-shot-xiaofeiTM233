@@ -707,13 +707,13 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 			watermarkContainerKeyRef.current = await createNewCanvasContainer(
 				DRAW_LAYER_WATERMARK_CONTAINER_KEY,
 			);
-			// 模糊层
-			blurContainerKeyRef.current = await createNewCanvasContainer(
-				DRAW_LAYER_BLUR_CONTAINER_KEY,
-			);
 			// 高亮层
 			highlightContainerKeyRef.current = await createNewCanvasContainer(
 				DRAW_LAYER_HIGHLIGHT_CONTAINER_KEY,
+			);
+			// 模糊层（在高亮层之后创建，确保模糊/滤镜可以覆盖高亮区域）
+			blurContainerKeyRef.current = await createNewCanvasContainer(
+				DRAW_LAYER_BLUR_CONTAINER_KEY,
 			);
 
 			await canvasRender();
