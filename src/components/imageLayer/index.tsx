@@ -502,11 +502,13 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 		async (blurContainerKey: string, blurElementId: string) => {
 			await createBlurSpriteAction(
 				rendererWorker,
+				canvasAppRef,
 				canvasContainerMapRef,
 				currentImageTextureRef,
 				blurSpriteMapRef,
 				blurContainerKey,
 				blurElementId,
+				DRAW_LAYER_HIGHLIGHT_CONTAINER_KEY,
 			);
 		},
 		[rendererWorker],
@@ -589,8 +591,11 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 		async (highlightContainerKey: string, highlightProps: HighlightProps) => {
 			await updateHighlightAction(
 				rendererWorker,
+				canvasAppRef,
 				canvasContainerMapRef,
 				highlightElementMapRef,
+				blurSpriteMapRef,
+				currentImageTextureRef,
 				highlightContainerKey,
 				highlightProps,
 			);

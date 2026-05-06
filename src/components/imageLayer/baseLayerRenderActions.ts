@@ -338,30 +338,82 @@ export type BlurSprite = {
 	sprite: PIXI.Sprite;
 	spriteBlurFliter: PIXI.Filter | undefined;
 	spriteMask: PIXI.Graphics;
+	customTexture: PIXI.RenderTexture | undefined;
+};
+
+/**
+ * 将高亮容器渲染为纹理，用于模糊精灵使用。
+ * 这样模糊区域内也能显示高亮效果。
+ */
+const renderGenerateHighlightTextureAction = (
+	canvasAppRef: RefType<Application | undefined>,
+	canvasContainerMapRef: RefType<Map<string, PIXI.Container>>,
+	currentImageTextureRef: RefType<PIXI.Texture | undefined>,
+	highlightContainerKey: string,
+): PIXI.Texture | undefined => {
+	const canvasApp = canvasAppRef.current;
+	const currentImageTexture = currentImageTextureRef.current;
+
+	if (!canvasApp || !currentImageTexture) {
+		return currentImageTexture;
+	}
+
+	const highlightContainer = canvasContainerMapRef.current.get(
+		highlightContainerKey,
+	);
+
+	// 如果高亮容器不存在或没有子元素，使用原始纹理
+	if (!highlightContainer || highlightContainer.children.length === 0) {
+		return currentImageTexture;
+	}
+
+	const renderer = canvasApp.renderer;
+	const { width, height } = renderer;
+
+	const renderTexture = PIXI.RenderTexture.create({ width, height });
+
+	renderer.render(highlightContainer, { renderTexture });
+
+	return renderTexture;
 };
 
 export const renderCreateBlurSpriteAction = (
+	canvasAppRef: RefType<Application | undefined>,
 	canvasContainerMapRef: RefType<Map<string, PIXI.Container>>,
 	currentImageTextureRef: RefType<PIXI.Texture | undefined>,
 	blurSpriteMapRef: RefType<Map<string, BlurSprite>>,
 	blurContainerKey: string,
 	blurElementId: string,
+	highlightContainerKey: string,
 ) => {
 	const container = canvasContainerMapRef.current.get(blurContainerKey);
 	if (!container) {
 		return;
 	}
 
-	const imageTexture = currentImageTextureRef.current;
-	if (!imageTexture) {
+	const currentImageTexture = currentImageTextureRef.current;
+	if (!currentImageTexture) {
 		return;
+	}
+
+	const spriteTexture = renderGenerateHighlightTextureAction(
+		canvasAppRef,
+		canvasContainerMapRef,
+		currentImageTextureRef,
+		highlightContainerKey,
+	);
+
+	let customTexture: PIXI.RenderTexture | undefined;
+	if (spriteTexture && spriteTexture !== currentImageTexture) {
+		customTexture = spriteTexture as PIXI.RenderTexture;
 	}
 
 	const blurSprite: BlurSprite = {
 		spriteContainer: new PIXI.Container(),
-		sprite: new PIXI.Sprite(imageTexture),
+		sprite: new PIXI.Sprite(spriteTexture ?? currentImageTexture),
 		spriteBlurFliter: undefined,
 		spriteMask: new PIXI.Graphics(),
+		customTexture,
 	};
 
 	blurSprite.sprite.filters = undefined;
@@ -698,6 +750,10 @@ export const renderDeleteBlurSpriteAction = (
 		return;
 	}
 
+	if (blurSprite.customTexture) {
+		blurSprite.customTexture.destroy(true);
+	}
+
 	blurSprite.sprite.destroy();
 	blurSprite.spriteContainer.destroy();
 	blurSprite.spriteMask.destroy();
@@ -893,8 +949,11 @@ export const renderUpdateHighlightElementPropsAction = (
  * 重新渲染 highlight
  */
 export const renderUpdateHighlightAction = (
+	canvasAppRef: RefType<Application | undefined>,
 	canvasContainerMapRef: RefType<Map<string, PIXI.Container>>,
 	highlightElementMapRef: RefType<Map<string, HighlightElement>>,
+	blurSpriteMapRef: RefType<Map<string, BlurSprite>>,
+	currentImageTextureRef: RefType<PIXI.Texture | undefined>,
 	highlightContainerKey: string,
 	highlightProps: HighlightProps,
 ) => {
@@ -912,6 +971,17 @@ export const renderUpdateHighlightAction = (
 
 	highlightBackgroundGraphics.clear();
 	if (highlightElementMapRef.current.size === 0) {
+		// 高亮被清除时，更新模糊精灵纹理回原始截图
+		const currentImageTexture = currentImageTextureRef.current;
+		if (currentImageTexture) {
+			for (const blurSprite of blurSpriteMapRef.current.values()) {
+				if (blurSprite.customTexture) {
+					blurSprite.customTexture.destroy(true);
+					blurSprite.customTexture = undefined;
+				}
+				blurSprite.sprite.texture = currentImageTexture;
+			}
+		}
 		return;
 	}
 
@@ -935,6 +1005,33 @@ export const renderUpdateHighlightAction = (
 			});
 		highlightBackgroundGraphics.alpha =
 			firstHighlightElement.props.maskOpacity / 100;
+	}
+
+	// 高亮更新后，更新所有模糊精灵的纹理以包含最新高亮效果
+	const canvasApp = canvasAppRef.current;
+	if (canvasApp) {
+		for (const blurSprite of blurSpriteMapRef.current.values()) {
+			if (blurSprite.customTexture) {
+				blurSprite.customTexture.destroy(true);
+				blurSprite.customTexture = undefined;
+			}
+
+			const newTexture = renderGenerateHighlightTextureAction(
+				canvasAppRef,
+				canvasContainerMapRef,
+				currentImageTextureRef,
+				highlightContainerKey,
+			);
+
+			if (newTexture && newTexture !== currentImageTextureRef.current) {
+				blurSprite.customTexture = newTexture as PIXI.RenderTexture;
+			}
+
+			const fallbackTexture = currentImageTextureRef.current;
+			if (fallbackTexture) {
+				blurSprite.sprite.texture = newTexture ?? fallbackTexture;
+			}
+		}
 	}
 };
 
@@ -1086,6 +1183,12 @@ export const renderClearContextAction = (
 	highlightElementMapRef: RefType<Map<string, HighlightElement>>,
 	lastWatermarkPropsRef: RefType<WatermarkProps>,
 ) => {
+	for (const blurSprite of blurSpriteMapRef.current.values()) {
+		if (blurSprite.customTexture) {
+			blurSprite.customTexture.destroy(true);
+			blurSprite.customTexture = undefined;
+		}
+	}
 	blurSpriteMapRef.current.clear();
 	blurSpriteFilterMapRef.current.clear();
 	highlightElementMapRef.current.clear();

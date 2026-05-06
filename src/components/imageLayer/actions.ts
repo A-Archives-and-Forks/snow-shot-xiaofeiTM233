@@ -530,11 +530,13 @@ export const clearContainerAction = async (
 
 export const createBlurSpriteAction = async (
 	renderWorker: Worker | undefined,
+	canvasAppRef: RefObject<Application | undefined>,
 	canvasContainerMapRef: RefObject<Map<string, Container>>,
 	currentImageTextureRef: RefObject<Texture | undefined>,
 	blurSpriteMapRef: RefObject<Map<string, BlurSprite>>,
 	blurContainerKey: string,
 	blurElementId: string,
+	highlightContainerKey: string,
 ): Promise<undefined> => {
 	return new Promise((resolve) => {
 		if (renderWorker) {
@@ -543,6 +545,7 @@ export const createBlurSpriteAction = async (
 				payload: {
 					blurContainerKey: blurContainerKey,
 					blurElementId: blurElementId,
+					highlightContainerKey: highlightContainerKey,
 				},
 			};
 			const handleMessage = (event: MessageEvent<RenderResult>) => {
@@ -557,11 +560,13 @@ export const createBlurSpriteAction = async (
 			renderWorker.postMessage(CreateBlurSpriteData);
 		} else {
 			renderCreateBlurSpriteAction(
+				canvasAppRef,
 				canvasContainerMapRef,
 				currentImageTextureRef,
 				blurSpriteMapRef,
 				blurContainerKey,
 				blurElementId,
+				highlightContainerKey,
 			);
 			resolve(undefined);
 		}
@@ -739,8 +744,11 @@ export const updateHighlightElementAction = async (
 
 export const updateHighlightAction = async (
 	renderWorker: Worker | undefined,
+	canvasAppRef: RefObject<Application | undefined>,
 	canvasContainerMapRef: RefObject<Map<string, Container>>,
 	highlightElementMapRef: RefObject<Map<string, HighlightElement>>,
+	blurSpriteMapRef: RefObject<Map<string, BlurSprite>>,
+	currentImageTextureRef: RefObject<Texture | undefined>,
 	highlightContainerKey: string,
 	highlightProps: HighlightProps,
 ): Promise<undefined> => {
@@ -766,8 +774,11 @@ export const updateHighlightAction = async (
 			renderWorker.postMessage(UpdateHighlightData);
 		} else {
 			renderUpdateHighlightAction(
+				canvasAppRef,
 				canvasContainerMapRef,
 				highlightElementMapRef,
+				blurSpriteMapRef,
+				currentImageTextureRef,
 				highlightContainerKey,
 				highlightProps,
 			);
