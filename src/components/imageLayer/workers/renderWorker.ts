@@ -178,11 +178,13 @@ const handleClearContainer = (data: BaseLayerRenderClearContainerData) => {
 
 const handleCreateBlurSprite = (data: BaseLayerRenderCreateBlurSpriteData) => {
 	renderCreateBlurSpriteAction(
+		canvasAppRef,
 		canvasContainerMapRef,
 		currentImageTextureRef,
 		blurSpriteMapRef,
 		data.payload.blurContainerKey,
 		data.payload.blurElementId,
+		data.payload.highlightContainerKey,
 	);
 };
 
@@ -217,8 +219,11 @@ const handleUpdateHighlightElement = (
 
 const handleUpdateHighlight = (data: BaseLayerRenderUpdateHighlightData) => {
 	renderUpdateHighlightAction(
+		canvasAppRef,
 		canvasContainerMapRef,
 		highlightElementMapRef,
+		blurSpriteMapRef,
+		currentImageTextureRef,
 		data.payload.highlightContainerKey,
 		data.payload.highlightProps,
 	);

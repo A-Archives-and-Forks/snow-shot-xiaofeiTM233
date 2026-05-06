@@ -125,6 +125,7 @@ export type BaseLayerRenderCreateBlurSpriteData = {
 	payload: {
 		blurContainerKey: string;
 		blurElementId: string;
+		highlightContainerKey: string;
 	};
 };
 
