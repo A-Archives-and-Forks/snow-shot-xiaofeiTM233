@@ -1387,6 +1387,10 @@ const FixedContentCoreInner: React.FC<{
 		setIsAlwaysOnTop((isAlwaysOnTop) => !isAlwaysOnTop);
 	}, [setIsAlwaysOnTop]);
 
+	const switchShowBorder = useCallback(async () => {
+		setShowBorder((prev) => !prev);
+	}, []);
+
 	const [showScaleInfo, showScaleInfoTemporary] = useTempInfo();
 
 	const scaleWindow = useCallback(
@@ -1990,6 +1994,14 @@ const FixedContentCoreInner: React.FC<{
 					action: switchAlwaysOnTop,
 				},
 				{
+					id: `${appWindow.label}-switchShowBorderTool`,
+					text: intl.formatMessage({
+						id: "settings.hotKeySettings.fixedContent.fixedContentShowBorder",
+					}),
+					checked: showBorder,
+					action: switchShowBorder,
+				},
+				{
 					item: "Separator",
 				},
 				setOpacityMenu,
@@ -2086,6 +2098,8 @@ const FixedContentCoreInner: React.FC<{
 		isThumbnail,
 		isAlwaysOnTop,
 		switchAlwaysOnTop,
+		showBorder,
+		switchShowBorder,
 		scrollAction,
 		rotateImage,
 		setProcessImageConfig,

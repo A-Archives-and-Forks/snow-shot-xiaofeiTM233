@@ -446,6 +446,7 @@ export const settings = {
 	"settings.hotKeySettings.fixedContent.setOpacity.hundred": "100%",
 	"settings.hotKeySettings.fixedContent.fixedContentAlwaysOnTop":
 		"Always on Top",
+	"settings.hotKeySettings.fixedContent.fixedContentShowBorder": "Show Border",
 	"settings.hotKeySettings.fixedContent.fixedContentCloseWindow":
 		"Close Window",
 	"settings.hotKeySettings.fixedContent.fixedContentCopyToClipboard":
