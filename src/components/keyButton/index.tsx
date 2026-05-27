@@ -309,7 +309,10 @@ export const KeyButton: React.FC<{
 									></Button>
 								) : (
 									<Button
-										disabled={recordKeys.size === 0}
+										disabled={
+											recordKeys.size === 0 &&
+											Object.keys(spicalRecordKeys).length === 0
+										}
 										onClick={() => {
 											stopRecordAndSave();
 										}}
@@ -321,7 +324,7 @@ export const KeyButton: React.FC<{
 								)}
 							</Flex>
 							{inputAnyKeyConfigIndex === keyConfig.index && speicalKeys && (
-								<Space style={{ marginBottom: token.marginLG }}>
+								<Space style={{ marginBottom: token.margin }}>
 									{speicalKeys?.map((item) => {
 										return (
 											<Button
