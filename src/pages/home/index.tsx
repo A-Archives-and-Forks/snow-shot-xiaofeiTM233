@@ -199,7 +199,7 @@ export const HomePage = () => {
 						case AppFunctionGroup.Translation:
 						case AppFunctionGroup.Chat:
 						case AppFunctionGroup.Other:
-							speicalKeys = ["PrintScreen"];
+							speicalKeys = ["Escape", "PrintScreen"];
 							break;
 					}
 
