@@ -1735,6 +1735,7 @@ export const DrawPage: React.FC = () => {
 				<FixedContentCore
 					actionRef={fixedContentActionRef}
 					disabled={fixedContentDisabled}
+					onToggleVisibility={(visible) => setFixedContentDisabled(!visible)}
 				/>
 			</div>
 		</TextScaleFactorContextProvider>

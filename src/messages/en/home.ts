@@ -23,6 +23,7 @@ export const home = {
 	"home.showOrHideMainWindow": "Show/Hide Main Window",
 	"home.openImageSaveFolder": "Open Image Save Folder",
 	"home.openCaptureHistory": "Screenshot History",
+	"home.toggleFixedContentVisibility": "Show/Hide Stickers",
 	"home.fullScreenDraw":
 		"Fullscreen Canvas (Enable/Disable Canvas Mouse Through)",
 	"home.translationSelectText": "Translate Selected Text",
