@@ -15,6 +15,33 @@ const HandleFocusModeCore: React.FC<{
 }> = ({ disabled, onToggleVisibility }) => {
 	const { addListener, removeListener } = useContext(EventListenerContext);
 
+	// Toggle visibility 监听器不受 disabled 控制，否则隐藏后无法恢复
+	useEffect(() => {
+		const toggleVisibilityListenerId = addListener(
+			TOGGLE_FIXED_CONTENT_VISIBILITY,
+			(args) => {
+				const payload = args as {
+					payload: { visible: boolean };
+				};
+				if (onToggleVisibility) {
+					onToggleVisibility(payload.payload.visible);
+					return;
+				}
+
+				const currentWindow = getCurrentWindow();
+				if (payload.payload.visible) {
+					currentWindow.show();
+				} else {
+					currentWindow.hide();
+				}
+			},
+		);
+
+		return () => {
+			removeListener(toggleVisibilityListenerId);
+		};
+	}, [addListener, removeListener, onToggleVisibility]);
+
 	useEffect(() => {
 		if (disabled) {
 			return;
@@ -56,33 +83,14 @@ const HandleFocusModeCore: React.FC<{
 				currentWindow.close();
 			},
 		);
-		const toggleVisibilityListenerId = addListener(
-			TOGGLE_FIXED_CONTENT_VISIBILITY,
-			(args) => {
-				const payload = args as {
-					payload: { visible: boolean };
-				};
-				if (onToggleVisibility) {
-					onToggleVisibility(payload.payload.visible);
-					return;
-				}
-
-				if (payload.payload.visible) {
-					currentWindow.show();
-				} else {
-					currentWindow.hide();
-				}
-			},
-		);
 
 		return () => {
 			removeListener(showAllWindowListenerId);
 			removeListener(hideOtherWindowListenerId);
 			removeListener(closeOtherWindowListenerId);
 			removeListener(closeAllWindowListenerId);
-			removeListener(toggleVisibilityListenerId);
 		};
-	}, [addListener, removeListener, disabled, onToggleVisibility]);
+	}, [addListener, removeListener, disabled]);
 
 	return undefined;
 };
