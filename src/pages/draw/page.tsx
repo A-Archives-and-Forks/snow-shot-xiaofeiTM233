@@ -50,6 +50,7 @@ import {
 	AppSettingsActionContext,
 	AppSettingsPublisher,
 } from "@/contexts/appSettingsActionContext";
+import { TOGGLE_FIXED_CONTENT_VISIBILITY } from "@/functions/fixedContent";
 import {
 	executeScreenshot as executeScreenshotFunc,
 	releaseDrawPage,
@@ -1721,6 +1722,26 @@ export const DrawPage: React.FC = () => {
 	const showFixedContent = useCallback(() => {
 		setFixedContentDisabled(false);
 	}, []);
+
+	const { addListener, removeListener } = useContext(EventListenerContext);
+
+	useEffect(() => {
+		if (!isFixed) {
+			return;
+		}
+
+		const toggleVisibilityListenerId = addListener(
+			TOGGLE_FIXED_CONTENT_VISIBILITY,
+			(args) => {
+				const payload = args as { payload: { visible: boolean } };
+				setFixedContentDisabled(!payload.payload.visible);
+			},
+		);
+
+		return () => {
+			removeListener(toggleVisibilityListenerId);
+		};
+	}, [addListener, removeListener, isFixed]);
 
 	return (
 		<TextScaleFactorContextProvider>

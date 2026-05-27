@@ -21,6 +21,7 @@ export const home = {
 	"home.showOrHideMainWindow": "顯示/隱藏主視窗",
 	"home.openImageSaveFolder": "開啟圖片儲存目錄",
 	"home.openCaptureHistory": "截圖歷史",
+	"home.toggleFixedContentVisibility": "顯示/隱藏貼圖",
 	"home.fullScreenDraw": "全螢幕畫布（啟用/取消畫布滑鼠穿透）",
 	"home.translationSelectText": "翻譯選取的文字",
 	"home.translation": "翻譯",

@@ -86,4 +86,8 @@ export const defaultAppFunctionConfigs: Record<AppFunction, AppFunctionConfig> =
 			shortcutKey: "",
 			group: AppFunctionGroup.Other,
 		},
+		[AppFunction.ToggleFixedContentVisibility]: {
+			shortcutKey: "",
+			group: AppFunctionGroup.Other,
+		},
 	};

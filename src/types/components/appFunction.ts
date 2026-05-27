@@ -24,6 +24,7 @@ export enum AppFunction {
 	ShowOrHideMainWindow = "showOrHideMainWindow",
 	OpenImageSaveFolder = "openImageSaveFolder",
 	OpenCaptureHistory = "openCaptureHistory",
+	ToggleFixedContentVisibility = "toggleFixedContentVisibility",
 }
 
 export enum AppFunctionGroup {

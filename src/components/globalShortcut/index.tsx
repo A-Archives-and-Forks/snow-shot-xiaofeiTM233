@@ -52,6 +52,7 @@ import {
 } from "@/constants/pluginService";
 import { AppSettingsPublisher } from "@/contexts/appSettingsActionContext";
 import { usePluginServiceContext } from "@/contexts/pluginServiceContext";
+import { toggleFixedContentVisibility } from "@/functions/fixedContent";
 import {
 	executeScreenshot,
 	executeScreenshotFocusedWindow,
@@ -298,6 +299,13 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 							buttonTitle = <FormattedMessage id="home.openCaptureHistory" />;
 							buttonIcon = <HistoryOutlined />;
 							buttonOnClick = () => openCaptureHistory();
+							break;
+						case AppFunction.ToggleFixedContentVisibility:
+							buttonTitle = (
+								<FormattedMessage id="home.toggleFixedContentVisibility" />
+							);
+							buttonIcon = <FixedIcon style={{ fontSize: "1.3em" }} />;
+							buttonOnClick = () => toggleFixedContentVisibility();
 							break;
 						case AppFunction.VideoRecord:
 							buttonTitle = (

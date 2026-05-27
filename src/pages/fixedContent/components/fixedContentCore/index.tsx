@@ -198,6 +198,7 @@ const FixedContentCoreInner: React.FC<{
 		initialScale: number,
 	) => void;
 	disabled?: boolean;
+	onToggleVisibility?: (visible: boolean) => void;
 }> = ({
 	actionRef,
 	onDrawLoad,
@@ -205,6 +206,7 @@ const FixedContentCoreInner: React.FC<{
 	onTextLoad,
 	onImageLoad,
 	disabled,
+	onToggleVisibility,
 }) => {
 	const { isReady, isReadyStatus } = usePluginServiceContext();
 	const intl = useIntl();
@@ -2610,7 +2612,10 @@ const FixedContentCoreInner: React.FC<{
 			onMouseMove={!enableDraw ? onDragRegionMouseMove : undefined}
 			onMouseUp={!enableDraw ? onDragRegionMouseUp : undefined}
 		>
-			<HandleFocusMode disabled={disabled} />
+			<HandleFocusMode
+				disabled={disabled}
+				onToggleVisibility={onToggleVisibility}
+			/>
 
 			<div className="fixed-image-container-content">
 				<OcrResult
