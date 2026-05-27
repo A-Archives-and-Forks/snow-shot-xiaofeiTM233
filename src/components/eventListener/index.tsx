@@ -36,6 +36,7 @@ import {
 	FIXED_CONTENT_FOCUS_MODE_CLOSE_OTHER_WINDOW,
 	FIXED_CONTENT_FOCUS_MODE_HIDE_OTHER_WINDOW,
 	FIXED_CONTENT_FOCUS_MODE_SHOW_ALL_WINDOW,
+	TOGGLE_FIXED_CONTENT_VISIBILITY,
 } from "@/functions/fixedContent";
 import { usePathname } from "@/hooks/usePathname";
 import {
@@ -341,6 +342,11 @@ const EventListenerCore: React.FC<{ children: React.ReactNode }> = ({
 			});
 			defaultListener.push({
 				event: FIXED_CONTENT_FOCUS_MODE_CLOSE_ALL_WINDOW,
+				callback: async () => {},
+			});
+
+			defaultListener.push({
+				event: TOGGLE_FIXED_CONTENT_VISIBILITY,
 				callback: async () => {},
 			});
 
