@@ -285,6 +285,13 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 							buttonIcon = <FullScreenDrawIcon style={{ fontSize: "1.2em" }} />;
 							buttonOnClick = () => createFullScreenDrawWindow();
 							break;
+						case AppFunction.ToggleFixedContentVisibility:
+							buttonTitle = (
+								<FormattedMessage id="home.toggleFixedContentVisibility" />
+							);
+							buttonIcon = <FixedIcon style={{ fontSize: "1.3em" }} />;
+							buttonOnClick = () => toggleFixedContentVisibility();
+							break;
 						case AppFunction.ShowOrHideMainWindow:
 							buttonTitle = <FormattedMessage id="home.showOrHideMainWindow" />;
 							buttonIcon = <AppstoreOutlined />;
@@ -299,13 +306,6 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 							buttonTitle = <FormattedMessage id="home.openCaptureHistory" />;
 							buttonIcon = <HistoryOutlined />;
 							buttonOnClick = () => openCaptureHistory();
-							break;
-						case AppFunction.ToggleFixedContentVisibility:
-							buttonTitle = (
-								<FormattedMessage id="home.toggleFixedContentVisibility" />
-							);
-							buttonIcon = <FixedIcon style={{ fontSize: "1.3em" }} />;
-							buttonOnClick = () => toggleFixedContentVisibility();
 							break;
 						case AppFunction.VideoRecord:
 							buttonTitle = (
