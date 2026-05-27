@@ -321,7 +321,7 @@ export const KeyButton: React.FC<{
 								)}
 							</Flex>
 							{inputAnyKeyConfigIndex === keyConfig.index && speicalKeys && (
-								<Space>
+								<Space style={{ marginBottom: token.marginLG }}>
 									{speicalKeys?.map((item) => {
 										return (
 											<Button
