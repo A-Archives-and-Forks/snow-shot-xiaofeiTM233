@@ -47,6 +47,7 @@ import {
 	ResumeRecordIcon,
 	StartRecordIcon,
 	StopRecordIcon,
+	SystemAudioIcon,
 } from "@/components/icons";
 import { PLUGIN_ID_FFMPEG } from "@/constants/pluginService";
 import {
@@ -206,7 +207,7 @@ export const VideoRecordToolbarPage: React.FC = () => {
 	}, [intl]);
 
 	const [enableMicrophone, setEnableMicrophone] = useState(false);
-	// const [enableSystemAudio, setEnableSystemAudio] = useState(true);
+	const [enableSystemAudio, setEnableSystemAudio] = useState(false);
 	const durationRef = useRef(0);
 
 	const durationTimer = useRef<NodeJS.Timeout | null>(null);
@@ -262,6 +263,9 @@ export const VideoRecordToolbarPage: React.FC = () => {
 	useAppSettingsLoad(
 		useCallback((appSettings: AppSettingsData) => {
 			setEnableMicrophone(appSettings[AppSettingsGroup.Cache].enableMicrophone);
+			setEnableSystemAudio(
+				appSettings[AppSettingsGroup.Cache].enableSystemAudio,
+			);
 			setSettingLoading(false);
 
 			setExcludeFromCapture(
@@ -352,7 +356,7 @@ export const VideoRecordToolbarPage: React.FC = () => {
 			VideoFormat.Mp4,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].frameRate,
 			enableMicrophone,
-			false,
+			enableSystemAudio,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].microphoneDeviceName,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].hwaccel,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].encoder,
@@ -376,6 +380,7 @@ export const VideoRecordToolbarPage: React.FC = () => {
 	}, [
 		setVideoRecordState,
 		enableMicrophone,
+		enableSystemAudio,
 		getAppSettings,
 		stopDurationTimer,
 		updateDurationFormat,
@@ -599,21 +604,29 @@ export const VideoRecordToolbarPage: React.FC = () => {
 							key="microphone"
 						/>
 
-						{/* <Button
-                        onClick={() => {
-                            setEnableSystemAudio((prev) => !prev);
-                        }}
-                        icon={
-                            <SystemAudioIcon
-                                style={{
-                                    color: getButtonIconColorByState(enableSystemAudio, token),
-                                }}
-                            />
-                        }
-                        title={intl.formatMessage({ id: 'videoRecord.systemAudio' })}
-                        type={'text'}
-                        key="system-audio"
-                    /> */}
+						<Button
+							onClick={() => {
+								updateAppSettings(
+									AppSettingsGroup.Cache,
+									{ enableSystemAudio: !enableSystemAudio },
+									true,
+									true,
+									false,
+									true,
+									false,
+								);
+							}}
+							icon={
+								<SystemAudioIcon
+									style={{
+										color: getButtonIconColorByState(enableSystemAudio, token),
+									}}
+								/>
+							}
+							title={intl.formatMessage({ id: "videoRecord.systemAudio" })}
+							type={"text"}
+							key="system-audio"
+						/>
 
 						<div className="video-record-toolbar-splitter" />
 

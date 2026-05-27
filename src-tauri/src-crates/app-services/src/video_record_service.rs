@@ -41,7 +41,6 @@ struct RecordingParams {
     format: VideoFormat,
     frame_rate: u32,
     enable_microphone: bool,
-    #[allow(unused)]
     enable_system_audio: bool,
     microphone_device_name: String,
     hwaccel: bool,
@@ -293,18 +292,21 @@ impl VideoRecordService {
         }
 
         let mut audio_input = String::new();
+        let mut sys_audio_input = String::new();
 
         // 根据平台添加音频输入
         #[cfg(target_os = "windows")]
         {
-            // 添加系统音频输入
+            // 添加系统音频输入 (Windows dshow - 捕获音频输出设备)
             if params.enable_system_audio {
-                // command
-                //     .arg("-f")
-                //     .arg("dshow")
-                //     .arg("-i")
-                //     .arg("audio=virtual-audio-capturer");
-                // audio_inputs.push("1:a".to_string());
+                let sys_device_names = self.get_system_audio_device_names();
+                if sys_device_names.len() > 0 {
+                    command.arg("-f").arg("dshow").arg("-i").arg(format!(
+                        "audio={}",
+                        sys_device_names[0]
+                    ));
+                    sys_audio_input = format!("{}:a", 1);
+                }
             }
 
             // 添加麦克风音频输入
@@ -312,6 +314,8 @@ impl VideoRecordService {
                 let device_names = self.get_microphone_device_names();
 
                 if device_names.len() > 0 {
+                    // 如果同时有系统音频，麦克风是第二个输入；否则是第一个
+                    let mic_input_index = if !sys_audio_input.is_empty() { 2 } else { 1 };
                     command.arg("-f").arg("dshow").arg("-i").arg(format!(
                         "audio={}",
                         if device_names.contains(&params.microphone_device_name) {
@@ -320,7 +324,7 @@ impl VideoRecordService {
                             device_names[0].clone()
                         }
                     ));
-                    audio_input = format!("{}:a", 1);
+                    audio_input = format!("{}:a", mic_input_index);
                 }
             }
         }
@@ -499,12 +503,30 @@ impl VideoRecordService {
                 }
 
                 // 音频编码设置
-                if !audio_input.is_empty() {
+                if !audio_input.is_empty() && !sys_audio_input.is_empty() {
+                    // 同时有麦克风和系统音频 - 双路混音
+                    command.arg("-c:a").arg("aac").arg("-b:a").arg("128k");
+                    let filter_complex = format!(
+                        "[{}]anlmdn=s=10:p=0.001:r=0.005[mic];[{}]anlmdn=s=10:p=0.001:r=0.005[sys];[mic][sys]amix=inputs=2:duration=longest[aout]",
+                        audio_input, sys_audio_input
+                    );
+                    command.arg("-filter_complex").arg(filter_complex);
+                    command.arg("-map").arg("0:v").arg("-map").arg("[aout]");
+                } else if !audio_input.is_empty() {
+                    // 只有麦克风
                     command.arg("-c:a").arg("aac").arg("-b:a").arg("128k");
 
                     // 音频处理，添加降噪
                     let filter_complex =
                         format!("[{}]anlmdn=s=10:p=0.001:r=0.005[aout]", audio_input);
+                    command.arg("-filter_complex").arg(filter_complex);
+                    command.arg("-map").arg("0:v").arg("-map").arg("[aout]");
+                } else if !sys_audio_input.is_empty() {
+                    // 只有系统音频
+                    command.arg("-c:a").arg("aac").arg("-b:a").arg("128k");
+
+                    let filter_complex =
+                        format!("[{}]anlmdn=s=10:p=0.001:r=0.005[aout]", sys_audio_input);
                     command.arg("-filter_complex").arg(filter_complex);
                     command.arg("-map").arg("0:v").arg("-map").arg("[aout]");
                 } else {
@@ -739,6 +761,130 @@ impl VideoRecordService {
 
         println!(
             "[get_microphone_device_names] Total found devices: {}",
+            device_names.len()
+        );
+        device_names
+    }
+
+    /// 获取系统音频输出设备列表 (Windows - 用于内录)
+    /// 返回可用的音频输出设备名称（如 "立体声混音"、扬声器设备等）
+    pub fn get_system_audio_device_names(&self) -> Vec<String> {
+        let mut device_names = Vec::new();
+
+        #[cfg(target_os = "windows")]
+        {
+            let mut command = self.get_ffmpeg_command();
+            command
+                .arg("-list_devices")
+                .arg("true")
+                .arg("-f")
+                .arg("dshow")
+                .arg("-i")
+                .arg("dummy");
+
+            let mut child = match command.spawn() {
+                Ok(child) => child,
+                Err(e) => {
+                    println!(
+                        "[get_system_audio_device_names] Failed to spawn ffmpeg: {}",
+                        e
+                    );
+                    return device_names;
+                }
+            };
+
+            let output_iter = match child.iter() {
+                Ok(output) => output,
+                Err(e) => {
+                    println!(
+                        "[get_system_audio_device_names] Failed to iter ffmpeg: {}",
+                        e
+                    );
+                    return device_names;
+                }
+            };
+
+            // 匹配所有音频设备，包括:
+            // 1. "立体声混音" (Stereo Mix) - 最理想的内录设备
+            // 2. 扬声器/耳机输出设备 (部分声卡支持 dshow 捕获)
+            // 优先级: 立体声混音 > 其他包含 speaker/audio output 的设备
+            let device_regex =
+                match Regex::new(r#"\[info\]\s+"([^"]+)"\s+\(audio\)"#) {
+                    Ok(regex) => regex,
+                    Err(e) => {
+                        println!(
+                            "[get_system_audio_device_names] Failed to create regex: {}",
+                            e
+                        );
+                        return device_names;
+                    }
+                };
+
+            // 关键词匹配优先级排序
+            fn get_device_priority(name: &str) -> u32 {
+                let name_lower = name.to_lowercase();
+                if name_lower.contains("stereo mix") || name_lower.contains("立体声混音") {
+                    return 0; // 最高优先级
+                }
+                if name_lower.contains("what u hear") || name_lower.contains("您听到的声音") {
+                    return 1;
+                }
+                if name_lower.contains("loopback") {
+                    return 2;
+                }
+                if name_lower.contains("speaker") || name_lower.contains("扬声器") {
+                    return 3;
+                }
+                if name_lower.contains("wave out") || name_lower.contains("波形输出") {
+                    return 4;
+                }
+                99 // 最低优先级
+            }
+
+            let mut all_devices: Vec<(String, u32)> = Vec::new();
+
+            for line in output_iter {
+                match line {
+                    FfmpegEvent::Log(_, line) => {
+                        if let Some(captures) = device_regex.captures(&line) {
+                            if let Some(device_name) = captures.get(1) {
+                                let name = device_name.as_str().to_string();
+                                // 排除已知麦克风设备（通常包含 microphone/mic 字样）
+                                let name_lower = name.to_lowercase();
+                                if !name_lower.contains("microphone")
+                                    && !name_lower.contains("mic ")
+                                    && !name_lower.starts_with("mic ")
+                                    && !name_lower.contains("麦克风")
+                                {
+                                    let priority = get_device_priority(&name);
+                                    all_devices.push((name, priority));
+                                    println!(
+                                        "[get_system_audio_device_names] Found system audio device: {} (priority: {})",
+                                        name, priority
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+
+            let _ = child.wait();
+
+            // 按优先级排序后返回
+            all_devices.sort_by_key(|(_, p)| *p);
+            device_names = all_devices.into_iter().map(|(n, _)| n).collect();
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            // macOS 暂不支持系统内录（需要 BlackHole 等虚拟设备）
+            println!("[get_system_audio_device_names] System audio capture not supported on this platform");
+        }
+
+        println!(
+            "[get_system_audio_device_names] Total found devices: {}",
             device_names.len()
         );
         device_names
