@@ -60,7 +60,7 @@ export const settings = {
 	"settings.commonSettings.draw.toolIndependentStyle": "獨立的工具樣式",
 	"settings.commonSettings.draw.toolIndependentStyle.tip":
 		"每個工具都有獨立的樣式配置，修改某個工具的樣式後，不會影響其他工具的樣式",
-	"settings.fixedContentSettings": "固定到螢幕",
+	"settings.fixedContentSettings": "貼圖",
 	"settings.fixedContentSettings.borderColor": "邊框顏色",
 	"settings.selectRectMaskColor": "選區遮罩顏色",
 	"settings.fullScreenAuxiliaryLineColor": "全螢幕輔助線顏色",
@@ -205,7 +205,7 @@ export const settings = {
 	"settings.functionSettings.screenshotSettings.hotKeyTipOpacity":
 		"快捷鍵提示透明度",
 	"settings.functionSettings.screenshotSettings.autoOcrAfterFixed":
-		"固定螢幕後自動 OCR",
+		"貼圖後自動 OCR",
 	"settings.functionSettings.screenshotSettings.shortcutCanleTip":
 		"「取消截圖」的彈出視窗提示",
 	"settings.functionSettings.screenshotSettings.shortcutCanleTip.tip":
@@ -389,7 +389,7 @@ export const settings = {
 	"settings.commonSettings.trayIconSettings": "系統匣",
 	"settings.commonSettings.trayIconSettings.enableTrayIcon": "啟用系統匣",
 	"settings.commonSettings.trayIconSettings.enableTrayIconTip":
-		"關閉後，請透過固定到螢幕視窗的右鍵選單開啟主視窗",
+		"關閉後，請透過貼圖視窗的右鍵選單開啟主視窗",
 	"settings.commonSettings.trayIconSettings.defaultIcons": "預設圖示",
 	"settings.commonSettings.trayIconSettings.defaultIcons.darkDefault":
 		"預設圖示（深色）",
@@ -404,7 +404,7 @@ export const settings = {
 		"自訂圖示路徑（深色）",
 	"settings.commonSettings.trayIconSettings.iconPath.tip":
 		"建議 32x32 或 64x64 的圖示",
-	"settings.hotKeySettings.fixedContent": "固定到螢幕",
+	"settings.hotKeySettings.fixedContent": "貼圖",
 	"settings.hotKeySettings.fixedContent.fixedContentEnableDraw": "繪製模式",
 	"settings.hotKeySettings.fixedContent.fixedContentSwitchThumbnail":
 		"縮圖模式",
@@ -430,7 +430,7 @@ export const settings = {
 	"settings.hotKeySettings.fixedContent.fixedContentSaveToFile": "儲存為檔案",
 	"settings.hotKeySettings.fixedContent.fixedContentSelectText":
 		"選取文字/拖曳視窗",
-	"settings.functionSettings.fixedContentSettings": "固定到螢幕",
+	"settings.functionSettings.fixedContentSettings": "貼圖",
 	"settings.functionSettings.fixedContentSettings.zoomWithMouse":
 		"以滑鼠為中心縮放",
 	"settings.functionSettings.fixedContentSettings.doubleClickAction":
@@ -438,14 +438,14 @@ export const settings = {
 	"settings.functionSettings.fixedContentSettings.autoResizeWindow":
 		"自動縮放視窗",
 	"settings.functionSettings.fixedContentSettings.autoResizeWindow.tip":
-		"固定的內容超出螢幕時，自動縮放視窗以適應螢幕大小",
+		"貼圖內容超出螢幕時，自動縮放視窗以適應螢幕大小",
 	"settings.functionSettings.fixedContentSettings.initialPosition":
 		"視窗初始位置",
 	"settings.functionSettings.fixedContentSettings.initialPosition.tip":
-		"截圖的固定到螢幕不受影響",
+		"截圖的貼圖不受影響",
 	"settings.functionSettings.fixedContentSettings.autoOcr": "自動文字辨識",
 	"settings.functionSettings.fixedContentSettings.autoCopyToClipboard":
-		"固定到螢幕後自動複製到剪貼簿",
+		"貼圖後自動複製到剪貼簿",
 	"settings.functionSettings.fixedContentSettings.initialPosition.monitorCenter":
 		"螢幕置中",
 	"settings.functionSettings.fixedContentSettings.initialPosition.mousePosition":
@@ -606,7 +606,7 @@ export const settings = {
 	"settings.systemSettings.coreSettings": "核心",
 	"settings.systemSettings.coreSettings.hotLoadPageCount": "熱載入頁面數量",
 	"settings.systemSettings.coreSettings.hotLoadPageCount.tip":
-		"透過熱載入頁面，實現固定剪貼簿內容到螢幕、錄影、全螢幕畫布等功能的快速載入，但同時提高了記憶體的佔用",
+		"透過熱載入頁面，實現貼圖、錄影、全螢幕畫布等功能的快速載入，但同時提高了記憶體的佔用",
 	"settings.functionSettings.ocrSettings": "文字辨識",
 	"settings.functionSettings.ocrSettings.htmlVisionModel": "視覺理解模型",
 	"settings.functionSettings.ocrSettings.htmlVisionModel.tip":

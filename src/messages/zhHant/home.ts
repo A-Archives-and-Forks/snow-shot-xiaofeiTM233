@@ -17,7 +17,7 @@ export const home = {
 	"home.videoRecordFunction.videoRecord": "錄影",
 	"home.videoRecordFunction.copyVideo": "開始錄製/結束錄製並複製影片",
 	"home.topWindow": "置頂/取消置頂視窗",
-	"home.fixedContent": "固定剪貼簿內容到螢幕",
+	"home.fixedContent": "貼圖",
 	"home.showOrHideMainWindow": "顯示/隱藏主視窗",
 	"home.openImageSaveFolder": "開啟圖片儲存目錄",
 	"home.openCaptureHistory": "截圖歷史",
