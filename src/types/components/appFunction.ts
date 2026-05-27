@@ -21,10 +21,10 @@ export enum AppFunction {
 	VideoRecordCopy = "videoRecordCopy",
 	TopWindow = "topWindow",
 	FullScreenDraw = "fullScreenDraw",
+	ToggleFixedContentVisibility = "toggleFixedContentVisibility",
 	ShowOrHideMainWindow = "showOrHideMainWindow",
 	OpenImageSaveFolder = "openImageSaveFolder",
 	OpenCaptureHistory = "openCaptureHistory",
-	ToggleFixedContentVisibility = "toggleFixedContentVisibility",
 }
 
 export enum AppFunctionGroup {
