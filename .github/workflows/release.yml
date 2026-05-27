@@ -21,7 +21,7 @@ jobs:
         permissions:
             contents: write
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
               with:
                   fetch-depth: 0
 
@@ -45,9 +45,9 @@ jobs:
                   git push origin ${{ steps.vars.outputs.tag }}
             # 安装 Node.js
             - name: Setup node
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: 20
+                  node-version: 24
 
             # 发布 Release，使用自定义名称
             - name: Generate changelog
@@ -97,18 +97,16 @@ jobs:
         runs-on: ${{ matrix.platform }}
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
 
             # 安装 Node.js 和 pnpm
             - name: Setup node
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: 20
+                  node-version: 24
 
             - name: Setup pnpm
-              uses: pnpm/action-setup@v3
-              with:
-                  version: latest
+              uses: pnpm/action-setup@v6
 
             # 安装 Rust
             - name: Install Rust stable
@@ -125,9 +123,9 @@ jobs:
 
             # 配置 pnpm 缓存
             - name: Setup pnpm cache
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: 20
+                  node-version: 24
                   cache: pnpm
 
             # 安装 yarn

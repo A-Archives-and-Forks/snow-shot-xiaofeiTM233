@@ -14,7 +14,7 @@ jobs:
         runs-on: windows-latest
         steps:
             - name: Checkout repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v6
 
             # 获取 Excalidraw 的 commit hash
             - name: Get Excalidraw Commit Hash
@@ -60,14 +60,12 @@ jobs:
 
             # 安装 Node.js 和 pnpm
             - name: Setup node
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: 20
+                  node-version: 24
 
             - name: Setup pnpm
-              uses: pnpm/action-setup@v3
-              with:
-                  version: latest
+              uses: pnpm/action-setup@v6
 
             # 安装 Rust
             - name: Install Rust stable
@@ -86,9 +84,9 @@ jobs:
 
             # 配置 pnpm 缓存
             - name: Setup pnpm cache
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: 20
+                  node-version: 24
                   cache: pnpm
 
             # 创建 .env 文件
@@ -144,7 +142,7 @@ jobs:
 
             # 上传构建产物到 Action 附件
             - name: Upload build artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                 name: snow-shot-windows-test-build
                 path: |
