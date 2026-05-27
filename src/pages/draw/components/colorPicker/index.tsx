@@ -182,6 +182,12 @@ const ColorPickerCore: React.FC<{
 				return;
 			}
 
+			// 延迟显示期间，保持隐藏
+			if (isDelayShowingRef.current) {
+				colorPickerRef.current.style.opacity = "0";
+				return;
+			}
+
 			const captureBoundingBoxInfo = captureBoundingBoxInfoRef.current;
 			if (!captureBoundingBoxInfo) {
 				return;
@@ -326,11 +332,41 @@ const ColorPickerCore: React.FC<{
 	}, []);
 
 	const enableRef = useRef(false);
+	/** 延迟显示定时器 */
+	const showDelayTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+		undefined,
+	);
+	/** 是否处于延迟显示状态 */
+	const isDelayShowingRef = useRef(false);
 	const onEnableChange = useCallback(
 		(enable: boolean) => {
 			enableRef.current = enable;
 
-			updateOpacity(false);
+			if (enable) {
+				// 启用时，先隐藏，延迟 0.5 秒后显示
+				isDelayShowingRef.current = true;
+				if (colorPickerRef.current) {
+					colorPickerRef.current.style.opacity = "0";
+				}
+
+				// 清除之前的定时器
+				if (showDelayTimerRef.current) {
+					clearTimeout(showDelayTimerRef.current);
+				}
+
+				showDelayTimerRef.current = setTimeout(() => {
+					isDelayShowingRef.current = false;
+					updateOpacity(false);
+				}, 500);
+			} else {
+				// 禁用时，清除定时器并立即隐藏
+				if (showDelayTimerRef.current) {
+					clearTimeout(showDelayTimerRef.current);
+					showDelayTimerRef.current = undefined;
+				}
+				isDelayShowingRef.current = false;
+				updateOpacity(false);
+			}
 		},
 		[updateOpacity],
 	);
@@ -872,6 +908,12 @@ const ColorPickerCore: React.FC<{
 
 	useEffect(() => {
 		initPreviewCanvas();
+		return () => {
+			// 清除延迟显示定时器
+			if (showDelayTimerRef.current) {
+				clearTimeout(showDelayTimerRef.current);
+			}
+		};
 	}, [initPreviewCanvas]);
 
 	return (
