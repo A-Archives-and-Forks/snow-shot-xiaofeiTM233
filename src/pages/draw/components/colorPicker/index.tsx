@@ -182,8 +182,8 @@ const ColorPickerCore: React.FC<{
 				return;
 			}
 
-			// 延迟显示期间，保持隐藏
-			if (isDelayShowingRef.current) {
+			// 等待真实鼠标移动期间，保持隐藏
+			if (isWaitingForRealMouseMoveRef.current) {
 				colorPickerRef.current.style.opacity = "0";
 				return;
 			}
@@ -332,43 +332,41 @@ const ColorPickerCore: React.FC<{
 	}, []);
 
 	const enableRef = useRef(false);
-	/** 延迟显示定时器 */
-	const showDelayTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-		undefined,
-	);
-	/** 是否处于延迟显示状态 */
-	const isDelayShowingRef = useRef(false);
+	/**
+	 * 是否正在等待真实的鼠标移动事件
+	 * true: 隐藏放大镜，不渲染，等待真实 mousemove 事件
+	 * false: 正常显示
+	 */
+	const isWaitingForRealMouseMoveRef = useRef(false);
+
+	/** 标记需要等待真实鼠标移动 */
+	const startWaitingForRealMouseMove = useCallback(() => {
+		isWaitingForRealMouseMoveRef.current = true;
+		if (colorPickerRef.current) {
+			colorPickerRef.current.style.opacity = "0";
+		}
+	}, []);
+
+	/** 真实鼠标移动到来，可以显示了 */
+	const onRealMouseMoveReceived = useCallback(() => {
+		if (isWaitingForRealMouseMoveRef.current) {
+			isWaitingForRealMouseMoveRef.current = false;
+			updateOpacity(false);
+		}
+	}, [updateOpacity]);
+
 	const onEnableChange = useCallback(
 		(enable: boolean) => {
 			enableRef.current = enable;
 
 			if (enable) {
-				// 启用时，先隐藏，延迟 0.5 秒后显示
-				isDelayShowingRef.current = true;
-				if (colorPickerRef.current) {
-					colorPickerRef.current.style.opacity = "0";
-				}
-
-				// 清除之前的定时器
-				if (showDelayTimerRef.current) {
-					clearTimeout(showDelayTimerRef.current);
-				}
-
-				showDelayTimerRef.current = setTimeout(() => {
-					isDelayShowingRef.current = false;
-					updateOpacity(false);
-				}, 500);
+				startWaitingForRealMouseMove();
 			} else {
-				// 禁用时，清除定时器并立即隐藏
-				if (showDelayTimerRef.current) {
-					clearTimeout(showDelayTimerRef.current);
-					showDelayTimerRef.current = undefined;
-				}
-				isDelayShowingRef.current = false;
+				isWaitingForRealMouseMoveRef.current = false;
 				updateOpacity(false);
 			}
 		},
-		[updateOpacity],
+		[updateOpacity, startWaitingForRealMouseMove],
 	);
 
 	const updateEnable = useCallback(() => {
@@ -669,6 +667,15 @@ const ColorPickerCore: React.FC<{
 			physicalX?: number,
 			physicalY?: number,
 		) => {
+			// 等待真实鼠标移动期间，只更新位置数据但不渲染
+			if (isWaitingForRealMouseMoveRef.current) {
+				pickerPositionRef.current.mouseX =
+					physicalX ?? Math.floor(mouseX * window.devicePixelRatio);
+				pickerPositionRef.current.mouseY =
+					physicalY ?? Math.floor(mouseY * window.devicePixelRatio);
+				return;
+			}
+
 			const dragPosition = getDragPosition();
 
 			updateTransformRender(mouseX, mouseY, dragPosition);
@@ -708,15 +715,6 @@ const ColorPickerCore: React.FC<{
 		);
 	}, [renderWorker]);
 
-	const refreshMouseMove = useCallback(() => {
-		update(
-			Math.floor(pickerPositionRef.current.mouseX / window.devicePixelRatio),
-			Math.floor(pickerPositionRef.current.mouseY / window.devicePixelRatio),
-			pickerPositionRef.current.mouseX,
-			pickerPositionRef.current.mouseY,
-		);
-	}, [update]);
-
 	const initImageData = useCallback(
 		async (imageBuffer: ImageBuffer | ImageSharedBufferData) => {
 			await initImageDataAction(
@@ -727,9 +725,11 @@ const ColorPickerCore: React.FC<{
 				imageBuffer,
 			);
 			imageDataReadyRef.current = true;
-			refreshMouseMove();
+			// 截图图片加载完成，标记等待真实鼠标移动后再显示
+			startWaitingForRealMouseMove();
+			// 不调用 refreshMouseMove()，避免使用旧位置数据渲染
 		},
-		[renderWorker, refreshMouseMove],
+		[renderWorker, startWaitingForRealMouseMove],
 	);
 
 	const onCaptureImageBufferReady = useCallback(
@@ -785,6 +785,9 @@ const ColorPickerCore: React.FC<{
 				return;
 			}
 
+			// 真实鼠标移动事件到来，可以显示放大镜了
+			onRealMouseMoveReceived();
+
 			update(e.clientX, e.clientY);
 		};
 
@@ -793,7 +796,7 @@ const ColorPickerCore: React.FC<{
 		return () => {
 			document.removeEventListener("mousemove", handleMouseMove);
 		};
-	}, [isDisableMouseMove, update]);
+	}, [isDisableMouseMove, update, onRealMouseMoveReceived]);
 
 	const moveCursor = useCallback(
 		(offsetX: number, offsetY: number) => {
@@ -868,9 +871,11 @@ const ColorPickerCore: React.FC<{
 				fileUri,
 			);
 			imageDataReadyRef.current = true;
-			refreshMouseMove();
+			// 切换截图历史，标记等待真实鼠标移动后再显示
+			startWaitingForRealMouseMove();
+			// 不调用 refreshMouseMove()，避免使用旧位置数据渲染
 		},
-		[renderWorker, refreshMouseMove],
+		[renderWorker, startWaitingForRealMouseMove],
 	);
 
 	const pickColor = useCallback(
@@ -908,12 +913,6 @@ const ColorPickerCore: React.FC<{
 
 	useEffect(() => {
 		initPreviewCanvas();
-		return () => {
-			// 清除延迟显示定时器
-			if (showDelayTimerRef.current) {
-				clearTimeout(showDelayTimerRef.current);
-			}
-		};
 	}, [initPreviewCanvas]);
 
 	return (
