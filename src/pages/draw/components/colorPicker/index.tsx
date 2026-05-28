@@ -18,6 +18,7 @@ import React, {
 	useRef,
 	useState,
 } from "react";
+import { getMousePosition } from "@/commands";
 import { DrawStatePublisher } from "@/components/drawCore/extra";
 import {
 	AppSettingsActionContext,
@@ -182,9 +183,9 @@ const ColorPickerCore: React.FC<{
 				return;
 			}
 
-			// 等待真实鼠标移动期间，保持隐藏
-			if (isWaitingForRealMouseMoveRef.current) {
-				colorPickerRef.current.style.opacity = "0";
+			// 未就绪期间，保持隐藏
+			if (isNotReadyRef.current) {
+				colorPickerRef.current.style.visibility = "hidden";
 				return;
 			}
 
@@ -333,40 +334,57 @@ const ColorPickerCore: React.FC<{
 
 	const enableRef = useRef(false);
 	/**
-	 * 是否正在等待真实的鼠标移动事件
-	 * true: 隐藏放大镜，不渲染，等待真实 mousemove 事件
+	 * 是否处于"未就绪"状态（图片还没加载完成）
+	 * true: 放大镜隐藏，不渲染
 	 * false: 正常显示
 	 */
-	const isWaitingForRealMouseMoveRef = useRef(false);
+	const isNotReadyRef = useRef(true);
 
-	/** 标记需要等待真实鼠标移动 */
-	const startWaitingForRealMouseMove = useCallback(() => {
-		isWaitingForRealMouseMoveRef.current = true;
+	/** 隐藏放大镜（等待就绪） */
+	const hideColorPicker = useCallback(() => {
+		isNotReadyRef.current = true;
 		if (colorPickerRef.current) {
+			colorPickerRef.current.style.visibility = "hidden";
+			colorPickerRef.current.style.transition = "none";
 			colorPickerRef.current.style.opacity = "0";
 		}
 	}, []);
 
-	/** 真实鼠标移动到来，可以显示了 */
-	const onRealMouseMoveReceived = useCallback(() => {
-		if (isWaitingForRealMouseMoveRef.current) {
-			isWaitingForRealMouseMoveRef.current = false;
-			updateOpacity(false);
+	/** 就绪后显示放大镜 - 获取当前鼠标位置并立即渲染 */
+	const showColorPicker = useCallback(async () => {
+		if (!isNotReadyRef.current) {
+			return;
 		}
-	}, [updateOpacity]);
+
+		isNotReadyRef.current = false;
+
+		// 通过 Tauri 命令获取当前真实鼠标物理位置
+		try {
+			const [mouseX, mouseY] = await getMousePosition();
+			pickerPositionRef.current.mouseX = mouseX;
+			pickerPositionRef.current.mouseY = mouseY;
+		} catch {
+			// 获取失败则使用已有位置数据
+		}
+
+		if (colorPickerRef.current) {
+			colorPickerRef.current.style.visibility = "";
+			colorPickerRef.current.style.transition = "";
+		}
+	}, []);
 
 	const onEnableChange = useCallback(
 		(enable: boolean) => {
 			enableRef.current = enable;
 
 			if (enable) {
-				startWaitingForRealMouseMove();
+				hideColorPicker();
 			} else {
-				isWaitingForRealMouseMoveRef.current = false;
+				isNotReadyRef.current = false;
 				updateOpacity(false);
 			}
 		},
-		[updateOpacity, startWaitingForRealMouseMove],
+		[updateOpacity, hideColorPicker],
 	);
 
 	const updateEnable = useCallback(() => {
@@ -667,12 +685,8 @@ const ColorPickerCore: React.FC<{
 			physicalX?: number,
 			physicalY?: number,
 		) => {
-			// 等待真实鼠标移动期间，只更新位置数据但不渲染
-			if (isWaitingForRealMouseMoveRef.current) {
-				pickerPositionRef.current.mouseX =
-					physicalX ?? Math.floor(mouseX * window.devicePixelRatio);
-				pickerPositionRef.current.mouseY =
-					physicalY ?? Math.floor(mouseY * window.devicePixelRatio);
+			// 未就绪期间，不渲染
+			if (isNotReadyRef.current) {
 				return;
 			}
 
@@ -725,11 +739,11 @@ const ColorPickerCore: React.FC<{
 				imageBuffer,
 			);
 			imageDataReadyRef.current = true;
-			// 截图图片加载完成，标记等待真实鼠标移动后再显示
-			startWaitingForRealMouseMove();
-			// 不调用 refreshMouseMove()，避免使用旧位置数据渲染
+			// 图片加载完成，获取真实鼠标位置并立即显示
+			await showColorPicker();
+			updateOpacity(false);
 		},
-		[renderWorker, startWaitingForRealMouseMove],
+		[renderWorker, showColorPicker, updateOpacity],
 	);
 
 	const onCaptureImageBufferReady = useCallback(
@@ -766,6 +780,8 @@ const ColorPickerCore: React.FC<{
 			(captureEvent: CaptureEventParams | undefined) => {
 				if (captureEvent?.event === CaptureEvent.onCaptureFinish) {
 					imageDataReadyRef.current = false;
+					// 截图结束，重置为隐藏状态
+					hideColorPicker();
 				} else if (
 					captureEvent?.event === CaptureEvent.onCaptureImageBufferReady
 				) {
@@ -775,7 +791,7 @@ const ColorPickerCore: React.FC<{
 					}
 				}
 			},
-			[onCaptureImageBufferReady],
+			[onCaptureImageBufferReady, hideColorPicker],
 		),
 	);
 
@@ -785,9 +801,6 @@ const ColorPickerCore: React.FC<{
 				return;
 			}
 
-			// 真实鼠标移动事件到来，可以显示放大镜了
-			onRealMouseMoveReceived();
-
 			update(e.clientX, e.clientY);
 		};
 
@@ -796,7 +809,7 @@ const ColorPickerCore: React.FC<{
 		return () => {
 			document.removeEventListener("mousemove", handleMouseMove);
 		};
-	}, [isDisableMouseMove, update, onRealMouseMoveReceived]);
+	}, [isDisableMouseMove, update]);
 
 	const moveCursor = useCallback(
 		(offsetX: number, offsetY: number) => {
@@ -871,11 +884,11 @@ const ColorPickerCore: React.FC<{
 				fileUri,
 			);
 			imageDataReadyRef.current = true;
-			// 切换截图历史，标记等待真实鼠标移动后再显示
-			startWaitingForRealMouseMove();
-			// 不调用 refreshMouseMove()，避免使用旧位置数据渲染
+			// 切换截图历史，获取真实鼠标位置并立即显示
+			await showColorPicker();
+			updateOpacity(false);
 		},
-		[renderWorker, startWaitingForRealMouseMove],
+		[renderWorker, showColorPicker, updateOpacity],
 	);
 
 	const pickColor = useCallback(
@@ -913,7 +926,17 @@ const ColorPickerCore: React.FC<{
 
 	useEffect(() => {
 		initPreviewCanvas();
-	}, [initPreviewCanvas]);
+
+		// 组件挂载时默认隐藏
+		hideColorPicker();
+
+		return () => {
+			if (colorPickerRef.current) {
+				colorPickerRef.current.style.visibility = "";
+				colorPickerRef.current.style.transition = "";
+			}
+		};
+	}, [initPreviewCanvas, hideColorPicker]);
 
 	return (
 		<div className="color-picker" ref={colorPickerRef}>
