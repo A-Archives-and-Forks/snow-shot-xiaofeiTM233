@@ -520,6 +520,8 @@ export type AppSettingsData = {
 		gifFrameRate: number;
 		/** 麦克风设备 */
 		microphoneDeviceName: string;
+		/** 系统音频设备（内录） */
+		systemAudioDeviceName: string;
 		/** 硬件加速 */
 		hwaccel: boolean;
 		/** 编码器 */

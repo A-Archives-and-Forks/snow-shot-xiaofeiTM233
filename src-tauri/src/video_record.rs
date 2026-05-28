@@ -31,6 +31,7 @@ pub async fn video_record_start(
     enable_microphone: bool,
     enable_system_audio: bool,
     microphone_device_name: String,
+    system_audio_device_name: String,
     hwaccel: bool,
     encoder: String,
     encoder_preset: String,
@@ -55,6 +56,7 @@ pub async fn video_record_start(
         enable_microphone,
         enable_system_audio,
         microphone_device_name,
+        system_audio_device_name,
         hwaccel,
         encoder,
         encoder_preset,
@@ -136,6 +138,14 @@ pub async fn video_record_get_microphone_device_names(
 ) -> Result<Vec<String>, String> {
     let service = video_service.lock().await;
     Ok(service.get_microphone_device_names())
+}
+
+#[command]
+pub async fn video_record_get_system_audio_device_names(
+    video_service: tauri::State<'_, Mutex<VideoRecordService>>,
+) -> Result<Vec<String>, String> {
+    let service = video_service.lock().await;
+    Ok(service.get_system_audio_device_names())
 }
 
 #[command]

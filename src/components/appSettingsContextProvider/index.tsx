@@ -1200,6 +1200,10 @@ const AppSettingsContextProviderCore: React.FC<{
 						typeof newSettings?.microphoneDeviceName === "string"
 							? newSettings.microphoneDeviceName
 							: (prevSettings?.microphoneDeviceName ?? ""),
+					systemAudioDeviceName:
+						typeof newSettings?.systemAudioDeviceName === "string"
+							? newSettings.systemAudioDeviceName
+							: (prevSettings?.systemAudioDeviceName ?? ""),
 					hwaccel:
 						typeof newSettings?.hwaccel === "boolean"
 							? newSettings.hwaccel

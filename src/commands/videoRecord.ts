@@ -13,6 +13,7 @@ export const videoRecordStart = async (
 	enableMicrophone: boolean,
 	enableSystemAudio: boolean,
 	microphoneDeviceName: string,
+	systemAudioDeviceName: string,
 	hwaccel: boolean,
 	encoder: string,
 	encoderPreset: string,
@@ -30,6 +31,7 @@ export const videoRecordStart = async (
 		enableMicrophone,
 		enableSystemAudio,
 		microphoneDeviceName,
+		systemAudioDeviceName,
 		hwaccel,
 		encoder,
 		encoderPreset,
@@ -74,6 +76,13 @@ export const videoRecordKill = async () => {
 export const videoRecordGetMicrophoneDeviceNames = async () => {
 	const result = await invoke<string[]>(
 		"video_record_get_microphone_device_names",
+	);
+	return result;
+};
+
+export const videoRecordGetSystemAudioDeviceNames = async () => {
+	const result = await invoke<string[]>(
+		"video_record_get_system_audio_device_names",
 	);
 	return result;
 };

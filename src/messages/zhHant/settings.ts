@@ -320,6 +320,10 @@ export const settings = {
 		"麥克風裝置",
 	"settings.functionSettings.videoRecordSettings.microphoneDeviceName.default":
 		"預設裝置",
+	"settings.functionSettings.videoRecordSettings.systemAudioDeviceName":
+		"系統音頻裝置",
+	"settings.functionSettings.videoRecordSettings.systemAudioDeviceName.default":
+		"預設裝置",
 	"settings.functionSettings.videoRecordSettings.encoder": "編碼器",
 	"settings.functionSettings.videoRecordSettings.encoder.tip":
 		"啟用硬體編碼時請注意適用平台，錯誤的編碼器將無法進行錄製",

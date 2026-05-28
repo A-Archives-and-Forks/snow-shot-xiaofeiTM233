@@ -358,6 +358,7 @@ export const VideoRecordToolbarPage: React.FC = () => {
 			enableMicrophone,
 			enableSystemAudio,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].microphoneDeviceName,
+			appSettings[AppSettingsGroup.FunctionVideoRecord].systemAudioDeviceName,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].hwaccel,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].encoder,
 			appSettings[AppSettingsGroup.FunctionVideoRecord].encoderPreset,

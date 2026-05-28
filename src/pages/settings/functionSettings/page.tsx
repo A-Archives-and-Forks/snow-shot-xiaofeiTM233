@@ -34,7 +34,10 @@ import {
 	useState,
 } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { videoRecordGetMicrophoneDeviceNames } from "@/commands/videoRecord";
+import {
+	videoRecordGetMicrophoneDeviceNames,
+	videoRecordGetSystemAudioDeviceNames,
+} from "@/commands/videoRecord";
 import { ContentWrap } from "@/components/contentWrap";
 import { DirectoryInput } from "@/components/directoryInput";
 import { GroupTitle, SubGroupTitle } from "@/components/groupTitle";
@@ -261,6 +264,8 @@ export const FunctionSettingsPage = () => {
 
 	const [microphoneDeviceNameOptions, setMicrophoneDeviceNameOptions] =
 		useState<{ label: string; value: string }[]>([]);
+	const [systemAudioDeviceNameOptions, setSystemAudioDeviceNameOptions] =
+		useState<{ label: string; value: string }[]>([]);
 
 	const [currentPlatform] = usePlatform();
 
@@ -319,6 +324,41 @@ export const FunctionSettingsPage = () => {
 				setMicrophoneDeviceNameOptions(options);
 			});
 	}, [formatMicrophoneDeviceName, intl, isReadyStatus]);
+
+	const initedSystemAudioDeviceNameOptions = useRef(false);
+	useEffect(() => {
+		if (initedSystemAudioDeviceNameOptions.current) {
+			return;
+		}
+
+		if (!isReadyStatus?.(PLUGIN_ID_FFMPEG)) {
+			return;
+		}
+
+		initedSystemAudioDeviceNameOptions.current = true;
+
+		const options: { label: string; value: string }[] = [
+			{
+				label: intl.formatMessage({
+					id: "settings.functionSettings.videoRecordSettings.systemAudioDeviceName.default",
+				}),
+				value: "",
+			},
+		];
+
+		videoRecordGetSystemAudioDeviceNames()
+			.then((systemAudioDeviceNames) => {
+				for (const systemAudioDeviceName of systemAudioDeviceNames) {
+					options.push({
+						label: systemAudioDeviceName,
+						value: systemAudioDeviceName,
+					});
+				}
+			})
+			.finally(() => {
+				setSystemAudioDeviceNameOptions(options);
+			});
+	}, [intl, isReadyStatus]);
 
 	const videoMaxSizeOptions = useMemo(() => {
 		return [
@@ -2216,6 +2256,16 @@ export const FunctionSettingsPage = () => {
 										<FormattedMessage id="settings.functionSettings.videoRecordSettings.microphoneDeviceName" />
 									}
 									options={microphoneDeviceNameOptions}
+								/>
+							</Col>
+							<Col span={12}>
+								<ProFormSelect
+									name="systemAudioDeviceName"
+									layout="horizontal"
+									label={
+										<FormattedMessage id="settings.functionSettings.videoRecordSettings.systemAudioDeviceName" />
+									}
+									options={systemAudioDeviceNameOptions}
 								/>
 							</Col>
 						</Row>

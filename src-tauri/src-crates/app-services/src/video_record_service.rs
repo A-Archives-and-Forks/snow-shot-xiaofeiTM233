@@ -43,6 +43,7 @@ struct RecordingParams {
     enable_microphone: bool,
     enable_system_audio: bool,
     microphone_device_name: String,
+    system_audio_device_name: String,
     hwaccel: bool,
     encoder: String,
     encoder_preset: String,
@@ -180,6 +181,7 @@ impl VideoRecordService {
         enable_microphone: bool,
         enable_system_audio: bool,
         microphone_device_name: String,
+        system_audio_device_name: String,
         hwaccel: bool,
         encoder: String,
         encoder_preset: String,
@@ -205,6 +207,7 @@ impl VideoRecordService {
             enable_microphone,
             enable_system_audio,
             microphone_device_name,
+            system_audio_device_name,
             hwaccel,
             encoder,
             encoder_preset,
@@ -297,15 +300,35 @@ impl VideoRecordService {
         // 根据平台添加音频输入
         #[cfg(target_os = "windows")]
         {
-            // 添加系统音频输入 (Windows dshow - 捕获音频输出设备)
+            // 添加系统音频输入 (Windows WASAPI loopback - 捕获音频输出设备)
             if params.enable_system_audio {
                 let sys_device_names = self.get_system_audio_device_names();
-                if sys_device_names.len() > 0 {
-                    command.arg("-f").arg("dshow").arg("-i").arg(format!(
+                let target_device = if !params.system_audio_device_name.is_empty()
+                    && sys_device_names.contains(&params.system_audio_device_name)
+                {
+                    // 用户选择了具体设备
+                    params.system_audio_device_name.clone()
+                } else if sys_device_names.len() > 0 {
+                    // 回退到第一个可用设备
+                    sys_device_names[0].clone()
+                } else {
+                    String::new()
+                };
+
+                if !target_device.is_empty() {
+                    command.arg("-f").arg("wasapi").arg("-i").arg(format!(
                         "audio={}",
-                        sys_device_names[0]
+                        target_device
                     ));
                     sys_audio_input = format!("{}:a", 1);
+                    println!(
+                        "[start_segment] System audio device selected: {}",
+                        target_device
+                    );
+                } else {
+                    println!(
+                        "[start_segment] WARNING: No WASAPI audio output devices found for system audio capture"
+                    );
                 }
             }
 
@@ -327,6 +350,12 @@ impl VideoRecordService {
                     audio_input = format!("{}:a", mic_input_index);
                 }
             }
+
+            println!(
+                "[start_segment] Audio config: system_audio={}, sys_input='{}', microphone={}, mic_input='{}'",
+                params.enable_system_audio, sys_audio_input,
+                params.enable_microphone, audio_input
+            );
         }
 
         #[cfg(target_os = "macos")]
@@ -767,20 +796,21 @@ impl VideoRecordService {
     }
 
     /// 获取系统音频输出设备列表 (Windows - 用于内录)
-    /// 返回可用的音频输出设备名称（如 "立体声混音"、扬声器设备等）
+    /// 使用 WASAPI 枚举可环回捕获的音频输出设备
     pub fn get_system_audio_device_names(&self) -> Vec<String> {
         let mut device_names = Vec::new();
 
         #[cfg(target_os = "windows")]
         {
+            // 使用 WASAPI 枚举音频输出设备（支持 loopback 环回捕获）
             let mut command = self.get_ffmpeg_command();
             command
                 .arg("-list_devices")
                 .arg("true")
                 .arg("-f")
-                .arg("dshow")
+                .arg("wasapi")
                 .arg("-i")
-                .arg("dummy");
+                .arg("");
 
             let mut child = match command.spawn() {
                 Ok(child) => child,
@@ -804,12 +834,10 @@ impl VideoRecordService {
                 }
             };
 
-            // 匹配所有音频设备，包括:
-            // 1. "立体声混音" (Stereo Mix) - 最理想的内录设备
-            // 2. 扬声器/耳机输出设备 (部分声卡支持 dshow 捕获)
-            // 优先级: 立体声混音 > 其他包含 speaker/audio output 的设备
+            // WASAPI 设备列表输出格式:
+            // [info] [wasapi] #0: <device name> (audio)
             let device_regex =
-                match Regex::new(r#"\[info\]\s+"([^"]+)"\s+\(audio\)"#) {
+                match Regex::new(r#"\[wasapi\]\s+#\d+:\s+(.+)\s+\(audio\)"#) {
                     Ok(regex) => regex,
                     Err(e) => {
                         println!(
@@ -820,48 +848,25 @@ impl VideoRecordService {
                     }
                 };
 
-            // 关键词匹配优先级排序
-            fn get_device_priority(name: &str) -> u32 {
-                let name_lower = name.to_lowercase();
-                if name_lower.contains("stereo mix") || name_lower.contains("立体声混音") {
-                    return 0; // 最高优先级
-                }
-                if name_lower.contains("what u hear") || name_lower.contains("您听到的声音") {
-                    return 1;
-                }
-                if name_lower.contains("loopback") {
-                    return 2;
-                }
-                if name_lower.contains("speaker") || name_lower.contains("扬声器") {
-                    return 3;
-                }
-                if name_lower.contains("wave out") || name_lower.contains("波形输出") {
-                    return 4;
-                }
-                99 // 最低优先级
-            }
-
-            let mut all_devices: Vec<(String, u32)> = Vec::new();
-
             for line in output_iter {
                 match line {
                     FfmpegEvent::Log(_, line) => {
                         if let Some(captures) = device_regex.captures(&line) {
                             if let Some(device_name) = captures.get(1) {
-                                let name = device_name.as_str().to_string();
-                                // 排除已知麦克风设备（通常包含 microphone/mic 字样）
+                                let name = device_name.as_str().trim().to_string();
+                                // 排除麦克风输入设备（WASAPI 中包含 "microphone"/"mic" 的通常是输入设备）
                                 let name_lower = name.to_lowercase();
                                 if !name_lower.contains("microphone")
                                     && !name_lower.contains("mic ")
                                     && !name_lower.starts_with("mic ")
                                     && !name_lower.contains("麦克风")
+                                    && !name.is_empty()
                                 {
-                                    let priority = get_device_priority(&name);
                                     println!(
-                                        "[get_system_audio_device_names] Found system audio device: {} (priority: {})",
-                                        name, priority
+                                        "[get_system_audio_device_names] Found WASAPI audio device: {}",
+                                        name
                                     );
-                                    all_devices.push((name, priority));
+                                    device_names.push(name);
                                 }
                             }
                         }
@@ -872,14 +877,31 @@ impl VideoRecordService {
 
             let _ = child.wait();
 
-            // 按优先级排序后返回
-            all_devices.sort_by_key(|(_, p)| *p);
-            device_names = all_devices.into_iter().map(|(n, _)| n).collect();
+            // 优先选择默认输出设备（通常名称中包含 "默认" / "default" 或 "扬声器"）
+            fn get_device_priority(name: &str) -> u32 {
+                let name_lower = name.to_lowercase();
+                if name_lower.contains("default") || name_lower.contains("默认") {
+                    return 0;
+                }
+                if name_lower.contains("speaker") || name_lower.contains("扬声器") {
+                    return 1;
+                }
+                if name_lower.contains("headphone") || name_lower.contains("耳机") {
+                    return 2;
+                }
+                99
+            }
+
+            let mut prioritized: Vec<(String, u32)> = device_names
+                .into_iter()
+                .map(|n| (n.clone(), get_device_priority(&n)))
+                .collect();
+            prioritized.sort_by_key(|(_, p)| *p);
+            device_names = prioritized.into_iter().map(|(n, _)| n).collect();
         }
 
         #[cfg(not(target_os = "windows"))]
         {
-            // macOS 暂不支持系统内录（需要 BlackHole 等虚拟设备）
             println!("[get_system_audio_device_names] System audio capture not supported on this platform");
         }
 

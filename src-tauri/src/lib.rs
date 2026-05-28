@@ -305,6 +305,7 @@ pub fn run() {
             video_record::video_record_resume,
             video_record::video_record_kill,
             video_record::video_record_get_microphone_device_names,
+            video_record::video_record_get_system_audio_device_names,
             video_record::video_record_init,
             listen_key::listen_key_start,
             listen_key::listen_key_stop,

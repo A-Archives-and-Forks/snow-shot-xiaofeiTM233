@@ -335,6 +335,10 @@ export const settings = {
 		"Microphone Device",
 	"settings.functionSettings.videoRecordSettings.microphoneDeviceName.default":
 		"Default Device",
+	"settings.functionSettings.videoRecordSettings.systemAudioDeviceName":
+		"System Audio Device",
+	"settings.functionSettings.videoRecordSettings.systemAudioDeviceName.default":
+		"Default Device",
 	"settings.functionSettings.videoRecordSettings.encoder": "Encoder",
 	"settings.functionSettings.videoRecordSettings.encoder.tip":
 		"Note about hardware encoding compatibility on different platforms, wrong encoder may fail recording",

@@ -293,6 +293,7 @@ Priority order (highest to lowest):
 		frameRate: 24,
 		gifFrameRate: 10,
 		microphoneDeviceName: "",
+		systemAudioDeviceName: "",
 		hwaccel: true,
 		encoder: "libx264",
 		encoderPreset: "ultrafast",
