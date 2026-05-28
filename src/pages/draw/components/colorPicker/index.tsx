@@ -378,13 +378,12 @@ const ColorPickerCore: React.FC<{
 			enableRef.current = enable;
 
 			if (enable) {
-				hideColorPicker();
+				// 启用时仅更新状态，不重置 isNotReady（由 initImageData 控制）
 			} else {
-				isNotReadyRef.current = false;
 				updateOpacity(false);
 			}
 		},
-		[updateOpacity, hideColorPicker],
+		[updateOpacity],
 	);
 
 	const updateEnable = useCallback(() => {
