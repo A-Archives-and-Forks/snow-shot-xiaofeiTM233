@@ -6,6 +6,7 @@ import {
 	GifOutlined,
 	HolderOutlined,
 	PauseOutlined,
+	SoundOutlined,
 } from "@ant-design/icons";
 import { join as joinPath } from "@tauri-apps/api/path";
 import {
@@ -47,7 +48,6 @@ import {
 	ResumeRecordIcon,
 	StartRecordIcon,
 	StopRecordIcon,
-	SystemAudioIcon,
 } from "@/components/icons";
 import { PLUGIN_ID_FFMPEG } from "@/constants/pluginService";
 import {
@@ -617,7 +617,7 @@ export const VideoRecordToolbarPage: React.FC = () => {
 								);
 							}}
 							icon={
-								<SystemAudioIcon
+								<SoundOutlined
 									style={{
 										color: getButtonIconColorByState(enableSystemAudio, token),
 									}}
