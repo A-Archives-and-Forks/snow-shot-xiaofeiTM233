@@ -857,11 +857,11 @@ impl VideoRecordService {
                                     && !name_lower.contains("麦克风")
                                 {
                                     let priority = get_device_priority(&name);
-                                    all_devices.push((name, priority));
                                     println!(
                                         "[get_system_audio_device_names] Found system audio device: {} (priority: {})",
                                         name, priority
                                     );
+                                    all_devices.push((name, priority));
                                 }
                             }
                         }
