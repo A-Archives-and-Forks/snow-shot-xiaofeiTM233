@@ -730,6 +730,10 @@ const ColorPickerCore: React.FC<{
 			(captureEvent: CaptureEventParams | undefined) => {
 				if (captureEvent?.event === CaptureEvent.onCaptureFinish) {
 					imageDataReadyRef.current = false;
+					// 截图结束时立即隐藏取色器，防止在上次位置闪烁
+					if (colorPickerRef.current) {
+						colorPickerRef.current.style.opacity = "0";
+					}
 				} else if (
 					captureEvent?.event === CaptureEvent.onCaptureImageBufferReady
 				) {
