@@ -74,6 +74,10 @@ export const defaultAppFunctionConfigs: Record<AppFunction, AppFunctionConfig> =
 			shortcutKey: "",
 			group: AppFunctionGroup.Other,
 		},
+		[AppFunction.ToggleFixedContentVisibility]: {
+			shortcutKey: "",
+			group: AppFunctionGroup.Other,
+		},
 		[AppFunction.ShowOrHideMainWindow]: {
 			shortcutKey: "",
 			group: AppFunctionGroup.Other,
@@ -83,10 +87,6 @@ export const defaultAppFunctionConfigs: Record<AppFunction, AppFunctionConfig> =
 			group: AppFunctionGroup.Other,
 		},
 		[AppFunction.OpenCaptureHistory]: {
-			shortcutKey: "",
-			group: AppFunctionGroup.Other,
-		},
-		[AppFunction.ToggleFixedContentVisibility]: {
 			shortcutKey: "",
 			group: AppFunctionGroup.Other,
 		},
