@@ -98,6 +98,7 @@ export const defaultAppSettingsData: AppSettingsData = {
 			max_y: 0,
 		},
 		enableMicrophone: false,
+		enableSystemAudio: false,
 		enableLockDrawTool: false,
 		disableArrowPicker: true,
 		selectRectRadius: 0,
