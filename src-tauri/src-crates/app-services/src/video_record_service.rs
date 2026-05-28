@@ -312,24 +312,20 @@ impl VideoRecordService {
                     // 回退到第一个可用设备
                     sys_device_names[0].clone()
                 } else {
-                    String::new()
+                    // 枚举不到设备时，使用 WASAPI 的 "default" 作为兜底
+                    // WASAPI 的 "default" 会自动选择系统默认音频输出设备做环回捕获
+                    String::from("default")
                 };
 
-                if !target_device.is_empty() {
-                    command.arg("-f").arg("wasapi").arg("-i").arg(format!(
-                        "audio={}",
-                        target_device
-                    ));
-                    sys_audio_input = format!("{}:a", 1);
-                    println!(
-                        "[start_segment] System audio device selected: {}",
-                        target_device
-                    );
-                } else {
-                    println!(
-                        "[start_segment] WARNING: No WASAPI audio output devices found for system audio capture"
-                    );
-                }
+                command.arg("-f").arg("wasapi").arg("-i").arg(format!(
+                    "audio={}",
+                    target_device
+                ));
+                sys_audio_input = format!("{}:a", 1);
+                println!(
+                    "[start_segment] System audio device selected: {}",
+                    target_device
+                );
             }
 
             // 添加麦克风音频输入
@@ -834,10 +830,12 @@ impl VideoRecordService {
                 }
             };
 
-            // WASAPI 设备列表输出格式:
-            // [info] [wasapi] #0: <device name> (audio)
+            // FFmpeg WASAPI 设备列表输出格式示例:
+            //   [wasapi @ 0x7f8c4000b880] [info] #0: 扬声器 (Realtek(R) Audio) (audio)
+            //   [wasapi @ 0x7f8c4000b880] [info] #1: @device:{...GUID...} (audio)
+            // 匹配多种可能的格式变体
             let device_regex =
-                match Regex::new(r#"\[wasapi\]\s+#\d+:\s+(.+)\s+\(audio\)"#) {
+                match Regex::new(r#"\[wasapi\b[^\]]*\].*?\[info\]\s*#(\d+):\s+(.+?)\s*\(audio\)"#) {
                     Ok(regex) => regex,
                     Err(e) => {
                         println!(
@@ -848,26 +846,48 @@ impl VideoRecordService {
                     }
                 };
 
+            // 备选正则：匹配更简单的格式
+            let fallback_regex =
+                match Regex::new(r#"#\d+:\s+(.+?)\s*\((?:audio|loopback)\)"#) {
+                    Ok(regex) => regex,
+                    Err(_) => return device_names,
+                };
+
             for line in output_iter {
                 match line {
-                    FfmpegEvent::Log(_, line) => {
-                        if let Some(captures) = device_regex.captures(&line) {
-                            if let Some(device_name) = captures.get(1) {
-                                let name = device_name.as_str().trim().to_string();
-                                // 排除麦克风输入设备（WASAPI 中包含 "microphone"/"mic" 的通常是输入设备）
-                                let name_lower = name.to_lowercase();
-                                if !name_lower.contains("microphone")
-                                    && !name_lower.contains("mic ")
-                                    && !name_lower.starts_with("mic ")
-                                    && !name_lower.contains("麦克风")
-                                    && !name.is_empty()
-                                {
-                                    println!(
-                                        "[get_system_audio_device_names] Found WASAPI audio device: {}",
-                                        name
-                                    );
-                                    device_names.push(name);
-                                }
+                    FfmpegEvent::Log(_, ref l) => {
+                        // 打印所有包含 wasapi/audio 关键字的行用于调试
+                        if l.contains("[wasapi]") || l.contains("(audio)") || l.contains("#") {
+                            println!(
+                                "[get_system_audio_device_names] RAW LINE: {}",
+                                l.trim()
+                            );
+                        }
+
+                        // 先尝试主正则
+                        let captured_name = if let Some(captures) = device_regex.captures(l) {
+                            captures.get(2).map(|m| m.as_str().trim().to_string())
+                        } else if let Some(captures) = fallback_regex.captures(l) {
+                            captures.get(1).map(|m| m.as_str().trim().to_string())
+                        } else {
+                            None
+                        };
+
+                        if let Some(name) = captured_name {
+                            let name_lower = name.to_lowercase();
+                            // 排除麦克风输入设备和空名称
+                            if !name_lower.contains("microphone")
+                                && !name_lower.contains("mic ")
+                                && !name_lower.starts_with("mic ")
+                                && !name_lower.contains("麦克风")
+                                && !name.is_empty()
+                                && !name.starts_with('@')
+                            {
+                                println!(
+                                    "[get_system_audio_device_names] Found WASAPI audio device: {}",
+                                    name
+                                );
+                                device_names.push(name);
                             }
                         }
                     }
@@ -876,28 +896,6 @@ impl VideoRecordService {
             }
 
             let _ = child.wait();
-
-            // 优先选择默认输出设备（通常名称中包含 "默认" / "default" 或 "扬声器"）
-            fn get_device_priority(name: &str) -> u32 {
-                let name_lower = name.to_lowercase();
-                if name_lower.contains("default") || name_lower.contains("默认") {
-                    return 0;
-                }
-                if name_lower.contains("speaker") || name_lower.contains("扬声器") {
-                    return 1;
-                }
-                if name_lower.contains("headphone") || name_lower.contains("耳机") {
-                    return 2;
-                }
-                99
-            }
-
-            let mut prioritized: Vec<(String, u32)> = device_names
-                .into_iter()
-                .map(|n| (n.clone(), get_device_priority(&n)))
-                .collect();
-            prioritized.sort_by_key(|(_, p)| *p);
-            device_names = prioritized.into_iter().map(|(n, _)| n).collect();
         }
 
         #[cfg(not(target_os = "windows"))]
