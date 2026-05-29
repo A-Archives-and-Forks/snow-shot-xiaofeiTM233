@@ -1203,7 +1203,7 @@ const AppSettingsContextProviderCore: React.FC<{
 					systemAudioDeviceName:
 						typeof newSettings?.systemAudioDeviceName === "string"
 							? newSettings.systemAudioDeviceName
-							: (prevSettings?.systemAudioDeviceName ?? ""),
+							: (prevSettings?.systemAudioDeviceName ?? "default"),
 					hwaccel:
 						typeof newSettings?.hwaccel === "boolean"
 							? newSettings.hwaccel

@@ -304,22 +304,27 @@ impl VideoRecordService {
             // 统一使用 WASAPI loopback 捕获系统音频输出
             // WASAPI 是 Windows 原生 API，无需立体声混音驱动，兼容性最好
             if params.enable_system_audio {
-                let target_device = if params.system_audio_device_name.is_empty() {
-                    // 默认设备 — 空字符串让 WASAPI 自动选择默认输出设备的 loopback
-                    String::new()
-                } else {
-                    // 用户选择了具体设备 — 直接传给 WASAPI（WASAPI 能识别设备名做 loopback）
-                    params.system_audio_device_name.clone()
-                };
+                let is_default = params.system_audio_device_name == "default"
+                    || params.system_audio_device_name.is_empty();
 
-                command.arg("-f").arg("wasapi").arg("-i").arg(
-                    if target_device.is_empty() { String::new() } else { target_device }
-                );
-                sys_audio_input = format!("{}:a", 1);
-                println!(
-                    "[start_segment] System audio: WASAPI loopback device='{}'",
-                    if params.system_audio_device_name.is_empty() { "(default)" } else { &params.system_audio_device_name }
-                );
+                if is_default {
+                    // 默认设备 — 使用 audio=default 捕获默认输出设备的 loopback
+                    command.arg("-f").arg("wasapi").arg("-i").arg("audio=default");
+                    sys_audio_input = format!("{}:a", 1);
+                    println!(
+                        "[start_segment] System audio: WASAPI loopback (default device)"
+                    );
+                } else {
+                    // 用户选择了具体设备 — 用 WASAPI + 设备名做 loopback
+                    command.arg("-f").arg("wasapi").arg("-i").arg(
+                        params.system_audio_device_name.clone()
+                    );
+                    sys_audio_input = format!("{}:a", 1);
+                    println!(
+                        "[start_segment] System audio: WASAPI loopback device='{}'",
+                        params.system_audio_device_name
+                    );
+                }
             }
 
             // 添加麦克风音频输入

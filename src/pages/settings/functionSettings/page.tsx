@@ -342,7 +342,7 @@ export const FunctionSettingsPage = () => {
 				label: intl.formatMessage({
 					id: "settings.functionSettings.videoRecordSettings.systemAudioDeviceName.default",
 				}),
-				value: "",
+				value: "default",
 			},
 		];
 
