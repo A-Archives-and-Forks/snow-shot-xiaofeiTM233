@@ -301,29 +301,58 @@ impl VideoRecordService {
         #[cfg(target_os = "windows")]
         {
             // 添加系统音频输入
-            // 统一使用 WASAPI loopback 捕获系统音频输出
-            // WASAPI 是 Windows 原生 API，无需立体声混音驱动，兼容性最好
+            // 使用 dshow 捕获系统音频（需要立体声混音/Stereo Mix 等录音输入设备）
+            // WASAPI 在当前 FFmpeg 构建中不被支持作为输入设备
             if params.enable_system_audio {
                 let is_default = params.system_audio_device_name == "default"
                     || params.system_audio_device_name.is_empty();
 
                 if is_default {
-                    // 默认设备 — 使用 audio=default 捕获默认输出设备的 loopback
-                    command.arg("-f").arg("wasapi").arg("-i").arg("audio=default");
-                    sys_audio_input = format!("{}:a", 1);
-                    println!(
-                        "[start_segment] System audio: WASAPI loopback (default device)"
-                    );
+                    // 默认设备 — 自动选择第一个可用的系统音频设备
+                    let sys_devices = self.get_system_audio_device_names();
+                    if sys_devices.len() > 0 {
+                        command.arg("-f").arg("dshow").arg("-i").arg(format!(
+                            "audio={}",
+                            sys_devices[0]
+                        ));
+                        sys_audio_input = format!("{}:a", 1);
+                        println!(
+                            "[start_segment] System audio: dshow device='{}' (auto-selected)",
+                            sys_devices[0]
+                        );
+                    } else {
+                        // 没有可用的系统音频录制设备，跳过但不报错
+                        println!(
+                            "[start_segment] WARNING: No system audio recording device found, skipping system audio"
+                        );
+                    }
                 } else {
-                    // 用户选择了具体设备 — 用 WASAPI + 设备名做 loopback
-                    command.arg("-f").arg("wasapi").arg("-i").arg(
+                    // 用户选择了具体设备 — 验证后使用 dshow 录制
+                    let sys_devices = self.get_system_audio_device_names();
+                    let target_device = if sys_devices.contains(&params.system_audio_device_name) {
                         params.system_audio_device_name.clone()
-                    );
-                    sys_audio_input = format!("{}:a", 1);
-                    println!(
-                        "[start_segment] System audio: WASAPI loopback device='{}'",
-                        params.system_audio_device_name
-                    );
+                    } else if sys_devices.len() > 0 {
+                        // 用户选择的设备不在列表中，回退到第一个可用设备
+                        sys_devices[0].clone()
+                    } else {
+                        String::new() // 无可用设备
+                    };
+
+                    if !target_device.is_empty() {
+                        command.arg("-f").arg("dshow").arg("-i").arg(format!(
+                            "audio={}",
+                            target_device
+                        ));
+                        sys_audio_input = format!("{}:a", 1);
+                        println!(
+                            "[start_segment] System audio: dshow device='{}'",
+                            target_device
+                        );
+                    } else {
+                        println!(
+                            "[start_segment] WARNING: No system audio recording device found, skipping system audio"
+                        );
+                    }
                 }
             }
 
@@ -850,22 +879,49 @@ impl VideoRecordService {
                             if let Some(device_name) = captures.get(1) {
                                 let name = device_name.as_str().to_string();
                                 let name_lower = name.to_lowercase();
-                                // 排除麦克风输入设备，保留扬声器/立体声混音等输出设备
-                                if !name_lower.contains("microphone")
-                                    && !name_lower.contains("mic ")
-                                    && !name_lower.starts_with("mic ")
-                                    && !name_lower.contains("麦克风")
-                                {
+                                // 排除麦克风输入设备
+                                let is_mic = name_lower.contains("microphone")
+                                    || name_lower.contains("mic ")
+                                    || name_lower.starts_with("mic ")
+                                    || name_lower.contains("麦克风");
+                                // 排除明显的播放/输出设备（扬声器/耳机是输出端，不能当 dshow 输入）
+                                let is_output_device = name_lower.contains("speaker")
+                                    || name_lower.contains("speakers")
+                                    || name_lower.contains("headphone")
+                                    || name_lower.contains("headphones")
+                                    || name_lower.contains("耳机")
+                                    || name_lower.contains("扬声器");
+
+                                if is_mic {
                                     println!(
-                                        "[get_system_audio_device_names] Found system audio device: {}",
+                                        "[get_system_audio_device_names] Skipped mic device: {}",
                                         name
                                     );
-                                    device_names.push(name);
+                                } else if is_output_device {
+                                    println!(
+                                        "[get_system_audio_device_names] Skipped output device (not recordable): {}",
+                                        name
+                                    );
                                 } else {
+                                    // 保留立体声混音(Stereo Mix)、Wave Out Mix 等可录制的系统音频设备
+                                    // 立体声混音排在前面优先显示
+                                    let is_stereo_mix = name_lower.contains("stereo")
+                                        || name_lower.contains("立体声混音")
+                                        || name_lower.contains("mix")
+                                        || name_lower.contains("loopback")
+                                        || name_lower.contains("what u hear");
+                                    
                                     println!(
-                                        "[get_system_audio_device_name] Skipped mic device: {}",
-                                        name
+                                        "[get_system_audio_device_names] Found system audio device: {} (stereo_mix={})",
+                                        name, is_stereo_mix
                                     );
+                                    
+                                    if is_stereo_mix {
+                                        // 立体声混音设备插入到列表最前面
+                                        device_names.insert(0, name);
+                                    } else {
+                                        device_names.push(name);
+                                    }
                                 }
                             }
                         }
