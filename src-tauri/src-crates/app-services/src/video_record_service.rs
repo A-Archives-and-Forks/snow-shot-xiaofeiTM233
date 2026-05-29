@@ -301,46 +301,25 @@ impl VideoRecordService {
         #[cfg(target_os = "windows")]
         {
             // 添加系统音频输入
-            // 策略：默认设备用 WASAPI loopback（100%可用），具体设备用 dshow
+            // 统一使用 WASAPI loopback 捕获系统音频输出
+            // WASAPI 是 Windows 原生 API，无需立体声混音驱动，兼容性最好
             if params.enable_system_audio {
-                if params.system_audio_device_name.is_empty() {
-                    // 用户选择了"默认设备" — 使用 WASAPI loopback 捕获系统默认音频输出
-                    command.arg("-f").arg("wasapi").arg("-i").arg("audio=default");
-                    sys_audio_input = format!("{}:a", 1);
-                    println!(
-                        "[start_segment] System audio: WASAPI loopback (default device)"
-                    );
+                let target_device = if params.system_audio_device_name.is_empty() {
+                    // 默认设备 — 空字符串让 WASAPI 自动选择默认输出设备的 loopback
+                    String::new()
                 } else {
-                    // 用户选择了具体设备 — 使用 dshow 录制
-                    // 先验证设备是否在枚举列表中
-                    let sys_device_names = self.get_system_audio_device_names();
-                    let target_device = if sys_device_names.contains(&params.system_audio_device_name) {
-                        params.system_audio_device_name.clone()
-                    } else if sys_device_names.len() > 0 {
-                        sys_device_names[0].clone()
-                    } else {
-                        // 枚举不到任何设备时回退到 WASAPI default
-                        String::from("WASAPI_DEFAULT_FALLBACK")
-                    };
+                    // 用户选择了具体设备 — 直接传给 WASAPI（WASAPI 能识别设备名做 loopback）
+                    params.system_audio_device_name.clone()
+                };
 
-                    if target_device == "WASAPI_DEFAULT_FALLBACK" {
-                        command.arg("-f").arg("wasapi").arg("-i").arg("audio=default");
-                        sys_audio_input = format!("{}:a", 1);
-                        println!(
-                            "[start_segment] System audio: WASAPI loopback fallback"
-                        );
-                    } else {
-                        command.arg("-f").arg("dshow").arg("-i").arg(format!(
-                            "audio={}",
-                            target_device
-                        ));
-                        sys_audio_input = format!("{}:a", 1);
-                        println!(
-                            "[start_segment] System audio: dshow device '{}'",
-                            target_device
-                        );
-                    }
-                }
+                command.arg("-f").arg("wasapi").arg("-i").arg(
+                    if target_device.is_empty() { String::new() } else { target_device }
+                );
+                sys_audio_input = format!("{}:a", 1);
+                println!(
+                    "[start_segment] System audio: WASAPI loopback device='{}'",
+                    if params.system_audio_device_name.is_empty() { "(default)" } else { &params.system_audio_device_name }
+                );
             }
 
             // 添加麦克风音频输入
