@@ -300,32 +300,47 @@ impl VideoRecordService {
         // 根据平台添加音频输入
         #[cfg(target_os = "windows")]
         {
-            // 添加系统音频输入 (Windows WASAPI loopback - 捕获音频输出设备)
+            // 添加系统音频输入
+            // 策略：默认设备用 WASAPI loopback（100%可用），具体设备用 dshow
             if params.enable_system_audio {
-                let sys_device_names = self.get_system_audio_device_names();
-                let target_device = if !params.system_audio_device_name.is_empty()
-                    && sys_device_names.contains(&params.system_audio_device_name)
-                {
-                    // 用户选择了具体设备
-                    params.system_audio_device_name.clone()
-                } else if sys_device_names.len() > 0 {
-                    // 回退到第一个可用设备
-                    sys_device_names[0].clone()
+                if params.system_audio_device_name.is_empty() {
+                    // 用户选择了"默认设备" — 使用 WASAPI loopback 捕获系统默认音频输出
+                    command.arg("-f").arg("wasapi").arg("-i").arg("audio=default");
+                    sys_audio_input = format!("{}:a", 1);
+                    println!(
+                        "[start_segment] System audio: WASAPI loopback (default device)"
+                    );
                 } else {
-                    // 枚举不到设备时，使用 WASAPI 的 "default" 作为兜底
-                    // WASAPI 的 "default" 会自动选择系统默认音频输出设备做环回捕获
-                    String::from("default")
-                };
+                    // 用户选择了具体设备 — 使用 dshow 录制
+                    // 先验证设备是否在枚举列表中
+                    let sys_device_names = self.get_system_audio_device_names();
+                    let target_device = if sys_device_names.contains(&params.system_audio_device_name) {
+                        params.system_audio_device_name.clone()
+                    } else if sys_device_names.len() > 0 {
+                        sys_device_names[0].clone()
+                    } else {
+                        // 枚举不到任何设备时回退到 WASAPI default
+                        String::from("WASAPI_DEFAULT_FALLBACK")
+                    };
 
-                command.arg("-f").arg("wasapi").arg("-i").arg(format!(
-                    "audio={}",
-                    target_device
-                ));
-                sys_audio_input = format!("{}:a", 1);
-                println!(
-                    "[start_segment] System audio device selected: {}",
-                    target_device
-                );
+                    if target_device == "WASAPI_DEFAULT_FALLBACK" {
+                        command.arg("-f").arg("wasapi").arg("-i").arg("audio=default");
+                        sys_audio_input = format!("{}:a", 1);
+                        println!(
+                            "[start_segment] System audio: WASAPI loopback fallback"
+                        );
+                    } else {
+                        command.arg("-f").arg("dshow").arg("-i").arg(format!(
+                            "audio={}",
+                            target_device
+                        ));
+                        sys_audio_input = format!("{}:a", 1);
+                        println!(
+                            "[start_segment] System audio: dshow device '{}'",
+                            target_device
+                        );
+                    }
+                }
             }
 
             // 添加麦克风音频输入
@@ -792,8 +807,7 @@ impl VideoRecordService {
     }
 
     /// 获取系统音频输出设备列表 (Windows - 用于内录)
-    /// 使用 dshow 枚举所有音频设备并过滤出非麦克风设备，
-    /// 同时始终提供 "default" 选项用于 WASAPI loopback 兜底
+    /// 使用 dshow 枚举所有音频设备并过滤出非麦克风设备
     pub fn get_system_audio_device_names(&self) -> Vec<String> {
         let mut device_names = Vec::new();
 
@@ -816,7 +830,7 @@ impl VideoRecordService {
                         "[get_system_audio_device_names] Failed to spawn ffmpeg: {}",
                         e
                     );
-                    return vec![String::from("default")];
+                    return Vec::new();
                 }
             };
 
@@ -827,7 +841,7 @@ impl VideoRecordService {
                         "[get_system_audio_device_names] Failed to iter ffmpeg: {}",
                         e
                     );
-                    return vec![String::from("default")];
+                    return Vec::new();
                 }
             };
 
@@ -841,7 +855,7 @@ impl VideoRecordService {
                             "[get_system_audio_device_names] Failed to create regex: {}",
                             e
                         );
-                        return vec![String::from("default")];
+                        return Vec::new();
                     }
                 };
 
@@ -878,10 +892,6 @@ impl VideoRecordService {
 
             let _ = child.wait();
         }
-
-        // 始终把 "default" 放到第一位 — WASAPI loopback 兜底方案
-        // audio=default 会自动选择系统默认音频输出设备做环回捕获，不需要特殊驱动
-        device_names.insert(0, String::from("default"));
 
         println!(
             "[get_system_audio_device_names] Total found devices: {}",
