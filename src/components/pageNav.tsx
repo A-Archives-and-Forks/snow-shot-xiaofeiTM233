@@ -14,6 +14,9 @@ export type PageNavActionType = {
 	updateActiveKey: () => void;
 };
 
+/** 扫描线距离视口顶部的偏移量（px） */
+const DETECTION_LINE_Y = 150;
+
 export const PageNav: React.FC<{
 	tabItems: RouteMapItem;
 	actionRef: React.RefObject<PageNavActionType | null>;
@@ -29,50 +32,51 @@ export const PageNav: React.FC<{
 		tabItemsRef.current = tabItems.items;
 	}, [tabItems]);
 
-	// 记录上一次的 activeKey，避免不必要的 setState
-	const prevActiveKeyRef = useRef<string | undefined>(activeKey);
-
-	// 实时检测当前可见的锚点 section，返回应该高亮的 key
+	/**
+	 * 检测哪个锚点 section 覆盖了扫描线（距视口顶部 DETECTION_LINE_Y px）
+	 *
+	 * 算法：
+	 *   - 遍历所有 anchor 元素，检查扫描线是否落在该元素的垂直范围内
+	 *   - rect.top <= DETECTION_LINE_Y < rect.bottom → 该 section 为 active
+	 *   - 边界处理：所有元素都在扫描线上方 → 取最后一个；都未到达 → 取第一个
+	 */
 	const detectActiveAnchor = useCallback((): string | undefined => {
 		const tabs = tabItemsRef.current;
 		if (!tabs || tabs.length === 0) return undefined;
 
-		let bestKey: string | undefined;
-		let minDistance = Infinity;
+		let activeKey: string | undefined;
 
 		for (const item of tabs) {
 			const element = document.getElementById(item.key as string);
 			if (!element) continue;
 
 			const rect = element.getBoundingClientRect();
-			// 元素顶部相对于视口顶部的距离
-			// 负数表示元素已经滚过视口顶部（在上方不可见）
-			// 正数表示元素还在视口下方
-			const distanceToTop = rect.top;
+			const elTop = rect.top;
+			const elBottom = rect.bottom;
 
-			if (distanceToTop <= 0) {
-				// 元素已经滚过或正在视口顶部附近，它是候选
-				// 取距离 0 最接近的（即刚刚滚过视口顶部的）
-				if (Math.abs(distanceToTop) < Math.abs(minDistance)) {
-					minDistance = distanceToTop;
-					bestKey = item.key as string;
-				}
-			} else if (distanceToTop < 200 && bestKey === undefined) {
-				// 元素还在视口内且距离顶部较近（<200px），且还没有更优候选
-				// 这种情况是页面还没怎么滚动，第一个 section 还在视野中
-				bestKey = item.key as string;
-				minDistance = distanceToTop;
+			if (elTop <= DETECTION_LINE_Y && elBottom > DETECTION_LINE_Y) {
+				// 扫描线正好落在这个 section 内 → 完美匹配
+				return item.key as string;
 			}
+
+			if (elTop <= DETECTION_LINE_Y) {
+				// 这个 section 已经滚过扫描线了，暂时记住它
+				// 如果后面没有更合适的，就取最后一个滚过扫描线的
+				activeKey = item.key as string;
+			}
+			// elTop > DETECTION_LINE_Y 的 section 还没滚到，不需要记录
 		}
 
-		return bestKey ?? (tabs[0]?.key as string);
+		// 兜底：如果循环结束还没精确匹配，返回最后一个滚过扫描线的 section
+		return activeKey ?? (tabs[0]?.key as string);
 	}, []);
 
 	// 核心更新逻辑：实时检测 + 防抖
+	// 不做 prevActiveKey 缓存对比——React 内部会自动跳过相同值的 setState
+	// 手动加这个缓存反而在点击 Tab 后会导致高亮卡住不跟随滚动
 	const updateActiveKey = useCallback(() => {
 		const currentKey = detectActiveAnchor();
-		if (currentKey && currentKey !== prevActiveKeyRef.current) {
-			prevActiveKeyRef.current = currentKey;
+		if (currentKey) {
 			setActiveKey(currentKey);
 		}
 	}, [detectActiveAnchor]);
@@ -82,19 +86,17 @@ export const PageNav: React.FC<{
 		[updateActiveKey],
 	);
 
-	// 初始化时设置默认 activeKey
+	// 初始化时设置默认 activeKey，并延迟检测一次当前位置
 	useEffect(() => {
 		const tabs = tabItems.items;
 		if (!tabs || tabs.length === 0) return;
 
 		setActiveKey(tabs[0].key as string);
-		prevActiveKeyRef.current = tabs[0].key as string;
 
 		// 延迟做一次检测，确保 DOM 渲染完毕后能正确识别当前位置
 		const timer = setTimeout(() => {
 			const detected = detectActiveAnchor();
 			if (detected) {
-				prevActiveKeyRef.current = detected;
 				setActiveKey(detected);
 			}
 		}, 150);
@@ -126,7 +128,6 @@ export const PageNav: React.FC<{
 					}
 					target.scrollIntoView({ behavior: "smooth" });
 					setActiveKey(key);
-					prevActiveKeyRef.current = key;
 				}}
 			/>
 
