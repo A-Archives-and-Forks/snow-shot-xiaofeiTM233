@@ -11,138 +11,96 @@ import {
 import type { RouteMapItem } from "@/types/components/menuLayout";
 
 export type PageNavActionType = {
-	updateActiveKey: (scrollTop: number) => void;
+	updateActiveKey: () => void;
 };
 
 export const PageNav: React.FC<{
 	tabItems: RouteMapItem;
 	actionRef: React.RefObject<PageNavActionType | null>;
-	scrollContainerRef: React.RefObject<HTMLDivElement | null>;
-}> = ({ tabItems, actionRef, scrollContainerRef }) => {
+}> = ({ tabItems, actionRef }) => {
 	const { token } = theme.useToken();
 
 	const [activeKey, setActiveKey] = useState<string | undefined>(
 		tabItems.items?.[0]?.key,
 	);
+	// 缓存 tabs 引用，避免闭包过期
 	const tabItemsRef = useRef<TabsProps["items"]>(tabItems.items);
 	useEffect(() => {
 		tabItemsRef.current = tabItems.items;
 	}, [tabItems]);
 
-	const anchorTopListRef = useRef<{ key: string; offsetTop: number }[]>([]);
+	// 记录上一次的 activeKey，避免不必要的 setState
+	const prevActiveKeyRef = useRef<string | undefined>(activeKey);
 
-	// 使用 getBoundingClientRect 计算锚点相对于滚动容器的精确偏移
-	const computeAnchorOffsets = useCallback(
-		(tabs: TabsProps["items"], container: HTMLDivElement) => {
-			if (!tabs || !container) return [];
-			const containerRect = container.getBoundingClientRect();
-			return tabs.map((item) => {
-				const element = document.getElementById(item.key as string);
-				if (!element) {
-					return {
-						key: item.key as string,
-						offsetTop: Number.MAX_SAFE_INTEGER,
-					};
+	// 实时检测当前可见的锚点 section，返回应该高亮的 key
+	const detectActiveAnchor = useCallback((): string | undefined => {
+		const tabs = tabItemsRef.current;
+		if (!tabs || tabs.length === 0) return undefined;
+
+		let bestKey: string | undefined;
+		let minDistance = Infinity;
+
+		for (const item of tabs) {
+			const element = document.getElementById(item.key as string);
+			if (!element) continue;
+
+			const rect = element.getBoundingClientRect();
+			// 元素顶部相对于视口顶部的距离
+			// 负数表示元素已经滚过视口顶部（在上方不可见）
+			// 正数表示元素还在视口下方
+			const distanceToTop = rect.top;
+
+			if (distanceToTop <= 0) {
+				// 元素已经滚过或正在视口顶部附近，它是候选
+				// 取距离 0 最接近的（即刚刚滚过视口顶部的）
+				if (Math.abs(distanceToTop) < Math.abs(minDistance)) {
+					minDistance = distanceToTop;
+					bestKey = item.key as string;
 				}
-				const elRect = element.getBoundingClientRect();
-				// 元素顶部相对于滚动容器顶部的偏移 + 当前 scrollTop
-				// 减去 clientHeight 作为提前切换的阈值（元素顶部到达容器顶部时即切换）
-				return {
-					key: item.key as string,
-					offsetTop:
-						container.scrollTop +
-						elRect.top -
-						containerRect.top -
-						element.clientHeight,
-				};
-			});
-		},
-		[],
-	);
-
-	// 根据 scrollTop 更新当前激活的 Tab
-	const updateActiveKey = useCallback((scrollTop: number) => {
-		const anchorTopList = anchorTopListRef.current;
-		if (anchorTopList.length === 0) {
-			return;
-		}
-
-		let targetKey = "";
-		for (const anchor of anchorTopList) {
-			if (anchor.offsetTop <= scrollTop) {
-				targetKey = anchor.key;
-			} else {
-				break;
+			} else if (distanceToTop < 200 && bestKey === undefined) {
+				// 元素还在视口内且距离顶部较近（<200px），且还没有更优候选
+				// 这种情况是页面还没怎么滚动，第一个 section 还在视野中
+				bestKey = item.key as string;
+				minDistance = distanceToTop;
 			}
 		}
 
-		if (!targetKey) {
-			return;
-		}
-
-		setActiveKey(targetKey);
+		return bestKey ?? (tabs[0]?.key as string);
 	}, []);
 
+	// 核心更新逻辑：实时检测 + 防抖
+	const updateActiveKey = useCallback(() => {
+		const currentKey = detectActiveAnchor();
+		if (currentKey && currentKey !== prevActiveKeyRef.current) {
+			prevActiveKeyRef.current = currentKey;
+			setActiveKey(currentKey);
+		}
+	}, [detectActiveAnchor]);
+
 	const updateActiveKeyDebounce = useMemo(
-		() => debounce(updateActiveKey, 128),
+		() => debounce(updateActiveKey, 80),
 		[updateActiveKey],
 	);
 
-	// 初始化锚点位置（延迟确保 DOM 已渲染）
+	// 初始化时设置默认 activeKey
 	useEffect(() => {
-		if (!document) {
-			return;
-		}
-
 		const tabs = tabItems.items;
-		if (!tabs || tabs.length === 0) {
-			return;
-		}
-		setActiveKey(tabs[0].key as string);
+		if (!tabs || tabs.length === 0) return;
 
-		// 延迟计算，确保页面内容已渲染完成
+		setActiveKey(tabs[0].key as string);
+		prevActiveKeyRef.current = tabs[0].key as string;
+
+		// 延迟做一次检测，确保 DOM 渲染完毕后能正确识别当前位置
 		const timer = setTimeout(() => {
-			const container = scrollContainerRef.current;
-			if (container) {
-				anchorTopListRef.current = computeAnchorOffsets(tabs, container);
-			} else {
-				// 降级方案：如果没有容器引用，使用 offsetTop
-				anchorTopListRef.current = tabs.map((item) => {
-					const element = document.getElementById(item.key as string);
-					return {
-						key: item.key as string,
-						offsetTop: element
-							? element.offsetTop - element.clientHeight
-							: Number.MAX_SAFE_INTEGER,
-					};
-				});
+			const detected = detectActiveAnchor();
+			if (detected) {
+				prevActiveKeyRef.current = detected;
+				setActiveKey(detected);
 			}
-			updateActiveKeyDebounce(0);
-		}, 100);
+		}, 150);
 
 		return () => clearTimeout(timer);
-	}, [
-		tabItems,
-		updateActiveKeyDebounce,
-		computeAnchorOffsets,
-		scrollContainerRef,
-	]);
-
-	// 窗口大小变化时重新计算锚点位置
-	useEffect(() => {
-		const handleResize = debounce(() => {
-			const container = scrollContainerRef.current;
-			const tabs = tabItemsRef.current;
-			if (container && tabs && tabs.length > 0) {
-				anchorTopListRef.current = computeAnchorOffsets(tabs, container);
-			}
-		}, 256);
-
-		window.addEventListener("resize", handleResize);
-		return () => {
-			window.removeEventListener("resize", handleResize);
-		};
-	}, [computeAnchorOffsets, scrollContainerRef]);
+	}, [tabItems, detectActiveAnchor]);
 
 	useImperativeHandle(
 		actionRef,
@@ -168,6 +126,7 @@ export const PageNav: React.FC<{
 					}
 					target.scrollIntoView({ behavior: "smooth" });
 					setActiveKey(key);
+					prevActiveKeyRef.current = key;
 				}}
 			/>
 

@@ -30,7 +30,6 @@ const MenuContentCore: React.FC<{
 
 	const pageNavActionRef = useRef<PageNavActionType | null>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
-	const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
 	const [currentPlatform, setCurrentPlatform] = useState<
 		tauriOs.Platform | undefined
@@ -80,19 +79,10 @@ const MenuContentCore: React.FC<{
 					<div data-tauri-drag-region className="app-tauri-drag-region"></div>
 					<div data-tauri-drag-region className="app-tauri-drag-region"></div>
 					<div className="center">
-						<PageNav
-							tabItems={tabItems}
-							actionRef={pageNavActionRef}
-							scrollContainerRef={scrollContainerRef}
-						/>
+						<PageNav tabItems={tabItems} actionRef={pageNavActionRef} />
 						<RSC
-							scrollerProps={{
-								elementRef: scrollContainerRef,
-							}}
-							onScroll={(e) => {
-								if ("scrollTop" in e && typeof e.scrollTop === "number") {
-									pageNavActionRef.current?.updateActiveKey(e.scrollTop);
-								}
+							onScroll={() => {
+								pageNavActionRef.current?.updateActiveKey();
 							}}
 						>
 							<div ref={contentRef} className="content-container">
