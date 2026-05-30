@@ -81,10 +81,8 @@ const MenuContentCore: React.FC<{
 					<div className="center">
 						<PageNav tabItems={tabItems} actionRef={pageNavActionRef} />
 						<RSC
-							onScroll={(e) => {
-								if ("scrollTop" in e && typeof e.scrollTop === "number") {
-									pageNavActionRef.current?.updateActiveKey(e.scrollTop);
-								}
+							onScroll={() => {
+								pageNavActionRef.current?.updateActiveKey();
 							}}
 						>
 							<div ref={contentRef} className="content-container">
