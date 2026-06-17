@@ -1451,7 +1451,7 @@ const AppSettingsContextProviderCore: React.FC<{
 					);
 				}
 
-				const saveToFile = appWindowRef.current?.label === "main";
+				const saveToFile = appWindowRef.current?.label === "main" || appWindowRef.current?.label === "background";
 
 				if (!fileContent) {
 					settings[group] = updateAppSettings(

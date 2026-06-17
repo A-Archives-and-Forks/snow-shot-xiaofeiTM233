@@ -15,6 +15,7 @@ import { Tooltip } from "antd";
 import React, {
 	createContext,
 	useCallback,
+	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -532,6 +533,8 @@ const GlobalShortcutCore = ({
 				return;
 			}
 
+			// 背景窗口：是唯一注册者，理论上不需要 unregisterAll
+			// 但保留以防其它窗口也注册（防御性代码）
 			(hasUnregisteredAll.current ? Promise.resolve() : unregisterAll()).then(
 				() => {
 					setAppFunctionSettings(settings[AppSettingsGroup.AppFunction]);
@@ -543,7 +546,9 @@ const GlobalShortcutCore = ({
 	);
 
 	const updateShortcutKeyStatusPendingRef = useRef(false);
-	useDeepCompareEffect(() => {
+	const updateShortcutKeyStatusExecutedRef = useRef(false);
+	// 监听 isReadyStatus 和 appFunctionSettings 变化时执行 updateShortcutKeyStatus
+	useEffect(() => {
 		if (!appFunctionSettings) {
 			return;
 		}
@@ -561,8 +566,41 @@ const GlobalShortcutCore = ({
 		updateShortcutKeyStatusPendingRef.current = true;
 		updateShortcutKeyStatus(appFunctionSettings).then(() => {
 			updateShortcutKeyStatusPendingRef.current = false;
+			updateShortcutKeyStatusExecutedRef.current = true;
 		});
-	}, [appFunctionSettings, isReadyStatus, updateShortcutKeyStatus]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [appFunctionSettings, isReadyStatus]);
+
+	// 兜底：某些边缘情况（deps 引用相同但实际已就绪）下手动触发
+	const isReadyStatusRef = useRef(isReadyStatus);
+	useEffect(() => {
+		isReadyStatusRef.current = isReadyStatus;
+	}, [isReadyStatus]);
+	useEffect(() => {
+		if (
+			!registerShortcuts ||
+			!isReadyStatusRef.current ||
+			!appFunctionSettings ||
+			updateShortcutKeyStatusExecutedRef.current
+		) {
+			return;
+		}
+		const timer = setTimeout(() => {
+			if (
+				!updateShortcutKeyStatusPendingRef.current &&
+				!updateShortcutKeyStatusExecutedRef.current &&
+				appFunctionSettings &&
+				isReadyStatusRef.current
+			) {
+				updateShortcutKeyStatusPendingRef.current = true;
+				updateShortcutKeyStatus(appFunctionSettings).then(() => {
+					updateShortcutKeyStatusPendingRef.current = false;
+					updateShortcutKeyStatusExecutedRef.current = true;
+				});
+			}
+		}, 200);
+		return () => clearTimeout(timer);
+	}, [appFunctionSettings, isReadyStatus, registerShortcuts, updateShortcutKeyStatus]);
 
 	const contextValue = useMemo((): GlobalShortcutContextType => {
 		return {
