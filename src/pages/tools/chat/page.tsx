@@ -6,15 +6,13 @@ import {
 	Conversations,
 	Sender,
 	Suggestion,
-	useXAgent,
-	useXChat,
 	Welcome,
-	XRequest,
 } from "@ant-design/x";
+import { useXChat, XRequest } from "@ant-design/x-sdk";
 import type { BubbleDataType as AntdBubbleDataType } from "@ant-design/x/es/bubble/BubbleList";
 import type { Conversation } from "@ant-design/x/es/conversations";
 import type { SenderRef } from "@ant-design/x/es/sender";
-import type { MessageInfo } from "@ant-design/x/es/use-x-chat";
+import type { MessageInfo } from "@ant-design/x-sdk";
 import { useSearch } from "@tanstack/react-router";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {
@@ -438,126 +436,120 @@ const Chat = () => {
 		},
 		[supportedModelsRef],
 	);
-	const modelAgentConfig: Parameters<typeof useXAgent<BubbleDataType>>[0] =
-		useMemo(() => {
-			return {
-				request: (input, callbacks) => {
-					if (!selectedModelRef.current) {
-						message.error(
-							intl.formatMessage({ id: "tools.chat.noSelectedModel" }),
-						);
-						return;
+	const modelRequestFn = useMemo(() => {
+		return (input, callbacks) => {
+			if (!selectedModelRef.current) {
+				message.error(
+					intl.formatMessage({ id: "tools.chat.noSelectedModel" }),
+				);
+				return;
+			}
+
+			const inputMessages = input.messages?.slice(-20);
+			let newInputMessages = fliterErrorMessages(inputMessages);
+
+			// 处理消息变量
+			const variables: Map<string, string> = new Map();
+			// 遍历消息，如果用户消息指定了变量，那么将对应的输出变量添加到变量列表中
+			for (let i = 0; i < newInputMessages.length; i++) {
+				const message = newInputMessages[i];
+				if (message.role === "user" && "flow_config" in message) {
+					const flowConfig = message.flow_config as ChatMessageFlowConfig;
+					if (!flowConfig) {
+						continue;
 					}
 
-					const inputMessages = input.messages?.slice(-20);
-					let newInputMessages = fliterErrorMessages(inputMessages);
-
-					// 处理消息变量
-					const variables: Map<string, string> = new Map();
-					// 遍历消息，如果用户消息指定了变量，那么将对应的输出变量添加到变量列表中
-					for (let i = 0; i < newInputMessages.length; i++) {
-						const message = newInputMessages[i];
-						if (message.role === "user" && "flow_config" in message) {
-							const flowConfig = message.flow_config as ChatMessageFlowConfig;
-							if (!flowConfig) {
-								continue;
-							}
-
-							if (flowConfig.globalVariable) {
-								flowConfig.globalVariable.forEach((value, key) => {
-									variables.set(key, value);
-								});
-							}
-
-							if (flowConfig.flow.variable_name && newInputMessages[i + 1]) {
-								variables.set(
-									`{{${flowConfig.flow.variable_name}}}`,
-									getMessageContent(newInputMessages[i + 1], true),
-								);
-							}
-						}
-					}
-
-					const userInput = last(newInputMessages);
-					if (!userInput) {
-						appError("[modelAgentConfig] userInput is undefined");
-						return;
-					}
-
-					if (userInput.flow_config) {
-						if (userInput.flow_config.flow.ignore_context) {
-							// 忽略上下文
-							newInputMessages = newInputMessages.slice(-1);
-						}
-					}
-
-					newInputMessages.forEach((item) => {
-						let content = getMessageContent(item, true);
-
-						variables.forEach((value, key) => {
-							content = content.replace(new RegExp(key, "g"), value);
+					if (flowConfig.globalVariable) {
+						flowConfig.globalVariable.forEach((value, key) => {
+							variables.set(key, value);
 						});
+					}
 
-						if (typeof item.content === "string") {
-							item.content = content;
-						} else if (
-							item.content &&
-							typeof item.content === "object" &&
-							"content" in item.content
-						) {
-							item.content.content = content;
-						}
-					});
+					if (flowConfig.flow.variable_name && newInputMessages[i + 1]) {
+						variables.set(
+							`{{${flowConfig.flow.variable_name}}}`,
+							getMessageContent(newInputMessages[i + 1], true),
+						);
+					}
+				}
+			}
 
-					const customModelRequest = getCustomModelRequest(
-						selectedModelRef.current,
-					);
+			const userInput = last(newInputMessages);
+			if (!userInput) {
+				appError("[modelRequestFn] userInput is undefined");
+				return;
+			}
 
-					return (customModelRequest?.request ?? modelRequest).create(
-						{
-							messages: newInputMessages?.map((item) => ({
-								role: item.role ?? "",
-								content: getMessageContent(item, true),
-							})),
-							model: customModelRequest
-								? selectedModelRef.current
-										.substring(CUSTOM_MODEL_PREFIX.length)
-										.replace("_thinking", "")
-								: selectedModelRef.current,
-							temperature:
-								getAppSettings()[AppSettingsGroup.SystemChat].temperature,
-							max_tokens:
-								getAppSettings()[AppSettingsGroup.SystemChat].maxTokens,
-							enable_thinking: enableThinkingRef.current ? true : undefined,
-							stream_options: {
-								include_usage: true,
-							},
-							thinking_budget:
-								getAppSettings()[AppSettingsGroup.SystemChat]
-									.thinkingBudgetTokens,
-							reasoning: customModelRequest?.config?.support_thinking
-								? { effort: "medium" }
-								: undefined,
-							stream: true,
-						},
-						callbacks,
-					);
+			if (userInput.flow_config) {
+				if (userInput.flow_config.flow.ignore_context) {
+					// 忽略上下文
+					newInputMessages = newInputMessages.slice(-1);
+				}
+			}
+
+			newInputMessages.forEach((item) => {
+				let content = getMessageContent(item, true);
+
+				variables.forEach((value, key) => {
+					content = content.replace(new RegExp(key, "g"), value);
+				});
+
+				if (typeof item.content === "string") {
+					item.content = content;
+				} else if (
+					item.content &&
+					typeof item.content === "object" &&
+					"content" in item.content
+				) {
+					item.content.content = content;
+				}
+			});
+
+			const customModelRequest = getCustomModelRequest(
+				selectedModelRef.current,
+			);
+
+			return (customModelRequest?.request ?? modelRequest).create(
+				{
+					messages: newInputMessages?.map((item) => ({
+						role: item.role ?? "",
+						content: getMessageContent(item, true),
+					})),
+					model: customModelRequest
+						? selectedModelRef.current
+								.substring(CUSTOM_MODEL_PREFIX.length)
+								.replace("_thinking", "")
+						: selectedModelRef.current,
+					temperature:
+						getAppSettings()[AppSettingsGroup.SystemChat].temperature,
+					max_tokens:
+						getAppSettings()[AppSettingsGroup.SystemChat].maxTokens,
+					enable_thinking: enableThinkingRef.current ? true : undefined,
+					stream_options: {
+						include_usage: true,
+					},
+					thinking_budget:
+						getAppSettings()[AppSettingsGroup.SystemChat]
+							.thinkingBudgetTokens,
+					reasoning: customModelRequest?.config?.support_thinking
+						? { effort: "medium" }
+						: undefined,
+					stream: true,
 				},
-			};
-		}, [
-			getAppSettings,
-			getCustomModelRequest,
-			selectedModelRef,
-			intl,
-			message,
-			enableThinkingRef.current,
-		]);
-	const [agent] = useXAgent<BubbleDataType>(modelAgentConfig);
-	const loading = agent.isRequesting();
-
+				callbacks,
+			);
+		};
+	}, [
+		getAppSettings,
+		getCustomModelRequest,
+		selectedModelRef,
+		intl,
+		message,
+		enableThinkingRef.current,
+	]);
 	const newestMessage = useRef<ChatMessage>(undefined);
-	const { messages, onRequest, setMessages } = useXChat({
-		agent,
+	const { messages, onRequest, setMessages, isRequesting } = useXChat<BubbleDataType>({
+		request: modelRequestFn,
 		requestFallback: (...params): ChatMessage => {
 			const [, { error }] = params;
 
@@ -686,6 +678,7 @@ const Chat = () => {
 			abortController.current = controller;
 		},
 	});
+	const loading = isRequesting();
 
 	const abortChat = useCallback(() => {
 		abortController.current?.abort();
@@ -1328,7 +1321,7 @@ const Chat = () => {
 
 							onKeyDown(e);
 						}}
-						actions={(_, info) => {
+						footer={(_, info) => {
 							const { SendButton, LoadingButton } = info.components;
 							return (
 								<div

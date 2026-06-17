@@ -1,6 +1,6 @@
 import type { BubbleDataType } from "@ant-design/x/es/bubble/BubbleList";
 import type { Conversation } from "@ant-design/x/es/conversations";
-import type { MessageInfo } from "@ant-design/x/es/use-x-chat";
+import type { MessageInfo } from "@ant-design/x-sdk";
 import type {
 	NonDeletedExcalidrawElement,
 	Ordered,
