@@ -7,36 +7,23 @@ import { showMainWindow } from "@/commands/videoRecord";
 /**
  * Background 窗口的事件处理器
  *
- * 该处理器只在 background 窗口中运行，负责接收 Tauri 事件后：
- * - 显示主窗口（按需创建）
- * - 其它窗口相关操作
+ * background 窗口作为常驻层，监听一些需要触发主窗口显示的事件：
+ * - 用户点击系统托盘中的"显示主窗口"菜单项
+ * - 用户通过快捷键（ShowOrHideMainWindow）触发主窗口
  *
- * 具体的业务逻辑（路由跳转、状态处理）由主窗口的 React 树负责。
- * 事件源：全局快捷键（GlobalShortcut）、系统托盘（TrayIconLoader）、Rust 端等。
+ * 具体的业务逻辑（如路由跳转）由主窗口的 React 树负责。
  */
 export const BackgroundEventHandler: React.FC = () => {
 	useEffect(() => {
 		const currentWindow = getCurrentWindow();
 		const unlistenPromises: Array<Promise<() => void>> = [];
 
-		// 截图相关事件 - 显示主窗口（如果需要）
-		const eventsToShowMainWindow = [
-			"execute-chat",
-			"execute-chat-selected-text",
-			"execute-translate",
-			"execute-translate-selected-text",
-			"open-capture-history",
-		];
-
-		for (const eventName of eventsToShowMainWindow) {
-			unlistenPromises.push(
-				currentWindow.listen(eventName, () => {
-					// 这些事件由主窗口的 GlobalEventHandler 实际处理
-					// background 窗口只需要确保主窗口存在
-					showMainWindow(false);
-				}),
-			);
-		}
+		// 主窗口显示/隐藏事件
+		unlistenPromises.push(
+			currentWindow.listen("show-or-hide-main-window", () => {
+				showMainWindow(true);
+			}),
+		);
 
 		return () => {
 			unlistenPromises.forEach((promise) => {

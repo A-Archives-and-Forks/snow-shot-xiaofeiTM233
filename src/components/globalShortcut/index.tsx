@@ -110,7 +110,29 @@ export const GlobalShortcutContext = createContext<GlobalShortcutContextType>({
 	appFunctionSettings: {} as AppSettingsData[AppSettingsGroup.AppFunction],
 });
 
-const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
+export const GlobalShortcut: React.FC<{
+	children: React.ReactNode;
+	/**
+	 * 是否注册 OS 级快捷键
+	 * - true: 注册快捷键（仅在 background 窗口使用）
+	 * - false: 仅提供 Context，不注册快捷键（主窗口使用，避免重复注册）
+	 */
+	registerShortcuts?: boolean;
+}> = React.memo(({ children, registerShortcuts = true }) => {
+	return (
+		<GlobalShortcutCore registerShortcuts={registerShortcuts}>
+			{children}
+		</GlobalShortcutCore>
+	);
+});
+
+const GlobalShortcutCore = ({
+	children,
+	registerShortcuts,
+}: {
+	children: React.ReactNode;
+	registerShortcuts: boolean;
+}) => {
 	const disableShortcutKeyRef = useRef(false);
 	const [getTrayIconState] = useStateSubscriber(
 		TrayIconStatePublisher,
@@ -133,29 +155,35 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 	} = useMemo(() => {
 		const configs = Object.keys(defaultAppFunctionConfigs)
 			.filter((key) => {
+				// isReadyStatus 为 undefined 时（插件状态未加载完成），不过滤
+				// 等待 pluginStatus 加载后再过滤
+				if (!isReadyStatus) {
+					return true;
+				}
+
 				if (
 					key === AppFunction.VideoRecord ||
 					key === AppFunction.VideoRecordCopy
 				) {
-					return isReadyStatus?.(PLUGIN_ID_FFMPEG);
+					return isReadyStatus(PLUGIN_ID_FFMPEG);
 				}
 
 				if (key === AppFunction.ScreenshotOcr) {
-					return isReadyStatus?.(PLUGIN_ID_RAPID_OCR);
+					return isReadyStatus(PLUGIN_ID_RAPID_OCR);
 				}
 
 				if (key === AppFunction.Chat) {
-					return isReadyStatus?.(PLUGIN_ID_AI_CHAT);
+					return isReadyStatus(PLUGIN_ID_AI_CHAT);
 				}
 
 				if (key === AppFunction.Translation) {
-					return isReadyStatus?.(PLUGIN_ID_TRANSLATE);
+					return isReadyStatus(PLUGIN_ID_TRANSLATE);
 				}
 
 				if (key === AppFunction.ScreenshotOcrTranslate) {
 					return (
-						isReadyStatus?.(PLUGIN_ID_RAPID_OCR) &&
-						isReadyStatus?.(PLUGIN_ID_TRANSLATE)
+						isReadyStatus(PLUGIN_ID_RAPID_OCR) &&
+						isReadyStatus(PLUGIN_ID_TRANSLATE)
 					);
 				}
 
@@ -345,6 +373,11 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 						icon: buttonIcon,
 						onClick,
 						onKeyChange: async (value: string, prevValue: string) => {
+							// 如果不注册快捷键（如主窗口），仅返回状态
+							if (!registerShortcuts) {
+								return value.length > 0;
+							}
+
 							// 解析快捷键列表（逗号分隔）
 							const parseKeys = (str: string): string[] =>
 								str
@@ -493,19 +526,31 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 	const hasUnregisteredAll = useRef(false);
 	useAppSettingsLoad(
 		useCallback((settings: AppSettingsData) => {
+			// 主窗口（不注册快捷键）直接设置 AppFunction 设置，跳过 unregisterAll
+			if (!registerShortcuts) {
+				setAppFunctionSettings(settings[AppSettingsGroup.AppFunction]);
+				return;
+			}
+
 			(hasUnregisteredAll.current ? Promise.resolve() : unregisterAll()).then(
 				() => {
 					setAppFunctionSettings(settings[AppSettingsGroup.AppFunction]);
 				},
 			);
 			hasUnregisteredAll.current = true;
-		}, []),
+		}, [registerShortcuts]),
 		true,
 	);
 
 	const updateShortcutKeyStatusPendingRef = useRef(false);
 	useDeepCompareEffect(() => {
-		if (!appFunctionSettings || !isReadyStatus) {
+		if (!appFunctionSettings) {
+			return;
+		}
+
+		// 主窗口不注册快捷键，但仍然需要更新 status（用于 HomePage 显示注册状态）
+		// 背景窗口需要 isReadyStatus 来判断是否注册
+		if (!isReadyStatus && registerShortcuts) {
 			return;
 		}
 
@@ -541,5 +586,3 @@ const GlobalShortcutCore = ({ children }: { children: React.ReactNode }) => {
 		</GlobalShortcutContext.Provider>
 	);
 };
-
-export const GlobalShortcut = React.memo(GlobalShortcutCore);
