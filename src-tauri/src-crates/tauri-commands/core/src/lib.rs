@@ -1203,9 +1203,39 @@ pub async fn has_focused_full_screen_window() -> Result<bool, String> {
 }
 
 pub async fn show_main_window(app: tauri::AppHandle, auto_hide: bool) -> Result<(), String> {
+    // 主窗口可能已被销毁（Plan B 模式下用户关闭主窗口会 destroy）
+    // 如果不存在则按需重新创建
     let main_window = match app.get_webview_window("main") {
-        Some(main_window) => main_window,
-        None => return Err(String::from("[show_main_window] Main window not found")),
+        Some(window) => window,
+        None => {
+            // 主窗口不存在 → 重新创建
+            let new_window = match tauri::WebviewWindowBuilder::new(
+                &app,
+                "main",
+                tauri::WebviewUrl::App(PathBuf::from("/")),
+            )
+            .resizable(true)
+            .title("Snow Shot")
+            .inner_size(1024.0, 632.0)
+            .center()
+            .min_inner_size(800.0, 500.0)
+            .visible(false)
+            .build()
+            {
+                Ok(window) => window,
+                Err(e) => {
+                    return Err(format!(
+                        "[show_main_window] Failed to create main window: {:?}",
+                        e
+                    ));
+                }
+            };
+
+            // 等待 WebView 加载完成
+            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+
+            new_window
+        }
     };
 
     if auto_hide {
@@ -1213,7 +1243,10 @@ pub async fn show_main_window(app: tauri::AppHandle, auto_hide: bool) -> Result<
         let is_minimized = main_window.is_minimized().unwrap_or_default();
 
         if is_visible && !is_minimized {
-            main_window.hide().unwrap();
+            // 销毁主窗口而非隐藏（Plan B 模式：主窗口不常驻）
+            if let Err(e) = main_window.destroy() {
+                log::error!("[show_main_window] Failed to destroy main window: {:?}", e);
+            }
             return Ok(());
         }
     }

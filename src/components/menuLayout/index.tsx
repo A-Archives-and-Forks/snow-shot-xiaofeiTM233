@@ -9,16 +9,8 @@ import { Layout, theme } from "antd";
 import type { ItemType, MenuItemType } from "antd/es/menu/interface";
 import React, { useCallback, useContext, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { CheckEnvironment } from "@/components/checkEnvironment";
-import { CheckVersion } from "@/components/checkVersion";
-import { GlobalEventHandler } from "@/components/globalEventHandler";
-import { GlobalShortcut } from "@/components/globalShortcut";
 import { PersonalizationIcon } from "@/components/icons";
-import { InitService } from "@/components/initService";
-import {
-	TrayIconLoader,
-	TrayIconStatePublisher,
-} from "@/components/trayIconLoader";
+import { TrayIconStatePublisher } from "@/components/trayIconLoader";
 import {
 	PLUGIN_ID_AI_CHAT,
 	PLUGIN_ID_FFMPEG,
@@ -539,10 +531,6 @@ const MenuLayoutCore: React.FC<{ children: React.ReactNode }> = ({
 
 	return (
 		<>
-			<TrayIconLoader />
-			<GlobalEventHandler />
-			<CheckEnvironment />
-			<CheckVersion />
 			<div className="menu-layout-wrap">
 				<Layout>
 					<MenuSider
@@ -551,7 +539,7 @@ const MenuLayoutCore: React.FC<{ children: React.ReactNode }> = ({
 						pathname={pathname}
 					/>
 					<MenuContent pathname={pathname} routeTabsMap={routeTabsMap}>
-						<GlobalShortcut>{children}</GlobalShortcut>
+						{children}
 					</MenuContent>
 				</Layout>
 				<style jsx>{`
@@ -602,10 +590,5 @@ const ML = React.memo(
 );
 
 export const MenuLayout = ({ children }: { children: React.ReactNode }) => {
-	return (
-		<>
-			<InitService />
-			<ML>{children}</ML>
-		</>
-	);
+	return <ML>{children}</ML>;
 };

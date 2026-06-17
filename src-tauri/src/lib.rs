@@ -176,31 +176,52 @@ pub fn run() {
                 app.set_activation_policy(tauri::ActivationPolicy::Prohibited);
             }
 
-            // 监听窗口关闭事件，拦截关闭按钮
+            // 监听窗口关闭事件，销毁主窗口（而非隐藏）
+            // 主窗口销毁后，截图功能仍由常驻的 background 窗口承担
             let window_clone = main_window.clone();
+            let app_handle_clone = app.handle().clone();
             main_window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                     api.prevent_close();
 
-                    #[cfg(target_os = "windows")]
-                    {
-                        if let Err(e) = window_clone.hide() {
-                            log::error!("[setup] hide window error: {:?}", e);
-                        }
+                    // 销毁主窗口，释放内存
+                    if let Err(e) = window_clone.destroy() {
+                        log::error!("[setup] destroy main window error: {:?}", e);
                     }
 
-                    #[cfg(target_os = "macos")]
-                    {
-                        if let Err(e) = window_clone.hide() {
-                            log::error!("[setup] hide window error: {:?}", e);
-                        }
+                    // 通知 background 窗口主窗口已关闭（用于同步状态等）
+                    if let Err(e) = app_handle_clone.emit("on-hide-main-window", ()) {
+                        log::error!("[setup] emit on-hide-main-window error: {:?}", e);
                     }
-
-                    window_clone.emit("on-hide-main-window", ()).unwrap();
                 }
             });
 
-            // 如果是调试模式，则显示窗口
+            // 创建后台窗口（持久层，负责全局快捷键 + 系统托盘 + draw 窗口预创建）
+            // 该窗口始终存活，主窗口销毁不影响截图功能
+            if let Err(e) = tauri::WebviewWindowBuilder::new(
+                app.handle(),
+                "background",
+                tauri::WebviewUrl::App(std::path::PathBuf::from("/background")),
+            )
+            .resizable(false)
+            .maximizable(false)
+            .minimizable(false)
+            .fullscreen(false)
+            .title("Snow Shot - Background")
+            .decorations(false)
+            .shadow(false)
+            .transparent(true)
+            .skip_taskbar(true)
+            .inner_size(1.0, 1.0)
+            .position(0.0, 0.0)
+            .visible(false)
+            .focused(false)
+            .build()
+            {
+                log::error!("[setup] Failed to create background window: {:?}", e);
+            }
+
+            // 如果是调试模式，则显示主窗口
             #[cfg(debug_assertions)]
             {
                 main_window.show().unwrap();

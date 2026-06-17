@@ -26,6 +26,9 @@ const NoLayoutIdleLazyRouteImport = createFileRoute('/_noLayout/idle')()
 const NoLayoutFullScreenDrawSwitchMouseThroughLazyRouteImport = createFileRoute(
   '/_noLayout/fullScreenDrawSwitchMouseThrough',
 )()
+const NoLayoutBackgroundLazyRouteImport = createFileRoute(
+  '/_noLayout/background',
+)()
 const NoLayoutFullScreenDrawLazyRouteImport = createFileRoute(
   '/_noLayout/fullScreenDraw',
 )()
@@ -102,6 +105,13 @@ const NoLayoutFullScreenDrawSwitchMouseThroughLazyRoute =
       (d) => d.Route,
     ),
   )
+const NoLayoutBackgroundLazyRoute = NoLayoutBackgroundLazyRouteImport.update({
+  id: '/background',
+  path: '/background',
+  getParentRoute: () => NoLayoutRouteRoute,
+} as any).lazy(() =>
+  import('./routes/_noLayout/background.lazy').then((d) => d.Route),
+)
 const NoLayoutFullScreenDrawLazyRoute =
   NoLayoutFullScreenDrawLazyRouteImport.update({
     id: '/fullScreenDraw',
@@ -212,6 +222,7 @@ const LayoutPersonalizationAppearanceRoute =
 
 export interface FileRoutesByFullPath {
   '/about': typeof LayoutAboutLazyRoute
+  '/background': typeof NoLayoutBackgroundLazyRoute
   '/draw': typeof NoLayoutDrawLazyRoute
   '/fixedContent': typeof NoLayoutFixedContentLazyRoute
   '/fullScreenDraw': typeof NoLayoutFullScreenDrawLazyRoute
@@ -232,6 +243,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/about': typeof LayoutAboutLazyRoute
+  '/background': typeof NoLayoutBackgroundLazyRoute
   '/draw': typeof NoLayoutDrawLazyRoute
   '/fixedContent': typeof NoLayoutFixedContentLazyRoute
   '/fullScreenDraw': typeof NoLayoutFullScreenDrawLazyRoute
@@ -255,6 +267,7 @@ export interface FileRoutesById {
   '/_layout': typeof LayoutRouteRouteWithChildren
   '/_noLayout': typeof NoLayoutRouteRouteWithChildren
   '/_layout/about': typeof LayoutAboutLazyRoute
+  '/_noLayout/background': typeof NoLayoutBackgroundLazyRoute
   '/_noLayout/draw': typeof NoLayoutDrawLazyRoute
   '/_noLayout/fixedContent': typeof NoLayoutFixedContentLazyRoute
   '/_noLayout/fullScreenDraw': typeof NoLayoutFullScreenDrawLazyRoute
@@ -277,6 +290,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/about'
+    | '/background'
     | '/draw'
     | '/fixedContent'
     | '/fullScreenDraw'
@@ -297,6 +311,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/about'
+    | '/background'
     | '/draw'
     | '/fixedContent'
     | '/fullScreenDraw'
@@ -319,6 +334,7 @@ export interface FileRouteTypes {
     | '/_layout'
     | '/_noLayout'
     | '/_layout/about'
+    | '/_noLayout/background'
     | '/_noLayout/draw'
     | '/_noLayout/fixedContent'
     | '/_noLayout/fullScreenDraw'
@@ -385,6 +401,13 @@ declare module '@tanstack/react-router' {
       path: '/idle'
       fullPath: '/idle'
       preLoaderRoute: typeof NoLayoutIdleLazyRouteImport
+      parentRoute: typeof NoLayoutRouteRoute
+    }
+    '/_noLayout/background': {
+      id: '/_noLayout/background'
+      path: '/background'
+      fullPath: '/background'
+      preLoaderRoute: typeof NoLayoutBackgroundLazyRouteImport
       parentRoute: typeof NoLayoutRouteRoute
     }
     '/_noLayout/fullScreenDrawSwitchMouseThrough': {
@@ -523,6 +546,7 @@ const LayoutRouteRouteWithChildren = LayoutRouteRoute._addFileChildren(
 )
 
 interface NoLayoutRouteRouteChildren {
+  NoLayoutBackgroundLazyRoute: typeof NoLayoutBackgroundLazyRoute
   NoLayoutDrawLazyRoute: typeof NoLayoutDrawLazyRoute
   NoLayoutFixedContentLazyRoute: typeof NoLayoutFixedContentLazyRoute
   NoLayoutFullScreenDrawLazyRoute: typeof NoLayoutFullScreenDrawLazyRoute
@@ -533,6 +557,7 @@ interface NoLayoutRouteRouteChildren {
 }
 
 const NoLayoutRouteRouteChildren: NoLayoutRouteRouteChildren = {
+  NoLayoutBackgroundLazyRoute: NoLayoutBackgroundLazyRoute,
   NoLayoutDrawLazyRoute: NoLayoutDrawLazyRoute,
   NoLayoutFixedContentLazyRoute: NoLayoutFixedContentLazyRoute,
   NoLayoutFullScreenDrawLazyRoute: NoLayoutFullScreenDrawLazyRoute,

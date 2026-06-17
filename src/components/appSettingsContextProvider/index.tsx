@@ -1495,7 +1495,13 @@ const AppSettingsContextProviderCore: React.FC<{
 		initedAppSettings.current = true;
 
 		reloadAppSettings().then(() => {
-			if (appWindowRef.current?.label === "main") {
+			// 在主窗口和后台窗口都执行 createDrawWindow
+			// 后台窗口是常驻的持久层，负责预创建 draw 窗口
+			// 主窗口也执行是为了保证 main 窗口单独存在时也能正常工作
+			if (
+				appWindowRef.current?.label === "main" ||
+				appWindowRef.current?.label === "background"
+			) {
 				releaseDrawPage(true).then(() => {
 					createDrawWindow();
 				});

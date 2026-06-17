@@ -14,6 +14,7 @@ import {
 	createFullScreenDrawWindow,
 	restart,
 } from "@/commands/core";
+import { showMainWindow } from "@/commands/videoRecord";
 import {
 	PLUGIN_ID_AI_CHAT,
 	PLUGIN_ID_FFMPEG,
@@ -56,7 +57,6 @@ import { formatKey } from "@/utils/format";
 import { appError } from "@/utils/log";
 import { getPlatformValue } from "@/utils/platform";
 import { ScreenshotType } from "@/utils/types";
-import { showWindow } from "@/utils/window";
 
 export const TrayIconStatePublisher = createPublisher<{
 	disableShortcut: boolean;
@@ -485,7 +485,7 @@ const TrayIconLoaderComponent = () => {
 					id: `${appWindow.label}-show-main-window`,
 					text: intl.formatMessage({ id: "home.showMainWindow" }),
 					action: async () => {
-						showWindow();
+						showMainWindow();
 					},
 				},
 				{
@@ -540,7 +540,7 @@ const TrayIconLoaderComponent = () => {
 								getAppSettings()[AppSettingsGroup.FunctionTrayIcon]
 									.iconClickAction === TrayIconClickAction.ShowMainWindow
 							) {
-								showWindow();
+								showMainWindow();
 							}
 						}
 						break;
