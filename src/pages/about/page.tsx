@@ -109,14 +109,16 @@ export const AboutPage = () => {
 				</div>
 				<div style={{ marginTop: token.margin }}>
 					<Tooltip title={commitSha ? `Commit SHA: ${commitSha}` : undefined}>
-						<Tag color="blue">
-							<a
-								style={{ color: token.colorLink }}
-								onClick={() => openUrl("https://snowshot.top/")}
-							>
-								{intl.formatMessage({ id: "about.version" })} {version}
-							</a>
-						</Tag>
+						<span>
+							<Tag color="blue">
+								<a
+									style={{ color: token.colorLink }}
+									onClick={() => openUrl("https://snowshot.top/")}
+								>
+									{intl.formatMessage({ id: "about.version" })} {version}
+								</a>
+							</Tag>
+						</span>
 					</Tooltip>
 					<Tag color="green">
 						<a
