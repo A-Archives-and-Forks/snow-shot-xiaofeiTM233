@@ -147,7 +147,20 @@ const AppSettingsContextProviderCore: React.FC<{
 		) => {
 			const filePath = await getFilePath(group);
 			try {
-				await textFileWrite(filePath, JSON.stringify(data));
+				// 合并已有文件内容，避免部分更新丢失已有字段
+				let mergedData: Record<string, unknown> = data as Record<string, unknown>;
+				try {
+					const existingContent = await textFileRead(filePath);
+					if (existingContent) {
+						const existingData = JSON.parse(existingContent);
+						if (typeof existingData === "object" && existingData !== null) {
+							mergedData = { ...existingData, ...data };
+						}
+					}
+				} catch {
+					// 读取失败则直接使用新数据
+				}
+				await textFileWrite(filePath, JSON.stringify(mergedData));
 			} catch (error) {
 				appError(
 					`[writeAppSettings] write file ${filePath} failed: ${JSON.stringify(error)}`,
