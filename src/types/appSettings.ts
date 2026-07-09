@@ -220,6 +220,7 @@ export enum ColorPickerShowMode {
 export enum OcrModel {
 	RapidOcrV4 = "RapidOcrV4",
 	RapidOcrV5 = "RapidOcrV5",
+	RapidOcrV6 = "RapidOcrV6",
 }
 
 export enum KeyDisplayDirection {
@@ -389,6 +390,7 @@ export type AppSettingsData = {
 	};
 	[AppSettingsGroup.SystemNetwork]: {
 		enableProxy: boolean;
+		pluginDownloadSources: string[];
 	};
 	[AppSettingsGroup.FunctionChat]: {
 		autoCreateNewSession: boolean;

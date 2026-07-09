@@ -131,6 +131,10 @@ export const defaultAppSettingsData: AppSettingsData = {
 	},
 	[AppSettingsGroup.SystemNetwork]: {
 		enableProxy: false,
+		pluginDownloadSources: [
+			"https://snowshot.top/plugins/",
+			"https://snowshot.02000721.xyz/plugins/",
+		],
 	},
 	[AppSettingsGroup.FunctionChat]: {
 		autoCreateNewSession: true,

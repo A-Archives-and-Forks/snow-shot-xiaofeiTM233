@@ -32,6 +32,7 @@ import { ContentWrap } from "@/components/contentWrap";
 import { GroupTitle } from "@/components/groupTitle";
 import { IconLabel } from "@/components/iconLable";
 import { ResetSettingsButton } from "@/components/resetSettingsButton";
+import { PluginDownloadSources } from "./components/PluginDownloadSources";
 import { PLUGIN_ID_RAPID_OCR } from "@/constants/pluginService";
 import { AntdContext } from "@/contexts/antdContext";
 import { AppSettingsActionContext } from "@/contexts/appSettingsActionContext";
@@ -665,6 +666,18 @@ export const SystemSettingsPage = () => {
 						valuePropName="checked"
 					>
 						<Switch />
+					</ProForm.Item>
+					<ProForm.Item
+						label={
+							<IconLabel
+								label={
+									<FormattedMessage id="settings.systemSettings.networkSettings.pluginDownloadSources" />
+								}
+							/>
+						}
+						name="pluginDownloadSources"
+					>
+						<PluginDownloadSources />
 					</ProForm.Item>
 				</ProForm>
 			</Spin>

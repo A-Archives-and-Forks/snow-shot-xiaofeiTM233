@@ -37,6 +37,7 @@ export const PluginServiceContextProvider: React.FC<{
 					"ch_PP-OCRv4_det_infer.onnx",
 					"ch_PP-OCRv4_rec_infer.onnx",
 					"ch_PP-OCRv5_rec_mobile_infer.onnx",
+					"ch_PP-OCRv6_rec_mobile_infer.onnx",
 				],
 			},
 			{
@@ -76,7 +77,10 @@ export const PluginServiceContextProvider: React.FC<{
 			"20251005",
 			await path.join(configDirPath, "plugins"),
 			await path.join(configDirPath, "pluginsDownloads"),
-			"https://snowshot.top/plugins/",
+			[
+				"https://snowshot.top/plugins/",
+				"https://snowshot.02000721.xyz/plugins/",
+			],
 		);
 		setPluginConfig(pluginConfig);
 
@@ -88,7 +92,7 @@ export const PluginServiceContextProvider: React.FC<{
 					pluginConfig.version,
 					pluginConfig.plugin_install_dir,
 					pluginConfig.plugin_download_dir,
-					pluginConfig.plugin_download_service_url,
+					pluginConfig.plugin_download_service_urls,
 				);
 				await Promise.all(
 					pluginList.map(async (plugin) => {

@@ -12,16 +12,21 @@ pub async fn plugin_init(
     version: String,
     plugin_install_dir: String,
     plugin_download_dir: String,
-    plugin_download_service_url: String,
+    plugin_download_service_urls: Vec<String>,
 ) -> Result<(), String> {
     log::info!("[plugin_init] init plugin service");
+
+    let urls: Vec<reqwest::Url> = plugin_download_service_urls
+        .iter()
+        .map(|u| reqwest::Url::parse(u).unwrap())
+        .collect();
 
     plugin_service
         .init(
             version,
             Path::new(&plugin_install_dir),
             Path::new(&plugin_download_dir),
-            reqwest::Url::parse(&plugin_download_service_url).unwrap(),
+            urls,
             app,
         )
         .await;
@@ -64,4 +69,19 @@ pub async fn plugin_uninstall_plugin(
     name: String,
 ) -> Result<(), String> {
     plugin_service.uninstall_plugin(name.clone()).await
+}
+
+#[command]
+pub async fn plugin_set_download_sources(
+    plugin_service: tauri::State<'_, Arc<PluginService>>,
+    sources: Vec<String>,
+) -> Result<(), String> {
+    let urls: Vec<reqwest::Url> = sources
+        .iter()
+        .map(|u| reqwest::Url::parse(u).unwrap())
+        .collect();
+
+    plugin_service.set_download_sources(urls).await;
+
+    Ok(())
 }

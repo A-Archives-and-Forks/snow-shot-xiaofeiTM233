@@ -132,6 +132,7 @@ export const settings = {
 		"Higher values (e.g., 0.8) make outputs more random; lower values (e.g., 0.2) make them focused/deterministic",
 	"settings.systemSettings.networkSettings": "Network Settings",
 	"settings.systemSettings.networkSettings.proxy": "System Proxy",
+	"settings.systemSettings.networkSettings.pluginDownloadSources": "Plugin Download Sources",
 	"settings.chatSettings.thinkingBudgetTokens": "Thinking Budget Tokens",
 	"settings.chatSettings.thinkingBudgetTokens.tip":
 		'For reasoning modes like Claude models, the thinking budget determines the maximum number of tokens for their internal reasoning process. Note: The thinking budget tokens cannot be less than "Max Tokens", therefore if this value is effective, the "Max Tokens" may be determined by the server',
@@ -560,6 +561,8 @@ export const settings = {
 		"Rapid OCR V4",
 	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV5":
 		"Rapid OCR V5",
+	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV6":
+		"Rapid OCR V6",
 	"settings.systemSettings.screenshotSettings.ocrHotStart": "OCR Hot Start",
 	"settings.systemSettings.screenshotSettings.ocrHotStart.tip":
 		"Preload OCR model to improve recognition speed, but increases memory usage",

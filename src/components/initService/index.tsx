@@ -8,6 +8,7 @@ import {
 } from "@/commands/core";
 import { hotLoadPageInit } from "@/commands/hotLoadPage";
 import { ocrInit } from "@/commands/ocr";
+import { pluginSetDownloadSources } from "@/commands/plugin";
 import { videoRecordInit } from "@/commands/videoRecord";
 import {
 	PLUGIN_ID_FFMPEG,
@@ -36,6 +37,7 @@ export const InitService = () => {
 	const hasInitEnableProxy = useRef(false);
 	const hasInitRunLog = useRef(false);
 	const hasInitHotLoadPage = useRef(false);
+	const hasInitPluginSources = useRef(false);
 
 	const [appSettings, setAppSettings] = useState<AppSettingsData | undefined>(
 		undefined,
@@ -93,6 +95,19 @@ export const InitService = () => {
 			hasInitEnableProxy.current = true;
 
 			setEnableProxy(appSettings[AppSettingsGroup.SystemNetwork].enableProxy);
+		}
+
+		if (
+			!hasInitPluginSources.current ||
+			(prevAppSettings &&
+				appSettings[AppSettingsGroup.SystemNetwork].pluginDownloadSources !==
+					prevAppSettings[AppSettingsGroup.SystemNetwork].pluginDownloadSources)
+		) {
+			hasInitPluginSources.current = true;
+
+			pluginSetDownloadSources(
+				appSettings[AppSettingsGroup.SystemNetwork].pluginDownloadSources,
+			);
 		}
 
 		if (

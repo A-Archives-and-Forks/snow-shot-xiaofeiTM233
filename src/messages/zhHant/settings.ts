@@ -124,6 +124,7 @@ export const settings = {
 		"更高的值，如 0.8，會使輸出更隨機，而更低的值，如 0.2，會使其更加集中和確定",
 	"settings.systemSettings.networkSettings": "網路",
 	"settings.systemSettings.networkSettings.proxy": "系統代理",
+	"settings.systemSettings.networkSettings.pluginDownloadSources": "插件下載來源",
 	"settings.chatSettings.thinkingBudgetTokens": "思考預算 Token 量",
 	"settings.chatSettings.thinkingBudgetTokens.tip":
 		"對於如 Claude 模型的推理模式，思考預算決定其內部推理過程的最大 Token 量。注意，思考預算 Token 量不能小於「最大 Token 量」，所以如果該值有效，「最大 Token 量」可能由伺服器決定",
@@ -532,6 +533,8 @@ export const settings = {
 		"Rapid OCR V4",
 	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV5":
 		"Rapid OCR V5",
+	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV6":
+		"Rapid OCR V6",
 	"settings.systemSettings.screenshotSettings.ocrHotStart": "文字辨識熱啟動",
 	"settings.systemSettings.screenshotSettings.ocrHotStart.tip":
 		"預先載入文字辨識模型，提高文字辨識的辨識速度，但會提高記憶體佔用",

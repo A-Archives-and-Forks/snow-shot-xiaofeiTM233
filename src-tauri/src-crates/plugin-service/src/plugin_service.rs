@@ -12,7 +12,7 @@ pub struct PluginService {
     version: RwLock<String>,
     plugin_install_dir: RwLock<PathBuf>,
     plugin_download_dir: RwLock<PathBuf>,
-    plugin_download_service_url: RwLock<Url>,
+    plugin_download_service_urls: RwLock<Vec<Url>>,
     plugins: DashMap<String, Arc<RwLock<Plugin>>>,
     app_handle: Arc<RwLock<Option<AppHandle>>>,
 }
@@ -29,9 +29,9 @@ impl PluginService {
             version: RwLock::new("".to_string()),
             plugin_install_dir: RwLock::new(PathBuf::new()),
             plugin_download_dir: RwLock::new(PathBuf::new()),
-            plugin_download_service_url: RwLock::new(
+            plugin_download_service_urls: RwLock::new(vec![
                 Url::parse("https://snowshot.top/plugins").unwrap(),
-            ),
+            ]),
             plugins: DashMap::new(),
             app_handle: Arc::new(RwLock::new(None)),
         }
@@ -42,7 +42,7 @@ impl PluginService {
         version: String,
         plugin_install_dir: &Path,
         plugin_download_dir: &Path,
-        plugin_download_service_url: Url,
+        plugin_download_service_urls: Vec<Url>,
         app_handle: AppHandle,
     ) {
         let mut version_guard = self.version.write().await;
@@ -51,10 +51,21 @@ impl PluginService {
         *plugin_install_dir_guard = plugin_install_dir.to_path_buf();
         let mut plugin_download_dir_guard = self.plugin_download_dir.write().await;
         *plugin_download_dir_guard = plugin_download_dir.to_path_buf();
-        let mut plugin_download_service_url_guard = self.plugin_download_service_url.write().await;
-        *plugin_download_service_url_guard = plugin_download_service_url;
+        let mut plugin_download_service_urls_guard = self.plugin_download_service_urls.write().await;
+        *plugin_download_service_urls_guard = plugin_download_service_urls;
         let mut app_handle_guard = self.app_handle.write().await;
         *app_handle_guard = Some(app_handle);
+    }
+
+    pub async fn set_download_sources(&self, urls: Vec<Url>) {
+        {
+            let mut urls_guard = self.plugin_download_service_urls.write().await;
+            *urls_guard = urls.clone();
+        }
+
+        for plugin in self.plugins.iter() {
+            plugin.write().await.set_download_urls(urls.clone());
+        }
     }
 
     async fn clean_data_dir(&self, dir: &Path) -> Result<(), String> {
@@ -135,7 +146,7 @@ impl PluginService {
             name.to_string(),
             file_list,
             self.version.read().await.clone(),
-            self.plugin_download_service_url.read().await.clone(),
+            self.plugin_download_service_urls.read().await.clone(),
             self.app_handle.clone(),
         )
     }
