@@ -477,23 +477,22 @@ pub async fn set_window_rect(
     max_x: i32,
     max_y: i32,
 ) -> Result<(), String> {
-    match window.set_size(PhysicalSize::new(max_x - min_x, max_y - min_y)) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(format!(
-                "[set_window_rect] Failed to set window size: {}",
-                e
-            ));
-        }
+    let (pos_result, size_result) = tokio::join!(
+        window.set_position(PhysicalPosition::new(min_x, min_y)),
+        window.set_size(PhysicalSize::new(max_x - min_x, max_y - min_y)),
+    );
+
+    if let Err(e) = pos_result {
+        return Err(format!(
+            "[set_window_rect] Failed to set window position: {}",
+            e
+        ));
     }
-    match window.set_position(PhysicalPosition::new(min_x, min_y)) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(format!(
-                "[set_window_rect] Failed to set window position: {}",
-                e
-            ));
-        }
+    if let Err(e) = size_result {
+        return Err(format!(
+            "[set_window_rect] Failed to set window size: {}",
+            e
+        ));
     }
 
     Ok(())
