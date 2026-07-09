@@ -764,6 +764,11 @@ const AppSettingsContextProviderCore: React.FC<{
 							? newSettings.enableProxy
 							: (prevSettings?.enableProxy ??
 								defaultAppSettingsData[group].enableProxy),
+					pluginDownloadSources:
+						Array.isArray(newSettings?.pluginDownloadSources)
+							? newSettings.pluginDownloadSources
+							: (prevSettings?.pluginDownloadSources ??
+								defaultAppSettingsData[group].pluginDownloadSources),
 				};
 			} else if (group === AppSettingsGroup.FunctionOcr) {
 				newSettings = newSettings as AppSettingsData[typeof group];
