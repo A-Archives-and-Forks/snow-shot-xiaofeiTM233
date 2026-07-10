@@ -217,11 +217,15 @@ export enum ColorPickerShowMode {
 	Never = 2,
 }
 
-export enum OcrModel {
-	RapidOcrV4 = "RapidOcrV4",
-	RapidOcrV5 = "RapidOcrV5",
-	RapidOcrV6 = "RapidOcrV6",
-}
+export type OcrCustomModel = {
+	type: "Custom";
+	name: string;
+	detPath: string;
+	clsPath: string;
+	recPath: string;
+};
+
+export type OcrModel = { type: "RapidOcrV4" } | OcrCustomModel;
 
 export enum KeyDisplayDirection {
 	Horizontal = "horizontal",

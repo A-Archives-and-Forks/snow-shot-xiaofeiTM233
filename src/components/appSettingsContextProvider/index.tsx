@@ -778,7 +778,9 @@ const AppSettingsContextProviderCore: React.FC<{
 
 				settings = {
 					ocrModel:
-						typeof newSettings?.ocrModel === "string"
+						typeof newSettings?.ocrModel === "object" &&
+						newSettings.ocrModel !== null &&
+						typeof (newSettings.ocrModel as Record<string, unknown>).type === "string"
 							? newSettings.ocrModel
 							: (prevSettings?.ocrModel ??
 								defaultAppSettingsData[group].ocrModel),

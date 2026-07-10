@@ -13,11 +13,16 @@ pub struct OcrService {
     cls_model: Option<(PathBuf, Option<Vec<u8>>)>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy, PartialOrd, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum OcrModel {
     RapidOcrV4,
-    RapidOcrV5,
-    RapidOcrV6,
+    Custom {
+        name: String,
+        det_path: String,
+        cls_path: String,
+        rec_path: String,
+    },
 }
 
 impl OcrService {
@@ -131,21 +136,21 @@ impl OcrService {
         );
 
         // 加载模型到内存
-        let (det_model_path, cls_model_path, rec_model_path) = match model {
+        let (det_model_path, cls_model_path, rec_model_path) = match &model {
             OcrModel::RapidOcrV4 => (
                 orc_plugin_path.join("ch_PP-OCRv4_det_infer.onnx"),
                 orc_plugin_path.join("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
                 orc_plugin_path.join("ch_PP-OCRv4_rec_infer.onnx"),
             ),
-            OcrModel::RapidOcrV5 => (
-                orc_plugin_path.join("ch_PP-OCRv4_det_infer.onnx"),
-                orc_plugin_path.join("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
-                orc_plugin_path.join("ch_PP-OCRv5_rec_mobile_infer.onnx"),
-            ),
-            OcrModel::RapidOcrV6 => (
-                orc_plugin_path.join("ch_PP-OCRv4_det_infer.onnx"),
-                orc_plugin_path.join("ch_ppocr_mobile_v2.0_cls_infer.onnx"),
-                orc_plugin_path.join("ch_PP-OCRv6_rec_mobile_infer.onnx"),
+            OcrModel::Custom {
+                det_path,
+                cls_path,
+                rec_path,
+                ..
+            } => (
+                orc_plugin_path.join(det_path),
+                orc_plugin_path.join(cls_path),
+                orc_plugin_path.join(rec_path),
             ),
         };
 

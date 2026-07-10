@@ -529,12 +529,14 @@ export const settings = {
 	"settings.systemSettings.screenshotSettings.tryGetElementByFocus.always":
 		"保持启用",
 	"settings.systemSettings.screenshotSettings.ocrModel": "文本识别模型",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV4":
-		"Rapid OCR V4",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV5":
-		"Rapid OCR V5",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV6":
-		"Rapid OCR V6",
+	"settings.systemSettings.screenshotSettings.ocrModel.ppOcrV4":
+		"PP-OCR V4",
+	"settings.systemSettings.screenshotSettings.ocrModel.custom":
+		"自定义模型",
+	"settings.systemSettings.screenshotSettings.ocrModel.customName":
+		"模型名称",
+	"settings.systemSettings.screenshotSettings.ocrModel.customTip":
+		"自定义模型需将 ONNX 文件放入 Rapid OCR 插件数据目录。可从 https://www.modelscope.cn/models/RapidAI/RapidOCR/tree/master/onnx 下载模型文件。",
 	"settings.systemSettings.screenshotSettings.ocrHotStart": "文本识别热启动",
 	"settings.systemSettings.screenshotSettings.ocrHotStart.tip":
 		"预加载文本识别模型，提高文本识别的识别速度，但会提高内存占用",

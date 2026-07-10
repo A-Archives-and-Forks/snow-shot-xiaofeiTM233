@@ -83,6 +83,7 @@ import {
 } from "@/utils/file";
 import { TestChat } from "./components/testChat";
 import { TranslationConfig } from "./components/translationConfig";
+import { OcrModelConfigEditor } from "./components/OcrModelConfigEditor";
 
 export const FunctionSettingsPage = () => {
 	const intl = useIntl();
@@ -621,29 +622,6 @@ export const FunctionSettingsPage = () => {
 			{
 				label: intl.formatMessage({ id: "draw.cloudSaveUrlFormat.markdown" }),
 				value: CloudSaveUrlFormat.Markdown,
-			},
-		];
-	}, [intl]);
-
-	const ocrModelOptions = useMemo(() => {
-		return [
-			{
-				label: intl.formatMessage({
-					id: "settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV4",
-				}),
-				value: OcrModel.RapidOcrV4,
-			},
-			{
-				label: intl.formatMessage({
-					id: "settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV5",
-				}),
-				value: OcrModel.RapidOcrV5,
-			},
-			{
-				label: intl.formatMessage({
-					id: "settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV6",
-				}),
-				value: OcrModel.RapidOcrV6,
 			},
 		];
 	}, [intl]);
@@ -1382,7 +1360,7 @@ export const FunctionSettingsPage = () => {
 						>
 							<Row gutter={token.marginLG}>
 								<Col span={12}>
-									<ProFormSelect
+									<ProForm.Item
 										label={
 											<IconLabel
 												label={
@@ -1391,7 +1369,17 @@ export const FunctionSettingsPage = () => {
 											/>
 										}
 										name="ocrModel"
-										options={ocrModelOptions}
+									>
+										<OcrModelConfigEditor />
+									</ProForm.Item>
+								</Col>
+								<Col span={24}>
+									<Alert
+										type="info"
+										message={
+											<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrModel.customTip" />
+										}
+										style={{ marginBottom: 0 }}
 									/>
 								</Col>
 

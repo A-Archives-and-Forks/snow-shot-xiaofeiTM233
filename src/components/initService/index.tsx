@@ -56,8 +56,12 @@ export const InitService = () => {
 		if (
 			(!hasInitOcr.current ||
 				(prevAppSettings &&
-					(appSettings[AppSettingsGroup.FunctionOcr].ocrModel !==
-						prevAppSettings[AppSettingsGroup.FunctionOcr].ocrModel ||
+					(JSON.stringify(
+						appSettings[AppSettingsGroup.FunctionOcr].ocrModel,
+					) !==
+						JSON.stringify(
+							prevAppSettings[AppSettingsGroup.FunctionOcr].ocrModel,
+						) ||
 						appSettings[AppSettingsGroup.SystemScreenshot].ocrHotStart !==
 							prevAppSettings[AppSettingsGroup.SystemScreenshot].ocrHotStart ||
 						appSettings[AppSettingsGroup.SystemScreenshot]

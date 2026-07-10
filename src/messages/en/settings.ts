@@ -557,12 +557,14 @@ export const settings = {
 	"settings.systemSettings.screenshotSettings.tryGetElementByFocus.always":
 		"Always",
 	"settings.systemSettings.screenshotSettings.ocrModel": "OCR Model",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV4":
-		"Rapid OCR V4",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV5":
-		"Rapid OCR V5",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV6":
-		"Rapid OCR V6",
+	"settings.systemSettings.screenshotSettings.ocrModel.ppOcrV4":
+		"PP-OCR V4",
+	"settings.systemSettings.screenshotSettings.ocrModel.custom":
+		"Custom Model",
+	"settings.systemSettings.screenshotSettings.ocrModel.customName":
+		"Model Name",
+	"settings.systemSettings.screenshotSettings.ocrModel.customTip":
+		"Place ONNX model files in the Rapid OCR plugin data directory. Download models from https://www.modelscope.cn/models/RapidAI/RapidOCR/tree/master/onnx",
 	"settings.systemSettings.screenshotSettings.ocrHotStart": "OCR Hot Start",
 	"settings.systemSettings.screenshotSettings.ocrHotStart.tip":
 		"Preload OCR model to improve recognition speed, but increases memory usage",
