@@ -558,7 +558,7 @@ export const settings = {
 		"Always",
 	"settings.systemSettings.screenshotSettings.ocrModel": "OCR Model",
 	"settings.systemSettings.screenshotSettings.ocrModel.ppOcrV4":
-		"PP-OCR V4",
+		"PaddleOCR V4",
 	"settings.systemSettings.screenshotSettings.ocrModel.custom":
 		"Custom Model",
 	"settings.systemSettings.screenshotSettings.ocrModel.customName":

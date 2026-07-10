@@ -530,7 +530,7 @@ export const settings = {
 		"保持啟用",
 	"settings.systemSettings.screenshotSettings.ocrModel": "文字辨識模型",
 	"settings.systemSettings.screenshotSettings.ocrModel.ppOcrV4":
-		"PP-OCR V4",
+		"PaddleOCR V4",
 	"settings.systemSettings.screenshotSettings.ocrModel.custom":
 		"自訂模型",
 	"settings.systemSettings.screenshotSettings.ocrModel.customName":
