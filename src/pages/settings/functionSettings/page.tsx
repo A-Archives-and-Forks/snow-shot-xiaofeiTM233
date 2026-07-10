@@ -2243,6 +2243,34 @@ export const FunctionSettingsPage = () => {
 											label: "Libx265 (CPU)",
 											value: "libx265",
 										},
+										{
+											label: "Libaom-AV1 (CPU)",
+											value: "libaom-av1",
+										},
+										{
+											label: "Libvpx-VP9 (CPU)",
+											value: "libvpx-vp9",
+										},
+										{
+											label: "AV1_QSV (Intel)",
+											value: "av1_qsv",
+										},
+										{
+											label: "H264_QSV (Intel)",
+											value: "h264_qsv",
+										},
+										{
+											label: "MPEG4 (CPU)",
+											value: "mpeg4",
+										},
+										...(currentPlatform === "macos"
+											? [
+													{
+														label: "ProRes (CPU)",
+														value: "prores",
+													},
+												]
+											: []),
 										...(currentPlatform === "windows"
 											? [
 													{
