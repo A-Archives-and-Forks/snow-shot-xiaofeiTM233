@@ -7,7 +7,7 @@ import {
 	SyncOutlined,
 } from "@ant-design/icons";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
-import { Badge, Button, Divider, List } from "antd";
+import { Badge, Button, List } from "antd";
 import { useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { pluginInstallPlugin, pluginUninstallPlugin } from "@/commands/plugin";
@@ -132,9 +132,6 @@ export const PluginsPage = () => {
 							>
 								<FormattedMessage id="plugin.forceInstall" />
 							</Button>,
-							item.status === PluginStatus.Installed ? (
-								<Divider key="divider" type="vertical" />
-							) : null,
 							item.status === PluginStatus.Installed ? (
 								<Button
 									key="openDataDir"
