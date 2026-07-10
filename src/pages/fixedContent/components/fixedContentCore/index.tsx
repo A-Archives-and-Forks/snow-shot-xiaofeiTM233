@@ -22,6 +22,7 @@ import React, {
 	useRef,
 	useState,
 } from "react";
+import { flushSync } from "react-dom";
 import { isHotkeyPressed, useHotkeys } from "react-hotkeys-hook";
 import { FormattedMessage, useIntl } from "react-intl";
 import { getMousePosition, saveFile } from "@/commands";
@@ -29,7 +30,6 @@ import {
 	getCurrentMonitorInfo,
 	type MonitorInfo,
 	setCurrentWindowAlwaysOnTop,
-	setWindowRect,
 	startFreeDrag,
 } from "@/commands/core";
 import { showMainWindow } from "@/commands/videoRecord";
@@ -1394,7 +1394,18 @@ const FixedContentCoreInner: React.FC<{
 	const [showScaleInfo, showScaleInfoTemporary] = useTempInfo();
 
 	const scaleWindow = useCallback(
-		async (scaleDelta: number, ignoreMouse: boolean = false) => {
+		/**
+		 * 缩放窗口
+		 * @param scaleDelta - 缩放增量（百分比）
+		 * @param ignoreMouse - 是否忽略鼠标位置，直接以窗口中心缩放
+		 * @param mousePosition - 可选的鼠标位置（clientX/clientY），用于以鼠标位置为中心的缩放。
+		 *                        当从事件处理器（如 wheel、mousedown）调用时传入，
+		 *                        以使用事件中的鼠标位置而非实时查询的鼠标位置，
+		 *                        避免异步获取鼠标位置时产生的延迟和位置偏差。
+		 *                        注意：mousePosition 不在 useCallback 依赖数组中，
+		 *                        因为它是通过参数传入的即时值，不需要追踪引用变化。
+		 */
+		async (scaleDelta: number, ignoreMouse: boolean = false, mousePosition?: { clientX: number; clientY: number }) => {
 			if (enableDrawRef.current) {
 				return;
 			}
@@ -1428,44 +1439,71 @@ const FixedContentCoreInner: React.FC<{
 				return;
 			}
 
+			// 使用 flushSync 强制 React 同步更新 DOM，
+			// 确保 CSS 尺寸（documentSize）在窗口操作前已经正确，
+			// 避免窗口大小先变而 CSS 尺寸未更新导致的拉伸闪烁
+			flushSync(() => {
+				setScale({
+					x: targetScale,
+					y: targetScale,
+				});
+			});
+			ocrResultActionRef.current?.setScale(targetScale);
+			showScaleInfoTemporary();
+
 			// 计算新的窗口尺寸
 			const { width: newWidth, height: newHeight } =
 				getWindowPhysicalSize(targetScale);
 
 			if (zoomWithMouse && !ignoreMouse) {
 				try {
-					// 获取当前鼠标位置和窗口位置
-					const [[mouseX, mouseY], currentPosition, currentSize] =
-						await Promise.all([
-							getMousePosition(),
+					let newX: number;
+					let newY: number;
+
+					const scaleFactor = canvasPropsRef.current.scaleFactor ?? window.devicePixelRatio;
+
+					if (mousePosition) {
+						const [currentPosition, currentSize] = await Promise.all([
 							appWindow.outerPosition(),
 							appWindow.outerSize(),
 						]);
 
-					// 计算鼠标相对于窗口的位置（比例）
-					const mouseRelativeX =
-						(mouseX - currentPosition.x) / currentSize.width;
-					const mouseRelativeY =
-						(mouseY - currentPosition.y) / currentSize.height;
+						const mouseScreenX = currentPosition.x + mousePosition.clientX * scaleFactor;
+						const mouseScreenY = currentPosition.y + mousePosition.clientY * scaleFactor;
+						const mouseRelativeX = (mousePosition.clientX * scaleFactor) / currentSize.width;
+						const mouseRelativeY = (mousePosition.clientY * scaleFactor) / currentSize.height;
 
-					// 计算缩放后窗口的新位置，使鼠标在窗口中的相对位置保持不变
-					const newX = Math.round(mouseX - newWidth * mouseRelativeX);
-					const newY = Math.round(mouseY - newHeight * mouseRelativeY);
+						newX = Math.round(mouseScreenX - newWidth * mouseRelativeX);
+						newY = Math.round(mouseScreenY - newHeight * mouseRelativeY);
+					} else {
+						const [[mouseX, mouseY], currentPosition, currentSize] =
+							await Promise.all([
+								getMousePosition(),
+								appWindow.outerPosition(),
+								appWindow.outerSize(),
+							]);
 
-					// 同时设置窗口大小和位置
-					await setWindowRect(newX, newY, newX + newWidth, newY + newHeight);
+						const mouseRelativeX =
+							(mouseX - currentPosition.x) / currentSize.width;
+						const mouseRelativeY =
+							(mouseY - currentPosition.y) / currentSize.height;
+
+						newX = Math.round(mouseX - newWidth * mouseRelativeX);
+						newY = Math.round(mouseY - newHeight * mouseRelativeY);
+					}
+
+					// 先设置位置再设置大小，避免"从左上角拉伸"的视觉延迟。
+					// 如果先 setSize 再 setPosition，窗口会先在旧位置改变大小（内容从左上角拉伸），
+					// 然后才移动到正确位置。先 setPosition 确保窗口先移到目标位置，
+					// 再从该位置调整大小，配合 flushSync 已更新的 CSS 尺寸，视觉上更平滑。
+					await appWindow.setPosition(new PhysicalPosition(newX, newY));
+					await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
 				} catch (error) {
 					appError("[scaleWindow] Error during mouse-centered scaling", error);
-					// 如果出错，回退到普通缩放
-					await Promise.all([
-						appWindow.setSize(new PhysicalSize(newWidth, newHeight)),
-					]);
+					await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
 				}
 			} else {
-				// 普通缩放，只改变窗口大小
-				await Promise.all([
-					appWindow.setSize(new PhysicalSize(newWidth, newHeight)),
-				]);
+				await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
 			}
 
 			setScale({
