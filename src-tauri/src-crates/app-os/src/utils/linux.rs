@@ -1,3 +1,15 @@
+/// Linux 平台暂未实现原子窗口设置，返回 Err 以触发调用方的分步回退逻辑（set_size + set_position）
+/// 调用方应通过 #[cfg(target_os = "windows")] 条件编译避免在非 Windows 平台调用此函数
+pub fn set_window_rect_atomic(
+    #[allow(unused_variables)] hwnd: *mut std::ffi::c_void,
+    #[allow(unused_variables)] x: i32,
+    #[allow(unused_variables)] y: i32,
+    #[allow(unused_variables)] width: i32,
+    #[allow(unused_variables)] height: i32,
+) -> Result<(), String> {
+    Err("[set_window_rect_atomic] not implemented on Linux, falling back to step-by-step resize".into())
+}
+
 pub fn get_focused_window() -> () {
     log::warn!("[os::utils::linux::get_focused_window] not implemented");
 

@@ -696,16 +696,19 @@ const FixedContentCoreInner: React.FC<{
 							width: textContentContainerRef.current.clientWidth,
 							height: textContentContainerRef.current.clientHeight,
 						});
-						canvasPropsRef.current = {
-							width:
-								textContentContainerRef.current.clientWidth *
-								window.devicePixelRatio,
-							height:
-								textContentContainerRef.current.clientHeight *
-								window.devicePixelRatio,
-							scaleFactor: window.devicePixelRatio,
-							ignoreTextScaleFactor: true,
-						};
+					// 使用 canvasPropsRef 中存储的显示器缩放因子，比 window.devicePixelRatio 更准确
+					// 因为在多显示器环境下，window.devicePixelRatio 可能不等于当前显示器的实际缩放因子
+					const scaleFactor = canvasPropsRef.current.scaleFactor || window.devicePixelRatio;
+					canvasPropsRef.current = {
+						width:
+							textContentContainerRef.current.clientWidth *
+							scaleFactor,
+						height:
+							textContentContainerRef.current.clientHeight *
+							scaleFactor,
+						scaleFactor: scaleFactor,
+						ignoreTextScaleFactor: true,
+					};
 					}
 				}, timeout);
 			}, 17);
@@ -1048,7 +1051,9 @@ const FixedContentCoreInner: React.FC<{
 				},
 			};
 
-			const thumbnailSize = Math.floor(42 * window.devicePixelRatio);
+			// 使用 canvasPropsRef 中存储的显示器缩放因子，比 window.devicePixelRatio 更准确
+			// 因为在多显示器环境下，window.devicePixelRatio 可能不等于当前显示器的实际缩放因子
+			const thumbnailSize = Math.floor(42 * (canvasPropsRef.current.scaleFactor ?? window.devicePixelRatio));
 
 			// 获取当前鼠标位置
 			const [mouseX, mouseY] = await getMousePosition();
@@ -1100,9 +1105,12 @@ const FixedContentCoreInner: React.FC<{
 
 	const getWindowPhysicalSize = useCallback(
 		(targetScale: number) => {
+			// 使用 canvasPropsRef 中存储的显示器缩放因子，比 window.devicePixelRatio 更准确
+			// 因为在多显示器环境下，window.devicePixelRatio 可能不等于当前显示器的实际缩放因子
+			const scaleFactor = canvasPropsRef.current.scaleFactor ?? window.devicePixelRatio;
 			const newWidth = Math.round(
 				((canvasPropsRef.current.width * targetScale) / 100) *
-					(window.devicePixelRatio /
+					(scaleFactor /
 						(canvasPropsRef.current.scaleFactor *
 							(canvasPropsRef.current.ignoreTextScaleFactor
 								? 1
@@ -1110,7 +1118,7 @@ const FixedContentCoreInner: React.FC<{
 			);
 			const newHeight = Math.round(
 				((canvasPropsRef.current.height * targetScale) / 100) *
-					(window.devicePixelRatio /
+					(scaleFactor /
 						(canvasPropsRef.current.scaleFactor *
 							(canvasPropsRef.current.ignoreTextScaleFactor
 								? 1
@@ -1394,7 +1402,18 @@ const FixedContentCoreInner: React.FC<{
 	const [showScaleInfo, showScaleInfoTemporary] = useTempInfo();
 
 	const scaleWindow = useCallback(
-		async (scaleDelta: number, ignoreMouse: boolean = false) => {
+		/**
+		 * 缩放窗口
+		 * @param scaleDelta - 缩放增量（百分比）
+		 * @param ignoreMouse - 是否忽略鼠标位置，直接以窗口中心缩放
+		 * @param mousePosition - 可选的鼠标位置（clientX/clientY），用于以鼠标位置为中心的缩放。
+		 *                        当从事件处理器（如 wheel、mousedown）调用时传入，
+		 *                        以使用事件中的鼠标位置而非实时查询的鼠标位置，
+		 *                        避免异步获取鼠标位置时产生的延迟和位置偏差。
+		 *                        注意：mousePosition 不在 useCallback 依赖数组中，
+		 *                        因为它是通过参数传入的即时值，不需要追踪引用变化。
+		 */
+		async (scaleDelta: number, ignoreMouse: boolean = false, mousePosition: { clientX: number; clientY: number } | undefined = undefined) => {
 			if (enableDrawRef.current) {
 				return;
 			}
@@ -1428,29 +1447,64 @@ const FixedContentCoreInner: React.FC<{
 				return;
 			}
 
+			// 将状态更新包裹在 try-catch 中，避免 setScale 成功但 ocrResultActionRef.setScale 失败导致的状态不一致
+			// 注意：React setState 本身是同步且不会抛出异常的，这里主要保护 ocrResultActionRef.setScale
+			try {
+				setScale({
+					x: targetScale,
+					y: targetScale,
+				});
+				ocrResultActionRef.current?.setScale(targetScale);
+				showScaleInfoTemporary();
+			} catch (error) {
+				appError("[scaleWindow] Failed to update scale state", error);
+				// 状态更新失败时记录警告，但不回退（React setState 已经是最终一致的）
+			}
+
 			// 计算新的窗口尺寸
 			const { width: newWidth, height: newHeight } =
 				getWindowPhysicalSize(targetScale);
 
 			if (zoomWithMouse && !ignoreMouse) {
 				try {
-					// 获取当前鼠标位置和窗口位置
-					const [[mouseX, mouseY], currentPosition, currentSize] =
-						await Promise.all([
-							getMousePosition(),
+					let mouseRelativeX: number;
+					let mouseRelativeY: number;
+					let mouseScreenX: number;
+					let mouseScreenY: number;
+
+					// 使用 canvasPropsRef 中存储的显示器缩放因子，比 window.devicePixelRatio 更准确
+					// 因为在多显示器环境下，window.devicePixelRatio 可能不等于当前显示器的实际缩放因子
+					const scaleFactor = canvasPropsRef.current.scaleFactor ?? window.devicePixelRatio;
+
+					if (mousePosition) {
+						const [currentPosition, currentSize] = await Promise.all([
 							appWindow.outerPosition(),
 							appWindow.outerSize(),
 						]);
+	
+						mouseScreenX = currentPosition.x + mousePosition.clientX * scaleFactor;
+						mouseScreenY = currentPosition.y + mousePosition.clientY * scaleFactor;
+						mouseRelativeX = (mousePosition.clientX * scaleFactor) / currentSize.width;
+						mouseRelativeY = (mousePosition.clientY * scaleFactor) / currentSize.height;
+					} else {
+						const [[mouseX, mouseY], currentPosition, currentSize] =
+							await Promise.all([
+								getMousePosition(),
+								appWindow.outerPosition(),
+								appWindow.outerSize(),
+							]);
 
-					// 计算鼠标相对于窗口的位置（比例）
-					const mouseRelativeX =
-						(mouseX - currentPosition.x) / currentSize.width;
-					const mouseRelativeY =
-						(mouseY - currentPosition.y) / currentSize.height;
+						mouseScreenX = mouseX;
+						mouseScreenY = mouseY;
+						mouseRelativeX =
+							(mouseX - currentPosition.x) / currentSize.width;
+						mouseRelativeY =
+							(mouseY - currentPosition.y) / currentSize.height;
+					}
 
 					// 计算缩放后窗口的新位置，使鼠标在窗口中的相对位置保持不变
-					const newX = Math.round(mouseX - newWidth * mouseRelativeX);
-					const newY = Math.round(mouseY - newHeight * mouseRelativeY);
+					const newX = Math.round(mouseScreenX - newWidth * mouseRelativeX);
+					const newY = Math.round(mouseScreenY - newHeight * mouseRelativeY);
 
 					// 同时设置窗口大小和位置
 					await setWindowRect(newX, newY, newX + newWidth, newY + newHeight);
@@ -1467,13 +1521,6 @@ const FixedContentCoreInner: React.FC<{
 					appWindow.setSize(new PhysicalSize(newWidth, newHeight)),
 				]);
 			}
-
-			setScale({
-				x: targetScale,
-				y: targetScale,
-			});
-			ocrResultActionRef.current?.setScale(targetScale);
-			showScaleInfoTemporary();
 		},
 		[
 			enableDrawRef,
@@ -2145,7 +2192,7 @@ const FixedContentCoreInner: React.FC<{
 			const delta = deltaY > 0 ? -1 : 1;
 
 			if (scrollActionRef.current === FixedContentScrollAction.Zoom) {
-				scaleWindowRender(delta * 10);
+				scaleWindowRender(delta * 10, false, { clientX: event.clientX, clientY: event.clientY });
 			} else if (scrollActionRef.current === FixedContentScrollAction.RotateX) {
 				setRotateAngles({
 					...rotateAnglesRef.current,
@@ -2181,7 +2228,7 @@ const FixedContentCoreInner: React.FC<{
 				return;
 			}
 
-			scaleWindow(100 - scaleRef.current.x, false);
+			scaleWindow(100 - scaleRef.current.x, false, { clientX: e.clientX, clientY: e.clientY });
 		},
 		[scaleRef, scaleWindow],
 	);

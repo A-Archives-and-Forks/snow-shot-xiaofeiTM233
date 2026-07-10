@@ -18,10 +18,26 @@ use windows::Win32::UI::Shell::{SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, Shel
 use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
     GWL_EXSTYLE, GetWindowLongPtrW, HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE,
-    SetWindowPos, WS_EX_TOPMOST,
+    SetWindowPos, SWP_NOZORDER, SWP_NOACTIVATE, WS_EX_TOPMOST,
 };
 use windows::core::Interface;
 use windows::core::PCWSTR;
+
+pub fn set_window_rect_atomic(hwnd: *mut c_void, x: i32, y: i32, width: i32, height: i32) -> Result<(), String> {
+    let hwnd = HWND(hwnd);
+    unsafe {
+        SetWindowPos(
+            hwnd,
+            None,
+            x,
+            y,
+            width,
+            height,
+            SWP_NOZORDER | SWP_NOACTIVATE,
+        )
+        .map_err(|e| format!("[set_window_rect_atomic] SetWindowPos failed: {:?}", e))
+    }
+}
 
 pub fn switch_always_on_top(hwnd: *mut c_void) -> bool {
     let hwnd = HWND(hwnd);

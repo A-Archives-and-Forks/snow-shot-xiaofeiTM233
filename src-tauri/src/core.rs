@@ -477,23 +477,50 @@ pub async fn set_window_rect(
     max_x: i32,
     max_y: i32,
 ) -> Result<(), String> {
-    match window.set_size(PhysicalSize::new(max_x - min_x, max_y - min_y)) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(format!(
-                "[set_window_rect] Failed to set window size: {}",
-                e
-            ));
+    let width = max_x - min_x;
+    let height = max_y - min_y;
+
+    // Windows 使用 SetWindowPos 原子设置位置和大小，避免分步设置导致的视觉闪烁
+    // macOS/Linux 暂未实现原子设置，回退到分步调用 set_size + set_position
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(hwnd) = window.hwnd() {
+            // SAFETY: hwnd.0 是 windows::Win32::Foundation::HWND 元组结构内部的 isize 字段，
+            // 其值是一个有效的窗口句柄指针。将其转换为 *mut c_void 传递给 SetWindowPos 是安全的，
+            // 因为 SetWindowPos 仅将其作为窗口标识符使用，不会解引用该指针。
+            // 注意：此转换依赖 windows crate 的 HWND 内部实现细节，若 windows crate 升级需确认兼容性。
+            match snow_shot_app_os::utils::set_window_rect_atomic(
+                hwnd.0 as *mut std::ffi::c_void,
+                min_x,
+                min_y,
+                width,
+                height,
+            ) {
+                Ok(_) => return Ok(()),
+                Err(e) => {
+                    log::warn!("[set_window_rect] set_window_rect_atomic failed, falling back to step-by-step: {}", e);
+                }
+            }
+        } else {
+            log::warn!("[set_window_rect] Failed to get hwnd on Windows, falling back to step-by-step");
         }
     }
-    match window.set_position(PhysicalPosition::new(min_x, min_y)) {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(format!(
-                "[set_window_rect] Failed to set window position: {}",
-                e
-            ));
-        }
+    // 非 Windows 平台（macOS/Linux）或未获取到 hwnd 时，回退到分步设置
+    // 注意：Tauri 的 set_size/set_position 是同步方法，不能与 tokio::join! 混用
+    let size_result = window.set_size(PhysicalSize::new(width, height));
+    let position_result = window.set_position(PhysicalPosition::new(min_x, min_y));
+
+    if let Err(e) = size_result {
+        return Err(format!(
+            "[set_window_rect] Failed to set window size: {}",
+            e
+        ));
+    }
+    if let Err(e) = position_result {
+        return Err(format!(
+            "[set_window_rect] Failed to set window position: {}",
+            e
+        ));
     }
 
     Ok(())

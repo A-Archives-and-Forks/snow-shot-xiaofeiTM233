@@ -1,9 +1,22 @@
+/// macOS 平台暂未实现原子窗口设置。
+/// 调用方通过 #[cfg(target_os = "windows")] 确保仅 Windows 调用此函数，
+/// 此实现仅为保持跨平台接口一致性，始终返回 Err。
+pub fn set_window_rect_atomic(
+    #[allow(unused_variables)] hwnd: *mut std::ffi::c_void,
+    #[allow(unused_variables)] x: i32,
+    #[allow(unused_variables)] y: i32,
+    #[allow(unused_variables)] width: i32,
+    #[allow(unused_variables)] height: i32,
+) -> Result<(), String> {
+    Err("[set_window_rect_atomic] not implemented on macOS, falling back to step-by-step resize".into())
+}
+
 pub fn get_focused_window() -> Option<()> {
     None
 }
 
 pub fn switch_always_on_top() -> () {
-    log::warn!("[os::utils::linux::switch_always_on_top] not implemented");
+    log::warn!("[os::utils::macos::switch_always_on_top] not implemented");
 
     ()
 }
