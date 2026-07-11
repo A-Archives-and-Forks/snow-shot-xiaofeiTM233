@@ -787,13 +787,19 @@ const AppSettingsContextProviderCore: React.FC<{
 							? newSettings.htmlVisionModelSystemPrompt
 							: (prevSettings?.htmlVisionModelSystemPrompt ??
 								defaultAppSettingsData[group].htmlVisionModelSystemPrompt),
-					markdownVisionModelSystemPrompt:
-						typeof newSettings?.markdownVisionModelSystemPrompt === "string"
-							? newSettings.markdownVisionModelSystemPrompt
-							: (prevSettings?.markdownVisionModelSystemPrompt ??
-								defaultAppSettingsData[group].markdownVisionModelSystemPrompt),
-				};
-			} else if (group === AppSettingsGroup.FunctionChat) {
+				markdownVisionModelSystemPrompt:
+					typeof newSettings?.markdownVisionModelSystemPrompt === "string"
+						? newSettings.markdownVisionModelSystemPrompt
+						: (prevSettings?.markdownVisionModelSystemPrompt ??
+							defaultAppSettingsData[group].markdownVisionModelSystemPrompt),
+				customOcrModelConfigList: Array.isArray(
+					newSettings?.customOcrModelConfigList,
+				)
+					? newSettings.customOcrModelConfigList
+					: (prevSettings?.customOcrModelConfigList ??
+						defaultAppSettingsData[group].customOcrModelConfigList),
+			};
+		} else if (group === AppSettingsGroup.FunctionChat) {
 				newSettings = newSettings as AppSettingsData[typeof group];
 				const prevSettings = appSettingsRef.current[group] as
 					| AppSettingsData[typeof group]
