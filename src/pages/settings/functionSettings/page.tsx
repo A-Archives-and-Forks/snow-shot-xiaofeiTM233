@@ -639,23 +639,6 @@ export const FunctionSettingsPage = () => {
 		];
 	}, [intl]);
 
-	const ocrModelFileOptions = useMemo(() => {
-		return [
-			{
-				label: "ch_PP-OCRv4_det_infer.onnx",
-				value: "ch_PP-OCRv4_det_infer.onnx",
-			},
-			{
-				label: "ch_PP-OCRv4_rec_infer.onnx",
-				value: "ch_PP-OCRv4_rec_infer.onnx",
-			},
-			{
-				label: "ch_ppocr_mobile_v2.0_cls_infer.onnx",
-				value: "ch_ppocr_mobile_v2.0_cls_infer.onnx",
-			},
-		];
-	}, []);
-
 	const [ocrModelFileOptions, setOcrModelFileOptions] = useState<
 		SelectProps["options"]
 	>([]);
