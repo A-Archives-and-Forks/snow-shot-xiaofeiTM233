@@ -18,6 +18,7 @@ import React, {
 	useContext,
 	useEffect,
 	useImperativeHandle,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -267,6 +268,17 @@ const FixedContentCoreInner: React.FC<{
 		x: 100,
 		y: 100,
 	});
+
+	// 缩放时待下发的窗口尺寸/位置。先提交 scale 让图片（容器）按新比例渲染，
+	// 再在 useLayoutEffect 中于同一帧（绘制前）下发窗口缩放，确保图片缩放与
+	// 窗口尺寸变更同步，消除「窗口先放大、图片被挤到左上角再缩放」的分步错位。
+	// x/y 缺省时表示仅调整窗口大小（非鼠标居中缩放）。
+	const pendingWindowResizeRef = useRef<{
+		x?: number;
+		y?: number;
+		width: number;
+		height: number;
+	} | null>(null);
 
 	const [enableSaveToCloud, setEnableSaveToCloud] = useState(false);
 	const [fixedContentType, setFixedContentType, fixedContentTypeRef] =
@@ -1428,57 +1440,69 @@ const FixedContentCoreInner: React.FC<{
 				return;
 			}
 
-			// 计算新的窗口尺寸
-			const { width: newWidth, height: newHeight } =
-				getWindowPhysicalSize(targetScale);
-
-		// 先把缩放状态更新排在原生窗口尺寸调整之前：等 React 完成本次渲染
-		// （下一帧绘制前必然已提交）后再调整原生窗口尺寸，使图片缩放在窗口
-		// 真正改变尺寸前已生效，避免「窗口先放大、图片被挤到左上角再缩放」的
-		// 分步渲染错位。
-		// （不使用 flushSync，以免 React 19 在 rAF 回调内强制同步刷新时抛错，
-		// 导致整个缩放功能失效。）
-		setScale({
-			x: targetScale,
-			y: targetScale,
-		});
-		ocrResultActionRef.current?.setScale(targetScale);
+		// 计算新的窗口尺寸
+		const { width: newWidth, height: newHeight } =
+			getWindowPhysicalSize(targetScale);
 
 		if (zoomWithMouse && !ignoreMouse) {
-				try {
-					// 获取当前鼠标位置和窗口位置
-					const [[mouseX, mouseY], currentPosition, currentSize] =
-						await Promise.all([
-							getMousePosition(),
-							appWindow.outerPosition(),
-							appWindow.outerSize(),
-						]);
-
-					// 计算鼠标相对于窗口的位置（比例）
-					const mouseRelativeX =
-						(mouseX - currentPosition.x) / currentSize.width;
-					const mouseRelativeY =
-						(mouseY - currentPosition.y) / currentSize.height;
-
-					// 计算缩放后窗口的新位置，使鼠标在窗口中的相对位置保持不变
-					const newX = Math.round(mouseX - newWidth * mouseRelativeX);
-					const newY = Math.round(mouseY - newHeight * mouseRelativeY);
-
-					// 同时设置窗口大小和位置
-					await setWindowRect(newX, newY, newX + newWidth, newY + newHeight);
-				} catch (error) {
-					appError("[scaleWindow] Error during mouse-centered scaling", error);
-					// 如果出错，回退到普通缩放
+			try {
+				// 获取当前鼠标位置和窗口位置
+				const [[mouseX, mouseY], currentPosition, currentSize] =
 					await Promise.all([
-						appWindow.setSize(new PhysicalSize(newWidth, newHeight)),
+						getMousePosition(),
+						appWindow.outerPosition(),
+						appWindow.outerSize(),
 					]);
-				}
-			} else {
-				// 普通缩放，只改变窗口大小
-				await Promise.all([
-					appWindow.setSize(new PhysicalSize(newWidth, newHeight)),
-				]);
+
+				// 计算鼠标相对于窗口的位置（比例）
+				const mouseRelativeX =
+					(mouseX - currentPosition.x) / currentSize.width;
+				const mouseRelativeY =
+					(mouseY - currentPosition.y) / currentSize.height;
+
+				// 计算缩放后窗口的新位置，使鼠标在窗口中的相对位置保持不变
+				const newX = Math.round(mouseX - newWidth * mouseRelativeX);
+				const newY = Math.round(mouseY - newHeight * mouseRelativeY);
+
+				// 先提交缩放状态，再在 useLayoutEffect 中于同一帧（绘制前）下发
+				// 窗口缩放，确保图片缩放与窗口尺寸变更同步，消除「窗口先放大、
+				// 图片被挤到左上角再缩放」的分步渲染错位。
+				setScale({
+					x: targetScale,
+					y: targetScale,
+				});
+				ocrResultActionRef.current?.setScale(targetScale);
+				pendingWindowResizeRef.current = {
+					x: newX,
+					y: newY,
+					width: newWidth,
+					height: newHeight,
+				};
+			} catch (error) {
+				appError("[scaleWindow] Error during mouse-centered scaling", error);
+				// 如果出错，回退到普通缩放
+				setScale({
+					x: targetScale,
+					y: targetScale,
+				});
+				ocrResultActionRef.current?.setScale(targetScale);
+				pendingWindowResizeRef.current = {
+					width: newWidth,
+					height: newHeight,
+				};
 			}
+		} else {
+			// 普通缩放，只改变窗口大小
+			setScale({
+				x: targetScale,
+				y: targetScale,
+			});
+			ocrResultActionRef.current?.setScale(targetScale);
+			pendingWindowResizeRef.current = {
+				width: newWidth,
+				height: newHeight,
+			};
+		}
 
 		showScaleInfoTemporary();
 		},
@@ -1494,6 +1518,30 @@ const FixedContentCoreInner: React.FC<{
 		],
 	);
 	const scaleWindowRender = useCallbackRender(scaleWindow);
+
+	// 在 scale 提交（图片容器已按新比例渲染）后、浏览器绘制前下发窗口缩放，
+	// 使窗口尺寸变更与图片缩放落在同一帧，消除分步渲染造成的错位与拉伸感。
+	useLayoutEffect(() => {
+		const pending = pendingWindowResizeRef.current;
+		if (!pending) {
+			return;
+		}
+		pendingWindowResizeRef.current = null;
+		const appWindow = appWindowRef.current;
+		if (!appWindow) {
+			return;
+		}
+		if (pending.x !== undefined && pending.y !== undefined) {
+			void setWindowRect(
+				pending.x,
+				pending.y,
+				pending.x + pending.width,
+				pending.y + pending.height,
+			);
+		} else {
+			void appWindow.setSize(new PhysicalSize(pending.width, pending.height));
+		}
+	}, [scale]);
 
 	const getSelectRectParams = useCallback(() => {
 		const currentSelectRectParams = selectRectParamsRef.current;
