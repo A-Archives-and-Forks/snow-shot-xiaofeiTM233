@@ -556,8 +556,8 @@ export const settings = {
 	"settings.systemSettings.screenshotSettings.tryGetElementByFocus.always":
 		"Always",
 	"settings.systemSettings.screenshotSettings.ocrModel": "OCR Model",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV4":
-		"Rapid OCR V4",
+	"settings.systemSettings.screenshotSettings.ocrModel.paddleOcrV4":
+		"PaddleOCR V4",
 	"settings.systemSettings.screenshotSettings.ocrHotStart": "OCR Hot Start",
 	"settings.systemSettings.screenshotSettings.ocrHotStart.tip":
 		"Preload OCR model to improve recognition speed, but increases memory usage",
