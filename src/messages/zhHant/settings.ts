@@ -528,8 +528,8 @@ export const settings = {
 	"settings.systemSettings.screenshotSettings.tryGetElementByFocus.always":
 		"保持啟用",
 	"settings.systemSettings.screenshotSettings.ocrModel": "文字辨識模型",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV4":
-		"Rapid OCR V4",
+	"settings.systemSettings.screenshotSettings.ocrModel.paddleOcrV4":
+		"PaddleOCR V4",
 	"settings.systemSettings.screenshotSettings.ocrHotStart": "文字辨識熱啟動",
 	"settings.systemSettings.screenshotSettings.ocrHotStart.tip":
 		"預先載入文字辨識模型，提高文字辨識的辨識速度，但會提高記憶體佔用",

@@ -632,7 +632,7 @@ export const FunctionSettingsPage = () => {
 		return [
 			{
 				label: intl.formatMessage({
-					id: "settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV4",
+					id: "settings.systemSettings.screenshotSettings.ocrModel.paddleOcrV4",
 				}),
 				value: OcrModel.RapidOcrV4,
 			},
