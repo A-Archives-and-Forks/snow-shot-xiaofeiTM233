@@ -1432,16 +1432,19 @@ const FixedContentCoreInner: React.FC<{
 			const { width: newWidth, height: newHeight } =
 				getWindowPhysicalSize(targetScale);
 
-			// 先把缩放变换同步提交到 DOM，再调整原生窗口尺寸。
-			React.flushSync(() => {
-				setScale({
-					x: targetScale,
-					y: targetScale,
-				});
-			});
-			ocrResultActionRef.current?.setScale(targetScale);
+		// 先把缩放状态更新排在原生窗口尺寸调整之前：等 React 完成本次渲染
+		// （下一帧绘制前必然已提交）后再调整原生窗口尺寸，使图片缩放在窗口
+		// 真正改变尺寸前已生效，避免「窗口先放大、图片被挤到左上角再缩放」的
+		// 分步渲染错位。
+		// （不使用 flushSync，以免 React 19 在 rAF 回调内强制同步刷新时抛错，
+		// 导致整个缩放功能失效。）
+		setScale({
+			x: targetScale,
+			y: targetScale,
+		});
+		ocrResultActionRef.current?.setScale(targetScale);
 
-			if (zoomWithMouse && !ignoreMouse) {
+		if (zoomWithMouse && !ignoreMouse) {
 				try {
 					// 获取当前鼠标位置和窗口位置
 					const [[mouseX, mouseY], currentPosition, currentSize] =
