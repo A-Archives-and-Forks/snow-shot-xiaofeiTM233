@@ -228,6 +228,7 @@ export const draw = {
 	"draw.ocrResult.convertImageToVisionModelFormatError":
 		"Vision model conversion failed",
 	"draw.ocrDetect.visionModelHtml": "Convert to HTML",
+	"draw.ocrDetect.openTranslation": "Open in Translation",
 	"draw.ocrDetect.visionModelMarkdown": "Convert to Markdown",
 	"draw.ocrDetect.convertImageToHtml": "Convert Image to HTML",
 	"draw.ocrDetect.convertImageToMarkdown": "Convert Image to Markdown",

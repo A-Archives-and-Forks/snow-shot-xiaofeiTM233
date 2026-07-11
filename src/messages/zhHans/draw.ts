@@ -214,6 +214,7 @@ export const draw = {
 	"draw.ocrResult.convertImageToVisionModelFormatLoading": "视觉理解模型转换中",
 	"draw.ocrResult.convertImageToVisionModelFormatError": "视觉理解模型转换失败",
 	"draw.ocrDetect.visionModelHtml": "转换为 HTML",
+	"draw.ocrDetect.openTranslation": "转到翻译页",
 	"draw.ocrDetect.visionModelMarkdown": "转换为 Markdown",
 	"draw.ocrDetect.convertImageToHtml": "图片转为 HTML",
 	"draw.ocrDetect.convertImageToMarkdown": "图片转为 Markdown",
