@@ -643,11 +643,11 @@ export const settings = {
 	"settings.functionSettings.ocrSettings.htmlVisionModel": "Vision Model",
 	"settings.functionSettings.ocrSettings.htmlVisionModel.tip":
 		"Vision model for converting images to HTML",
-	"settings.functionSettings.ocrSettings.customOcrModelConfig": "Custom OCR Models",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig": "OCR Model Configuration",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip":
-		"Download ONNX model files from {link} and place them in the plugin data directory, then configure custom OCR models here",
+		"Download ONNX model files from {link} and place them in the plugin data directory, then configure OCR models here",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip.link": "this repository",
-	"settings.functionSettings.ocrSettings.customOcrModelConfig.add": "Add OCR Model",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.add": "Add OCR Model Config",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.modelName": "Model Name",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.detModel": "Detection(det)",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.recModel": "Recognition(rec)",

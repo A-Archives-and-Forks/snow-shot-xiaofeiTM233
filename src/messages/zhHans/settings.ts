@@ -610,11 +610,11 @@ export const settings = {
 	"settings.functionSettings.ocrSettings.htmlVisionModel": "视觉理解模型",
 	"settings.functionSettings.ocrSettings.htmlVisionModel.tip":
 		"将图片转为 HTML 的视觉理解模型",
-	"settings.functionSettings.ocrSettings.customOcrModelConfig": "自定义文本识别模型",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig": "文本识别模型配置",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip":
-		"从此仓库下载 ONNX 模型文件放置到插件数据目录后，可在此配置自定义文本识别模型。请前往 {link} 下载",
+		"从 {link} 下载 ONNX 模型文件放置到插件数据目录后，可在此配置文本识别模型",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip.link": "此仓库",
-	"settings.functionSettings.ocrSettings.customOcrModelConfig.add": "添加文本识别模型",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.add": "添加文本识别模型配置",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.modelName": "模型名称",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.detModel": "检测(det)",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.recModel": "识别(rec)",

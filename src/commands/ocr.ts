@@ -47,3 +47,7 @@ export const ocrInit = async (
 export const ocrRelease = async (): Promise<void> => {
 	await invoke<void>("ocr_release");
 };
+
+export const listOcrModelFiles = async (dirPath: string): Promise<string[]> => {
+	return await invoke<string[]>("list_ocr_model_files", { dirPath });
+};

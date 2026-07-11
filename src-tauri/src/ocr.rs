@@ -59,3 +59,8 @@ pub async fn ocr_detect_with_shared_buffer(
 pub async fn ocr_release(ocr_instance: tauri::State<'_, Mutex<OcrService>>) -> Result<(), String> {
     snow_shot_tauri_commands_ocr::ocr_release(ocr_instance).await
 }
+
+#[command]
+pub async fn list_ocr_model_files(dir_path: PathBuf) -> Result<Vec<String>, String> {
+    snow_shot_tauri_commands_ocr::list_ocr_model_files(dir_path).await
+}

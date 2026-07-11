@@ -216,3 +216,21 @@ pub async fn ocr_release(ocr_service: tauri::State<'_, Mutex<OcrService>>) -> Re
 
     Ok(())
 }
+
+pub async fn list_ocr_model_files(dir_path: PathBuf) -> Result<Vec<String>, String> {
+    let mut entries = tokio::fs::read_dir(&dir_path)
+        .await
+        .map_err(|e| format!("[list_ocr_model_files] Failed to read dir: {}", e))?;
+
+    let mut files = Vec::new();
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let file_name = entry.file_name();
+        if let Some(name) = file_name.to_str() {
+            if name.ends_with(".onnx") {
+                files.push(name.to_string());
+            }
+        }
+    }
+    files.sort();
+    Ok(files)
+}

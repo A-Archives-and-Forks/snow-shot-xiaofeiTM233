@@ -35,6 +35,7 @@ import {
 } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { listOcrModelFiles } from "@/commands/ocr";
 import { videoRecordGetMicrophoneDeviceNames } from "@/commands/videoRecord";
 import { ContentWrap } from "@/components/contentWrap";
 import { DirectoryInput } from "@/components/directoryInput";
@@ -285,7 +286,7 @@ export const FunctionSettingsPage = () => {
 		[currentPlatform],
 	);
 
-	const { isReadyStatus } = usePluginServiceContext();
+	const { isReadyStatus, pluginConfig } = usePluginServiceContext();
 
 	const initedMicrophoneDeviceNameOptions = useRef(false);
 	useEffect(() => {
@@ -654,6 +655,25 @@ export const FunctionSettingsPage = () => {
 			},
 		];
 	}, []);
+
+	const [ocrModelFileOptions, setOcrModelFileOptions] = useState<
+		SelectProps["options"]
+	>([]);
+	useEffect(() => {
+		if (!isReadyStatus?.(PLUGIN_ID_RAPID_OCR) || !pluginConfig) {
+			return;
+		}
+		pluginConfig.getPluginDirPath(PLUGIN_ID_RAPID_OCR).then((dirPath) => {
+			listOcrModelFiles(dirPath).then((files) => {
+				setOcrModelFileOptions(
+					files.map((file) => ({
+						label: file,
+						value: file,
+					})),
+				);
+			});
+		});
+	}, [isReadyStatus, pluginConfig]);
 
 	const { getVisionModelList } = useVisionModelList();
 	const [htmlVisionModelOptions, setHtmlVisionModelOptions] = useState<
@@ -1418,66 +1438,26 @@ export const FunctionSettingsPage = () => {
 								</Col>
 
 								{isReadyStatus?.(PLUGIN_ID_AI_CHAT) && (
-									<>
-										<Col span={12}>
-											<ProFormSelect
-												name="htmlVisionModel"
-												label={
-													<IconLabel
-														label={
-															<FormattedMessage id="settings.functionSettings.ocrSettings.htmlVisionModel" />
-														}
-														tooltipTitle={
-															<FormattedMessage id="settings.functionSettings.ocrSettings.htmlVisionModel.tip" />
-														}
-													/>
-												}
-												layout="vertical"
-												options={htmlVisionModelOptions}
-												allowClear={false}
-											/>
-										</Col>
-										<Col span={24}>
-											<ProFormTextArea
-												name="htmlVisionModelSystemPrompt"
-												label={
-													<IconLabel
-														label={
-															<FormattedMessage id="settings.functionSettings.ocrSettings.htmlVisionModelSystemPrompt" />
-														}
-													/>
-												}
-												fieldProps={{
-													autoSize: {
-														minRows: 1,
-														maxRows: 1,
-													},
-												}}
-											/>
-										</Col>
-										<Col span={24}>
-											<ProFormTextArea
-												name="markdownVisionModelSystemPrompt"
-												label={
-													<IconLabel
-														label={
-															<FormattedMessage id="settings.functionSettings.ocrSettings.markdownVisionModelSystemPrompt" />
-														}
-													/>
-												}
-												fieldProps={{
-													autoSize: {
-														minRows: 1,
-														maxRows: 1,
-													},
-												}}
-											/>
-										</Col>
-									</>
+									<Col span={12}>
+										<ProFormSelect
+											name="htmlVisionModel"
+											label={
+												<IconLabel
+													label={
+														<FormattedMessage id="settings.functionSettings.ocrSettings.htmlVisionModel" />
+													}
+													tooltipTitle={
+														<FormattedMessage id="settings.functionSettings.ocrSettings.htmlVisionModel.tip" />
+													}
+												/>
+											}
+											layout="vertical"
+											options={htmlVisionModelOptions}
+											allowClear={false}
+										/>
+									</Col>
 								)}
 							</Row>
-
-							<Divider />
 
 							<Row gutter={token.marginLG}>
 								<Col span={24}>
@@ -1588,6 +1568,49 @@ export const FunctionSettingsPage = () => {
 									</ProFormList>
 								</Col>
 							</Row>
+
+							{isReadyStatus?.(PLUGIN_ID_AI_CHAT) && (
+								<>
+									<Row gutter={token.marginLG}>
+										<Col span={24}>
+											<ProFormTextArea
+												name="htmlVisionModelSystemPrompt"
+												label={
+													<IconLabel
+														label={
+															<FormattedMessage id="settings.functionSettings.ocrSettings.htmlVisionModelSystemPrompt" />
+														}
+													/>
+												}
+												fieldProps={{
+													autoSize: {
+														minRows: 1,
+														maxRows: 1,
+													},
+												}}
+											/>
+										</Col>
+										<Col span={24}>
+											<ProFormTextArea
+												name="markdownVisionModelSystemPrompt"
+												label={
+													<IconLabel
+														label={
+															<FormattedMessage id="settings.functionSettings.ocrSettings.markdownVisionModelSystemPrompt" />
+														}
+													/>
+												}
+												fieldProps={{
+													autoSize: {
+														minRows: 1,
+														maxRows: 1,
+													},
+												}}
+											/>
+										</Col>
+									</Row>
+								</>
+							)}
 						</ProForm>
 					</Spin>
 				</>

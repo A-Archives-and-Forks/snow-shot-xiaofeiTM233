@@ -610,11 +610,11 @@ export const settings = {
 	"settings.functionSettings.ocrSettings.htmlVisionModel": "視覺理解模型",
 	"settings.functionSettings.ocrSettings.htmlVisionModel.tip":
 		"將圖片轉為 HTML 的視覺理解模型",
-	"settings.functionSettings.ocrSettings.customOcrModelConfig": "自訂文字辨識模型",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig": "文字辨識模型配置",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip":
-		"從此倉庫下載 ONNX 模型檔案放置到外掛程式資料目錄後，可在此配置自訂文字辨識模型。請前往 {link} 下載",
+		"從 {link} 下載 ONNX 模型檔案放置到外掛程式資料目錄後，可在此配置文字辨識模型",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip.link": "此倉庫",
-	"settings.functionSettings.ocrSettings.customOcrModelConfig.add": "新增文字辨識模型",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.add": "新增文字辨識模型配置",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.modelName": "模型名稱",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.detModel": "檢測(det)",
 	"settings.functionSettings.ocrSettings.customOcrModelConfig.recModel": "識別(rec)",
