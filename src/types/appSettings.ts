@@ -219,8 +219,18 @@ export enum ColorPickerShowMode {
 
 export enum OcrModel {
 	RapidOcrV4 = "RapidOcrV4",
-	RapidOcrV5 = "RapidOcrV5",
 }
+
+export type CustomOcrModelConfig = {
+	/** 模型名称 */
+	model_name: string;
+	/** 检测模型文件名 */
+	det_model: string;
+	/** 识别模型文件名 */
+	rec_model: string;
+	/** 方向分类模型文件名 */
+	cls_model: string;
+};
 
 export enum KeyDisplayDirection {
 	Horizontal = "horizontal",
@@ -398,7 +408,9 @@ export type AppSettingsData = {
 	};
 	[AppSettingsGroup.FunctionOcr]: {
 		/** 文本识别模型 */
-		ocrModel: OcrModel;
+		ocrModel: string;
+		/** 自定义文本识别模型配置列表 */
+		customOcrModelConfigList: CustomOcrModelConfig[];
 		/** 将图片转为 HTML 的视觉理解模型 */
 		htmlVisionModel: string;
 		/** 图片转为 HTML 的 System 提示词 */
