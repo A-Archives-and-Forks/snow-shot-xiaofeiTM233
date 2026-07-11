@@ -1432,6 +1432,15 @@ const FixedContentCoreInner: React.FC<{
 			const { width: newWidth, height: newHeight } =
 				getWindowPhysicalSize(targetScale);
 
+			// 先把缩放变换同步提交到 DOM，再调整原生窗口尺寸。
+			React.flushSync(() => {
+				setScale({
+					x: targetScale,
+					y: targetScale,
+				});
+			});
+			ocrResultActionRef.current?.setScale(targetScale);
+
 			if (zoomWithMouse && !ignoreMouse) {
 				try {
 					// 获取当前鼠标位置和窗口位置
@@ -1468,12 +1477,7 @@ const FixedContentCoreInner: React.FC<{
 				]);
 			}
 
-			setScale({
-				x: targetScale,
-				y: targetScale,
-			});
-			ocrResultActionRef.current?.setScale(targetScale);
-			showScaleInfoTemporary();
+		showScaleInfoTemporary();
 		},
 		[
 			enableDrawRef,
