@@ -189,7 +189,7 @@ export const SCALE_WINDOW_MIN_SCALE = 20;
 // 滚轮缩放手势结束后的防抖时长（毫秒）：手势进行中只缩放图片、保持窗口不动，
 // 超过该时长无新滚轮事件才一次性缩放窗口，避免逐帧「窗口先放大、图片被挤到
 // 左上角再缩放」的分步渲染错位。
-export const SCALE_WINDOW_RESIZE_DEBOUNCE_MS = 150;
+export const SCALE_WINDOW_RESIZE_DEBOUNCE_MS = 80;
 
 const FixedContentCoreInner: React.FC<{
 	actionRef: React.RefObject<FixedContentActionType | undefined>;
