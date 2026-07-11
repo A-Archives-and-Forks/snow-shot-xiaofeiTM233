@@ -1538,11 +1538,11 @@ export const FunctionSettingsPage = () => {
 											</Col>
 											<Col span={12}>
 												<ProFormSelect
-													name="rec_model"
+													name="cls_model"
 													label={
 														<IconLabel
 															label={
-																<FormattedMessage id="settings.functionSettings.ocrSettings.customOcrModelConfig.recModel" />
+																<FormattedMessage id="settings.functionSettings.ocrSettings.customOcrModelConfig.clsModel" />
 															}
 														/>
 													}
@@ -1552,11 +1552,11 @@ export const FunctionSettingsPage = () => {
 											</Col>
 											<Col span={12}>
 												<ProFormSelect
-													name="cls_model"
+													name="rec_model"
 													label={
 														<IconLabel
 															label={
-																<FormattedMessage id="settings.functionSettings.ocrSettings.customOcrModelConfig.clsModel" />
+																<FormattedMessage id="settings.functionSettings.ocrSettings.customOcrModelConfig.recModel" />
 															}
 														/>
 													}
