@@ -530,8 +530,6 @@ export const settings = {
 	"settings.systemSettings.screenshotSettings.ocrModel": "文字辨識模型",
 	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV4":
 		"Rapid OCR V4",
-	"settings.systemSettings.screenshotSettings.ocrModel.rapidOcrV5":
-		"Rapid OCR V5",
 	"settings.systemSettings.screenshotSettings.ocrHotStart": "文字辨識熱啟動",
 	"settings.systemSettings.screenshotSettings.ocrHotStart.tip":
 		"預先載入文字辨識模型，提高文字辨識的辨識速度，但會提高記憶體佔用",
@@ -612,6 +610,15 @@ export const settings = {
 	"settings.functionSettings.ocrSettings.htmlVisionModel": "視覺理解模型",
 	"settings.functionSettings.ocrSettings.htmlVisionModel.tip":
 		"將圖片轉為 HTML 的視覺理解模型",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig": "自訂文字辨識模型",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip":
+		"從此倉庫下載 ONNX 模型檔案放置到外掛程式資料目錄後，可在此配置自訂文字辨識模型。請前往 {link} 下載",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.tip.link": "此倉庫",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.add": "新增文字辨識模型",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.modelName": "模型名稱",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.detModel": "檢測(det)",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.recModel": "識別(rec)",
+	"settings.functionSettings.ocrSettings.customOcrModelConfig.clsModel": "方向(cls)",
 	"settings.functionSettings.ocrSettings.htmlVisionModel.default": "預設",
 	"settings.functionSettings.ocrSettings.htmlVisionModel.default.tip":
 		"預設使用首個支援視覺理解的模型",
