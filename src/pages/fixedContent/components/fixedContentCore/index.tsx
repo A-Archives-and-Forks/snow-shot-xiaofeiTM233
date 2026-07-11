@@ -1432,48 +1432,54 @@ const FixedContentCoreInner: React.FC<{
 			const { width: newWidth, height: newHeight } =
 				getWindowPhysicalSize(targetScale);
 
-			if (zoomWithMouse && !ignoreMouse) {
-				try {
-					// 获取当前鼠标位置和窗口位置
-					const [[mouseX, mouseY], currentPosition, currentSize] =
-						await Promise.all([
-							getMousePosition(),
-							appWindow.outerPosition(),
-							appWindow.outerSize(),
-						]);
-
-					// 计算鼠标相对于窗口的位置（比例）
-					const mouseRelativeX =
-						(mouseX - currentPosition.x) / currentSize.width;
-					const mouseRelativeY =
-						(mouseY - currentPosition.y) / currentSize.height;
-
-					// 计算缩放后窗口的新位置，使鼠标在窗口中的相对位置保持不变
-					const newX = Math.round(mouseX - newWidth * mouseRelativeX);
-					const newY = Math.round(mouseY - newHeight * mouseRelativeY);
-
-					// 同时设置窗口大小和位置
-					await setWindowRect(newX, newY, newX + newWidth, newY + newHeight);
-				} catch (error) {
-					appError("[scaleWindow] Error during mouse-centered scaling", error);
-					// 如果出错，回退到普通缩放
+		// 先调整原生窗口尺寸（框体先变），再提交缩放变换让图片（及 OCR 等）
+		// 填充新框体。这样图片始终跟随框体、不会领先于窗口，避免缩放时图片被
+		// 裁剪/偏移的延迟感——即「框体一变，图片自动填满」。
+		let windowResized = false;
+		if (zoomWithMouse && !ignoreMouse) {
+			try {
+				// 获取当前鼠标位置和窗口位置
+				const [[mouseX, mouseY], currentPosition, currentSize] =
 					await Promise.all([
-						appWindow.setSize(new PhysicalSize(newWidth, newHeight)),
+						getMousePosition(),
+						appWindow.outerPosition(),
+						appWindow.outerSize(),
 					]);
-				}
-			} else {
-				// 普通缩放，只改变窗口大小
-				await Promise.all([
-					appWindow.setSize(new PhysicalSize(newWidth, newHeight)),
-				]);
-			}
 
+				// 计算鼠标相对于窗口的位置（比例）
+				const mouseRelativeX =
+					(mouseX - currentPosition.x) / currentSize.width;
+				const mouseRelativeY =
+					(mouseY - currentPosition.y) / currentSize.height;
+
+				// 计算缩放后窗口的新位置，使鼠标在窗口中的相对位置保持不变
+				const newX = Math.round(mouseX - newWidth * mouseRelativeX);
+				const newY = Math.round(mouseY - newHeight * mouseRelativeY);
+
+				// 同时设置窗口大小和位置
+				await setWindowRect(newX, newY, newX + newWidth, newY + newHeight);
+				windowResized = true;
+			} catch (error) {
+				appError("[scaleWindow] Error during mouse-centered scaling", error);
+				// 如果出错，回退到普通缩放
+			}
+		}
+
+		if (!windowResized) {
+			// 普通缩放，只改变窗口大小
+			await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
+		}
+
+		// 窗口已就位，再提交缩放状态，让图片（及 OCR 等）填充框体
+		React.flushSync(() => {
 			setScale({
 				x: targetScale,
 				y: targetScale,
 			});
-			ocrResultActionRef.current?.setScale(targetScale);
-			showScaleInfoTemporary();
+		});
+		ocrResultActionRef.current?.setScale(targetScale);
+
+		showScaleInfoTemporary();
 		},
 		[
 			enableDrawRef,
@@ -2611,9 +2617,13 @@ const FixedContentCoreInner: React.FC<{
 		<div
 			className="fixed-image-container"
 			style={{
-				position: "absolute",
-				width: `${documentSize.width}px`,
-				height: `${documentSize.height}px`,
+				// 锚定到窗口（视口）本身，而不是由 scale 驱动的 documentSize。
+				// 这样图片容器可以 100% 跟随窗口实际尺寸，框体一变图片自动填满。
+				position: "fixed",
+				top: 0,
+				left: 0,
+				width: "100%",
+				height: "100%",
 				zIndex: zIndexs.Draw_FixedImage,
 				pointerEvents: disabled ? "none" : "auto",
 				opacity: containerOpacity,
@@ -2793,13 +2803,18 @@ const FixedContentCoreInner: React.FC<{
 					</div>
 				)}
 
-				<div
-					className="fixed-image-layer-container"
-					style={{
-						width: `${documentSize.width}px`,
-						height: `${documentSize.height}px`,
-					}}
-				>
+			<div
+				className="fixed-image-layer-container"
+				style={{
+					// 始终填满父容器（即窗口实际尺寸），框体一变图片自动填满，
+					// 不再依赖 scale / documentSize，避免缩放时图片领先窗口被裁剪。
+					position: "absolute",
+					top: 0,
+					left: 0,
+					right: 0,
+					bottom: 0,
+				}}
+			>
 					<FixedContentImageLayer
 						actionRef={imageLayerActionRef}
 						onImageLayerReady={onImageLayerReady}
