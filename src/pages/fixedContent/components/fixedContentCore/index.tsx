@@ -18,7 +18,6 @@ import React, {
 	useContext,
 	useEffect,
 	useImperativeHandle,
-	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -187,6 +186,10 @@ export type FixedContentProcessImageConfig = {
 
 export const SCALE_WINDOW_MAX_SCALE = 300;
 export const SCALE_WINDOW_MIN_SCALE = 20;
+// 滚轮缩放手势结束后的防抖时长（毫秒）：手势进行中只缩放图片、保持窗口不动，
+// 超过该时长无新滚轮事件才一次性缩放窗口，避免逐帧「窗口先放大、图片被挤到
+// 左上角再缩放」的分步渲染错位。
+export const SCALE_WINDOW_RESIZE_DEBOUNCE_MS = 150;
 
 const FixedContentCoreInner: React.FC<{
 	actionRef: React.RefObject<FixedContentActionType | undefined>;
@@ -268,17 +271,24 @@ const FixedContentCoreInner: React.FC<{
 		x: 100,
 		y: 100,
 	});
+	// 滚轮缩放（以鼠标为锚点）手势期间的图片偏移量（CSS 像素，相对窗口左上角）。
+	// 手势进行中窗口保持不动，仅缩放图片并施加该偏移使鼠标下的图像内容保持不动；
+	// 手势结束（防抖）窗口缩放到匹配尺寸后复位为 0，回到「图片填满窗口」。
+	const [scaleOffset, setScaleOffset, scaleOffsetRef] = useStateRef<{
+		x: number;
+		y: number;
+	}>({
+		x: 0,
+		y: 0,
+	});
 
-	// 缩放时待下发的窗口尺寸/位置。先提交 scale 让图片（容器）按新比例渲染，
-	// 再在 useLayoutEffect 中于同一帧（绘制前）下发窗口缩放，确保图片缩放与
-	// 窗口尺寸变更同步，消除「窗口先放大、图片被挤到左上角再缩放」的分步错位。
-	// x/y 缺省时表示仅调整窗口大小（非鼠标居中缩放）。
-	const pendingWindowResizeRef = useRef<{
-		x?: number;
-		y?: number;
-		width: number;
-		height: number;
-	} | null>(null);
+	// 缩放时窗口尺寸调整的防抖定时器：滚轮手势进行中只缩放图片、保持窗口不动，
+	// 手势结束（一段时间无新滚轮事件）后再一次性缩放窗口，避免逐帧错位。
+	const scaleWindowResizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+	// 记录最近一次缩放是否需要鼠标居中，供防抖结束时的窗口缩放使用
+	const pendingResizeMouseCenteredRef = useRef<boolean>(false);
 
 	const [enableSaveToCloud, setEnableSaveToCloud] = useState(false);
 	const [fixedContentType, setFixedContentType, fixedContentTypeRef] =
@@ -1033,6 +1043,7 @@ const FixedContentCoreInner: React.FC<{
 				x: originWindowSizeAndPositionRef.current.scale.x,
 				y: originWindowSizeAndPositionRef.current.scale.y,
 			});
+			setScaleOffset({ x: 0, y: 0 });
 			originWindowSizeAndPositionRef.current = undefined;
 			setIsThumbnail(false);
 		} else {
@@ -1087,6 +1098,7 @@ const FixedContentCoreInner: React.FC<{
 						100,
 				),
 			});
+			setScaleOffset({ x: 0, y: 0 });
 
 			setIsThumbnail(true);
 		}
@@ -1405,8 +1417,57 @@ const FixedContentCoreInner: React.FC<{
 
 	const [showScaleInfo, showScaleInfoTemporary] = useTempInfo();
 
+	// 手势结束后，将窗口一次性缩放到与目标 scale 匹配的尺寸。
+	// mouseCentered 为 true 时按鼠标位置居中缩放，否则仅改变窗口大小。
+	const applyScaleWindowResize = useCallback(
+		async (newWidth: number, newHeight: number, mouseCentered: boolean) => {
+			const appWindow = appWindowRef.current;
+			if (!appWindow) {
+				return;
+			}
+			if (mouseCentered) {
+				try {
+					const [[mouseX, mouseY], currentPosition, currentSize] =
+						await Promise.all([
+							getMousePosition(),
+							appWindow.outerPosition(),
+							appWindow.outerSize(),
+						]);
+
+					const mouseRelativeX =
+						(mouseX - currentPosition.x) / currentSize.width;
+					const mouseRelativeY =
+						(mouseY - currentPosition.y) / currentSize.height;
+
+					const newX = Math.round(mouseX - newWidth * mouseRelativeX);
+					const newY = Math.round(mouseY - newHeight * mouseRelativeY);
+
+					await setWindowRect(
+						newX,
+						newY,
+						newX + newWidth,
+						newY + newHeight,
+					);
+				} catch (error) {
+					appError(
+						"[applyScaleWindowResize] Error during mouse-centered scaling",
+						error,
+					);
+					await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
+				}
+			} else {
+				await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
+			}
+		},
+		[appError, getMousePosition, setWindowRect],
+	);
+
 	const scaleWindow = useCallback(
-		async (scaleDelta: number, ignoreMouse: boolean = false) => {
+		async (
+			scaleDelta: number,
+			ignoreMouse: boolean = false,
+			cursor?: { x: number; y: number },
+		) => {
 			if (enableDrawRef.current) {
 				return;
 			}
@@ -1444,74 +1505,58 @@ const FixedContentCoreInner: React.FC<{
 		const { width: newWidth, height: newHeight } =
 			getWindowPhysicalSize(targetScale);
 
-		if (zoomWithMouse && !ignoreMouse) {
-			try {
-				// 获取当前鼠标位置和窗口位置
-				const [[mouseX, mouseY], currentPosition, currentSize] =
-					await Promise.all([
-						getMousePosition(),
-						appWindow.outerPosition(),
-						appWindow.outerSize(),
-					]);
-
-				// 计算鼠标相对于窗口的位置（比例）
-				const mouseRelativeX =
-					(mouseX - currentPosition.x) / currentSize.width;
-				const mouseRelativeY =
-					(mouseY - currentPosition.y) / currentSize.height;
-
-				// 计算缩放后窗口的新位置，使鼠标在窗口中的相对位置保持不变
-				const newX = Math.round(mouseX - newWidth * mouseRelativeX);
-				const newY = Math.round(mouseY - newHeight * mouseRelativeY);
-
-				// 先提交缩放状态，再在 useLayoutEffect 中于同一帧（绘制前）下发
-				// 窗口缩放，确保图片缩放与窗口尺寸变更同步，消除「窗口先放大、
-				// 图片被挤到左上角再缩放」的分步渲染错位。
-				setScale({
-					x: targetScale,
-					y: targetScale,
-				});
-				ocrResultActionRef.current?.setScale(targetScale);
-				pendingWindowResizeRef.current = {
-					x: newX,
-					y: newY,
-					width: newWidth,
-					height: newHeight,
-				};
-			} catch (error) {
-				appError("[scaleWindow] Error during mouse-centered scaling", error);
-				// 如果出错，回退到普通缩放
-				setScale({
-					x: targetScale,
-					y: targetScale,
-				});
-				ocrResultActionRef.current?.setScale(targetScale);
-				pendingWindowResizeRef.current = {
-					width: newWidth,
-					height: newHeight,
-				};
-			}
-		} else {
-			// 普通缩放，只改变窗口大小
-			setScale({
-				x: targetScale,
-				y: targetScale,
-			});
-			ocrResultActionRef.current?.setScale(targetScale);
-			pendingWindowResizeRef.current = {
-				width: newWidth,
-				height: newHeight,
-			};
+		// 滚轮手势进行中：只缩放图片（提交 scale）并保持窗口不动，通过给容器
+		// 施加一个与缩放比例联动的 translate 偏移，使「鼠标指针下的图像内容」保持
+		// 不动（即以鼠标为锚点缩放），避免图片被挤到左上角再缩放的分步错位。
+		// 手势结束（防抖）后再一次性把窗口缩放到匹配尺寸并复位该偏移。
+		const s0 = scaleRef.current.x;
+		const zoomToCursor = zoomWithMouse && !ignoreMouse && !!cursor;
+		let offsetX = 0;
+		let offsetY = 0;
+		if (zoomToCursor) {
+			// 递归公式：保持鼠标指针处的图像内容在屏幕上的位置不变。
+			// tx1 = mx - (mx - tx0) * (s1 / s0)
+			offsetX = cursor.x - (cursor.x - scaleOffsetRef.current.x) * (targetScale / s0);
+			offsetY = cursor.y - (cursor.y - scaleOffsetRef.current.y) * (targetScale / s0);
 		}
+		setScale({
+			x: targetScale,
+			y: targetScale,
+		});
+		ocrResultActionRef.current?.setScale(targetScale);
+		setScaleOffset({ x: offsetX, y: offsetY });
+
+		// 记录本次缩放是否需鼠标居中，供手势结束时的窗口缩放使用
+		pendingResizeMouseCenteredRef.current = zoomWithMouse && !ignoreMouse;
+
+		if (scaleWindowResizeTimerRef.current) {
+			clearTimeout(scaleWindowResizeTimerRef.current);
+		}
+		scaleWindowResizeTimerRef.current = setTimeout(async () => {
+			scaleWindowResizeTimerRef.current = null;
+			await applyScaleWindowResize(
+				newWidth,
+				newHeight,
+				pendingResizeMouseCenteredRef.current,
+			);
+			// 窗口已缩放到匹配尺寸，复位手势期间的图片偏移，使最终态回到
+			// 「图片填满窗口」（窗口缩放与偏移复位同步，鼠标处内容保持不动）
+			setScaleOffset({ x: 0, y: 0 });
+		}, SCALE_WINDOW_RESIZE_DEBOUNCE_MS);
 
 		showScaleInfoTemporary();
 		},
 		[
+			applyScaleWindowResize,
 			enableDrawRef,
 			getAppSettings,
 			getWindowPhysicalSize,
+			pendingResizeMouseCenteredRef,
+			scaleOffsetRef,
 			scaleRef,
+			scaleWindowResizeTimerRef,
 			setScale,
+			setScaleOffset,
 			showScaleInfoTemporary,
 			switchThumbnail,
 			windowSizeRef,
@@ -1519,29 +1564,15 @@ const FixedContentCoreInner: React.FC<{
 	);
 	const scaleWindowRender = useCallbackRender(scaleWindow);
 
-	// 在 scale 提交（图片容器已按新比例渲染）后、浏览器绘制前下发窗口缩放，
-	// 使窗口尺寸变更与图片缩放落在同一帧，消除分步渲染造成的错位与拉伸感。
-	useLayoutEffect(() => {
-		const pending = pendingWindowResizeRef.current;
-		if (!pending) {
-			return;
-		}
-		pendingWindowResizeRef.current = null;
-		const appWindow = appWindowRef.current;
-		if (!appWindow) {
-			return;
-		}
-		if (pending.x !== undefined && pending.y !== undefined) {
-			void setWindowRect(
-				pending.x,
-				pending.y,
-				pending.x + pending.width,
-				pending.y + pending.height,
-			);
-		} else {
-			void appWindow.setSize(new PhysicalSize(pending.width, pending.height));
-		}
-	}, [scale]);
+	// 组件卸载时清理未触发的窗口缩放定时器，避免对已卸载组件下发 IPC
+	useEffect(() => {
+		return () => {
+			if (scaleWindowResizeTimerRef.current) {
+				clearTimeout(scaleWindowResizeTimerRef.current);
+				scaleWindowResizeTimerRef.current = null;
+			}
+		};
+	}, []);
 
 	const getSelectRectParams = useCallback(() => {
 		const currentSelectRectParams = selectRectParamsRef.current;
@@ -2200,7 +2231,10 @@ const FixedContentCoreInner: React.FC<{
 			const delta = deltaY > 0 ? -1 : 1;
 
 			if (scrollActionRef.current === FixedContentScrollAction.Zoom) {
-				scaleWindowRender(delta * 10);
+				scaleWindowRender(delta * 10, false, {
+					x: event.clientX,
+					y: event.clientY,
+				});
 			} else if (scrollActionRef.current === FixedContentScrollAction.RotateX) {
 				setRotateAngles({
 					...rotateAnglesRef.current,
@@ -2607,6 +2641,7 @@ const FixedContentCoreInner: React.FC<{
 				x: targetScale,
 				y: targetScale,
 			});
+			setScaleOffset({ x: 0, y: 0 });
 			ocrResultActionRef.current?.setScale(targetScale);
 			showScaleInfoTemporary();
 		},
@@ -2669,6 +2704,7 @@ const FixedContentCoreInner: React.FC<{
 				position: "absolute",
 				width: `${documentSize.width}px`,
 				height: `${documentSize.height}px`,
+				transform: `translate(${scaleOffset.x}px, ${scaleOffset.y}px)`,
 				zIndex: zIndexs.Draw_FixedImage,
 				pointerEvents: disabled ? "none" : "auto",
 				opacity: containerOpacity,
