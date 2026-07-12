@@ -245,6 +245,16 @@ const FixedContentCoreInner: React.FC<{
 			width: 0,
 			height: 0,
 		});
+	// 缓存窗口矩形（物理像素：x/y 为左上角坐标，width/height 为尺寸）。
+	// 用于滚轮缩放时直接读取当前窗口位置/尺寸，避免每格都发起 outerPosition/
+	// outerSize 的 IPC 往返（这是之前缩放延迟的主要来源）。由初始化读取 +
+	// onMoved/onResized 监听保持同步；缩放时也会在 setWindowRect 后主动更新。
+	const windowRectRef = useRef<{
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	} | null>(null);
 	const canvasPropsRef = useRef<{
 		width: number;
 		height: number;
@@ -1450,48 +1460,58 @@ const FixedContentCoreInner: React.FC<{
 				getAppSettings()[AppSettingsGroup.FunctionFixedContent]
 					.zoomWithMouse;
 			try {
-				if (zoomWithMouse) {
-					const [[mouseX, mouseY], currentPosition, currentSize] =
-						await Promise.all([
-							getMousePosition(),
-							appWindow.outerPosition(),
-							appWindow.outerSize(),
-						]);
-
-					const mouseRelativeX =
-						(mouseX - currentPosition.x) / currentSize.width;
-					const mouseRelativeY =
-						(mouseY - currentPosition.y) / currentSize.height;
-
-					const newX = Math.round(mouseX - newWidth * mouseRelativeX);
-					const newY = Math.round(mouseY - newHeight * mouseRelativeY);
-
-					await setWindowRect(
-						newX,
-						newY,
-						newX + newWidth,
-						newY + newHeight,
-					);
-				} else {
-					const [currentPosition, currentSize] = await Promise.all([
+				// 优先使用缓存的窗口矩形，避免每格都发起 outerPosition/outerSize
+				// 的 IPC 往返（这是之前缩放延迟的主要来源）；缓存为空时回退读取一次。
+				let currentRect = windowRectRef.current;
+				if (!currentRect) {
+					const [position, size] = await Promise.all([
 						appWindow.outerPosition(),
 						appWindow.outerSize(),
 					]);
-					const centerX = currentPosition.x + currentSize.width / 2;
-					const centerY = currentPosition.y + currentSize.height / 2;
-					const newX = Math.round(centerX - newWidth / 2);
-					const newY = Math.round(centerY - newHeight / 2);
-
-					await setWindowRect(
-						newX,
-						newY,
-						newX + newWidth,
-						newY + newHeight,
-					);
+					currentRect = {
+						x: position.x,
+						y: position.y,
+						width: size.width,
+						height: size.height,
+					};
+					windowRectRef.current = currentRect;
 				}
+
+				let newX: number;
+				let newY: number;
+				if (zoomWithMouse) {
+					const [mouseX, mouseY] = await getMousePosition();
+					const mouseRelativeX =
+						(mouseX - currentRect.x) / currentRect.width;
+					const mouseRelativeY =
+						(mouseY - currentRect.y) / currentRect.height;
+
+					newX = Math.round(mouseX - newWidth * mouseRelativeX);
+					newY = Math.round(mouseY - newHeight * mouseRelativeY);
+				} else {
+					const centerX = currentRect.x + currentRect.width / 2;
+					const centerY = currentRect.y + currentRect.height / 2;
+					newX = Math.round(centerX - newWidth / 2);
+					newY = Math.round(centerY - newHeight / 2);
+				}
+
+				await setWindowRect(
+					newX,
+					newY,
+					newX + newWidth,
+					newY + newHeight,
+				);
+				// 主动更新缓存，保证后续缩放无需重新 IPC 读取
+				windowRectRef.current = {
+					x: newX,
+					y: newY,
+					width: newWidth,
+					height: newHeight,
+				};
 			} catch (error) {
 				appError("[scaleWindow] Error during window scaling", error);
 				await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
+				windowRectRef.current = null;
 			}
 
 			showScaleInfoTemporary();
@@ -1507,6 +1527,7 @@ const FixedContentCoreInner: React.FC<{
 			setWindowRect,
 			showScaleInfoTemporary,
 			switchThumbnail,
+			windowRectRef,
 			windowSizeRef,
 		],
 	);
@@ -1658,6 +1679,61 @@ const FixedContentCoreInner: React.FC<{
 				rightClickMenuRef.current.setScaleMenu?.close();
 			}
 			rightClickMenuRef.current = undefined;
+		};
+	}, []);
+
+	// 初始化并持续同步窗口矩形缓存，避免滚轮缩放时每格都发起 outerPosition/
+	// outerSize 的 IPC 往返（那是缩放延迟的主要来源）。窗口被拖拽或系统调整时
+	// 通过 onMoved/onResized 事件保持缓存最新；缩放时也会在 setWindowRect 后更新。
+	useEffect(() => {
+		const appWindow = getCurrentWindow();
+		let unlistenMove: (() => void) | undefined;
+		let unlistenResize: (() => void) | undefined;
+
+		const syncRect = () => {
+			Promise.all([appWindow.outerPosition(), appWindow.outerSize()])
+				.then(([position, size]) => {
+					windowRectRef.current = {
+						x: position.x,
+						y: position.y,
+						width: size.width,
+						height: size.height,
+					};
+				})
+				.catch(() => {
+					// 忽略读取失败，下次事件或缩放时会重试
+				});
+		};
+
+		syncRect();
+
+		unlistenMove = appWindow.onMoved(({ payload }) => {
+			if (windowRectRef.current) {
+				windowRectRef.current = {
+					...windowRectRef.current,
+					x: payload.x,
+					y: payload.y,
+				};
+			} else {
+				syncRect();
+			}
+		});
+
+		unlistenResize = appWindow.onResized(({ payload }) => {
+			if (windowRectRef.current) {
+				windowRectRef.current = {
+					...windowRectRef.current,
+					width: payload.width,
+					height: payload.height,
+				};
+			} else {
+				syncRect();
+			}
+		});
+
+		return () => {
+			unlistenMove?.then((fn) => fn());
+			unlistenResize?.then((fn) => fn());
 		};
 	}, []);
 
