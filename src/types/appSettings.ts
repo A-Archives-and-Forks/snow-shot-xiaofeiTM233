@@ -177,6 +177,15 @@ export enum DoubleClickAction {
 	None = "none",
 }
 
+export enum DragOutsideSelectRectAction {
+	/** 修改选区 */
+	ModifySelection = "modifySelection",
+	/** 移动选区 */
+	MoveSelection = "moveSelection",
+	/** 无操作 */
+	None = "none",
+}
+
 export enum FixedContentDoubleClickAction {
 	/** 切换缩略模式 */
 	SwitchThumbnail = "switchThumbnail",
@@ -451,6 +460,8 @@ export type AppSettingsData = {
 		fullScreenCopyToClipboard: boolean;
 		/** 双击后执行 */
 		doubleClickAction: DoubleClickAction;
+		/** 选区外拖动 */
+		dragOutsideSelectRectAction: DragOutsideSelectRectAction;
 		/** 复制图片文件到剪贴板 */
 		copyImageFileToClipboard: boolean;
 		/** 保存到云端 */
