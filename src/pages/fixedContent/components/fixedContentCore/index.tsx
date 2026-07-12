@@ -29,6 +29,7 @@ import {
 	getCurrentMonitorInfo,
 	type MonitorInfo,
 	setCurrentWindowAlwaysOnTop,
+	setWindowRect,
 	startFreeDrag,
 } from "@/commands/core";
 import { showMainWindow } from "@/commands/videoRecord";
@@ -1391,10 +1392,13 @@ const FixedContentCoreInner: React.FC<{
 
 	const [showScaleInfo, showScaleInfoTemporary] = useTempInfo();
 
-	// 滚轮缩放：先提交缩放状态（图片按新比例渲染），再原地调整原生窗口尺寸。
-	// 由于 setScale 先于窗口 IPC 提交，图片会先按新比例渲染、窗口随后跟上，避免
-	// 出现「窗口先放大、图片被挤到左上角」的分步错位；窗口只改尺寸不改位置
-	// （原地缩放），因此不会有偏移跳动。缩放档位为固定步进（delta），属于离散档位。
+	// 滚轮缩放：先提交缩放状态（图片按新比例渲染），再以鼠标为中心缩放窗口。
+	// 1) setScale 先于窗口 IPC 提交，图片会先按新比例渲染，避免「窗口先放大、
+	//    图片被挤到左上角」的分步错位；
+	// 2) 窗口按鼠标位置居中缩放（同时改尺寸与位置），使鼠标指针下的图像内容
+	//    在屏幕上保持不动——这正是「以鼠标为中心缩放」。窗口必须随鼠标平移，
+	//    否则数学上无法让鼠标下的内容保持不动；
+	// 3) 每滚一格立即执行（无预览、无防抖），缩放档位为固定步进（delta），离散档位。
 	const scaleWindow = useCallback(
 		async (scaleDelta: number) => {
 			if (enableDrawRef.current) {
@@ -1434,19 +1438,52 @@ const FixedContentCoreInner: React.FC<{
 			});
 			ocrResultActionRef.current?.setScale(targetScale);
 
-			// 再原地调整原生窗口尺寸（只改尺寸、不改位置，避免偏移跳动）
+			// 计算新窗口尺寸
 			const { width: newWidth, height: newHeight } =
 				getWindowPhysicalSize(targetScale);
 
-			await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
+			// 以鼠标为中心缩放窗口：保持鼠标指针下的图像内容在屏幕上的位置不变。
+			// 这要求窗口同步平移其位置（数学上无法在「窗口不动」前提下实现鼠标中心缩放）。
+			try {
+				const [[mouseX, mouseY], currentPosition, currentSize] =
+					await Promise.all([
+						getMousePosition(),
+						appWindow.outerPosition(),
+						appWindow.outerSize(),
+					]);
+
+				const mouseRelativeX =
+					(mouseX - currentPosition.x) / currentSize.width;
+				const mouseRelativeY =
+					(mouseY - currentPosition.y) / currentSize.height;
+
+				const newX = Math.round(mouseX - newWidth * mouseRelativeX);
+				const newY = Math.round(mouseY - newHeight * mouseRelativeY);
+
+				await setWindowRect(
+					newX,
+					newY,
+					newX + newWidth,
+					newY + newHeight,
+				);
+			} catch (error) {
+				appError(
+					"[scaleWindow] Error during mouse-centered scaling",
+					error,
+				);
+				await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
+			}
 
 			showScaleInfoTemporary();
 		},
 		[
+			appError,
 			enableDrawRef,
+			getMousePosition,
 			getWindowPhysicalSize,
 			scaleRef,
 			setScale,
+			setWindowRect,
 			showScaleInfoTemporary,
 			switchThumbnail,
 			windowSizeRef,
