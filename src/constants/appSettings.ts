@@ -238,7 +238,7 @@ Priority order (highest to lowest):
 		autoSaveOnCopy: false,
 		doubleClickAction: DoubleClickAction.Copy,
 		/** 选区外拖动 */
-		dragOutsideSelectRectAction: DragOutsideSelectRectAction.MoveSelection,
+		dragOutsideSelectRectAction: DragOutsideSelectRectAction.AdjustSelection,
 		copyImageFileToClipboard: false,
 		focusedWindowCopyToClipboard: true,
 		fullScreenCopyToClipboard: true,

@@ -759,9 +759,15 @@ export const FunctionSettingsPage = () => {
 		return [
 			{
 				label: intl.formatMessage({
-					id: "draw.dragOutsideSelectRect.modifySelection",
+					id: "draw.dragOutsideSelectRect.redrawSelection",
 				}),
-				value: DragOutsideSelectRectAction.ModifySelection,
+				value: DragOutsideSelectRectAction.RedrawSelection,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.adjustSelection",
+				}),
+				value: DragOutsideSelectRectAction.AdjustSelection,
 			},
 			{
 				label: intl.formatMessage({
@@ -903,37 +909,35 @@ export const FunctionSettingsPage = () => {
 						</Row>
 					)}
 
-					<Row gutter={token.marginLG}>
-						<Col span={12}>
-							<ProFormSelect
-								name="doubleClickAction"
-								layout="horizontal"
-								label={
-									<IconLabel
-										label={<FormattedMessage id="draw.doubleClickAction" />}
-									/>
-								}
-								options={doubleClickActionOptions}
-							/>
-						</Col>
-					</Row>
+				<Row gutter={token.marginLG}>
+					<Col span={12}>
+						<ProFormSelect
+							name="doubleClickAction"
+							layout="horizontal"
+							label={
+								<IconLabel
+									label={<FormattedMessage id="draw.doubleClickAction" />}
+								/>
+							}
+							options={doubleClickActionOptions}
+						/>
+					</Col>
 
-					<Row gutter={token.marginLG}>
-						<Col span={12}>
-							<ProFormSelect
-								name="dragOutsideSelectRectAction"
-								layout="horizontal"
-								label={
-									<IconLabel
-										label={
-											<FormattedMessage id="draw.dragOutsideSelectRect" />
-										}
-									/>
-								}
-								options={dragOutsideSelectRectActionOptions}
-							/>
-						</Col>
-					</Row>
+					<Col span={12}>
+						<ProFormSelect
+							name="dragOutsideSelectRectAction"
+							layout="horizontal"
+							label={
+								<IconLabel
+									label={
+										<FormattedMessage id="draw.dragOutsideSelectRect" />
+									}
+								/>
+							}
+							options={dragOutsideSelectRectActionOptions}
+						/>
+					</Col>
+				</Row>
 
 
 					<Row gutter={token.marginLG}>

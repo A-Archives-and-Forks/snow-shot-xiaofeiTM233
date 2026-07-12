@@ -968,16 +968,24 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 						.dragOutsideSelectRectAction;
 
 				switch (dragOutsideSelectRectAction) {
-					case DragOutsideSelectRectAction.ModifySelection:
-						// 修改选区：从鼠标按下位置开始新的手动框选
+					case DragOutsideSelectRectAction.RedrawSelection:
+						// 重绘选区：从鼠标按下位置开始新的手动框选
 						dragRectRef.current = undefined;
 						setSelectState(SelectState.Manual);
 						dragAllSelectRectMousePositionRef.current = undefined;
 						break;
-					case DragOutsideSelectRectAction.MoveSelection:
-						// 移动选区：保持原有行为
+					case DragOutsideSelectRectAction.AdjustSelection:
+						// 调整选区：在选区外拖拽时按位置调整 / 缩放选区
 						setSelectState(SelectState.Drag);
 						updateDragMode(mousePosition);
+						dragRectRef.current = getSelectRect();
+						dragAllSelectRectMousePositionRef.current = undefined;
+						break;
+					case DragOutsideSelectRectAction.MoveSelection:
+						// 移动选区：与在选区内部拖拽一致，强制整体移动（DragMode.All）
+						setSelectState(SelectState.Drag);
+						dragModeRef.current = DragMode.All;
+						changeCursor(convertDragModeToCursor(DragMode.All));
 						dragRectRef.current = getSelectRect();
 						dragAllSelectRectMousePositionRef.current = undefined;
 						break;
@@ -989,6 +997,8 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 			}
 		},
 		[
+			changeCursor,
+			convertDragModeToCursor,
 			drawToolbarActionRef,
 			finishCapture,
 			getAppSettings,
