@@ -1814,6 +1814,8 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
                         width: 100vw;
                         height: 100vh;
                         z-index: ${zIndexs.Draw_SelectLayer};
+                        /* 禁用触摸默认手势（滚动 / 缩放），确保手指拖拽选区正常 */
+                        touch-action: none;
                     }
 
                     .select-layer-container > .select-layer-canvas {

@@ -618,6 +618,7 @@ const DragButtonCore: React.FC<{
 		<div
 			className="draw-toolbar-drag drag-button"
 			title={dragTitle}
+			style={{ touchAction: "none" }}
 			onMouseDown={handleMouseDown}
 		>
 			<HolderOutlined />

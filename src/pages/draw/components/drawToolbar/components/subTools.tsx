@@ -149,6 +149,7 @@ export const SubTools: React.FC<{
 				<div
 					className="drag-button"
 					title={dragTitle}
+					style={{ touchAction: "none" }}
 					onMouseDown={handleMouseDown}
 				>
 					<HolderOutlined />

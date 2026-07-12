@@ -707,10 +707,13 @@ const DrawToolbarCore: React.FC<DrawToolbarProps> = ({
 		),
 	);
 
-	const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-		e.stopPropagation();
-		e.preventDefault();
-	}, []);
+	const handleMouseDown = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => {
+			e.stopPropagation();
+			e.preventDefault();
+		},
+		[],
+	);
 	const handleContextMenu = useCallback(
 		(e: React.MouseEvent<HTMLDivElement>) => {
 			e.stopPropagation();
@@ -735,6 +738,7 @@ const DrawToolbarCore: React.FC<DrawToolbarProps> = ({
 	return (
 		<div
 			className="draw-toolbar-container"
+			style={{ touchAction: "none" }}
 			onMouseDown={handleMouseDown}
 			onContextMenu={handleContextMenu}
 			ref={drawToolarContainerRef}
