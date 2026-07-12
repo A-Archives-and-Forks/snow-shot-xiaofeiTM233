@@ -177,7 +177,7 @@ export const AboutPage = () => {
 						type="primary"
 						icon={<GithubOutlined />}
 						onClick={() =>
-							openUrl("https://github.com/mg-chao/snow-shot/issues")
+							openUrl("https://github.com/xiaofeiTM233/snow-shot/issues")
 						}
 						block
 					>
