@@ -562,7 +562,7 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 				currentTheme === AppSettingsTheme.Dark,
 				window.devicePixelRatio * contentScaleRef.current,
 				getScreenshotType()?.type === ScreenshotType.TopWindow ||
-					selectStateRef.current === SelectState.Auto,
+				selectStateRef.current === SelectState.Auto,
 				drawState,
 				drawElementMask,
 				enableAuxiliaryLine &&
@@ -570,16 +570,16 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 					currentActiveMonitorRectRef.current &&
 					fullScreenAuxiliaryLineColorRef.current
 					? {
-							mousePosition: lastMouseMovePositionRef.current,
-							color: fullScreenAuxiliaryLineColorRef.current,
-						}
+						mousePosition: lastMouseMovePositionRef.current,
+						color: fullScreenAuxiliaryLineColorRef.current,
+					}
 					: undefined,
 				enableAuxiliaryLine &&
 					monitorCenterAuxiliaryLineColorRef.current &&
 					currentActiveMonitorRectRef.current
 					? {
-							color: monitorCenterAuxiliaryLineColorRef.current,
-						}
+						color: monitorCenterAuxiliaryLineColorRef.current,
+					}
 					: undefined,
 				selectRectMaskColorRef.current,
 			);
@@ -655,9 +655,9 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 
 	const opacityImageDataRef = useRef<
 		| {
-				opacity: number;
-				imageData: ImageData;
-		  }
+			opacity: number;
+			imageData: ImageData;
+		}
 		| undefined
 	>(undefined);
 	const renderElementMask = useCallback(
@@ -682,7 +682,7 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 					(100 -
 						getAppSettings()[AppSettingsGroup.Screenshot]
 							.beyondSelectRectElementOpacity) /
-						100,
+					100,
 					0,
 				),
 				1,
@@ -739,8 +739,8 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 				undefined,
 				imageData
 					? {
-							imageData,
-						}
+						imageData,
+					}
 					: undefined,
 			);
 		},
@@ -784,13 +784,13 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 					getScreenshotType()?.type === ScreenshotType.TopWindow
 						? [{ min_x: 0, min_y: 0, max_x: 0, max_y: 0 }]
 						: [
-								captureBoundingBoxInfo.getActiveMonitorRect({
-									min_x: mousePosition.mouseX,
-									min_y: mousePosition.mouseY,
-									max_x: mousePosition.mouseX,
-									max_y: mousePosition.mouseY,
-								}),
-							];
+							captureBoundingBoxInfo.getActiveMonitorRect({
+								min_x: mousePosition.mouseX,
+								min_y: mousePosition.mouseY,
+								max_x: mousePosition.mouseX,
+								max_y: mousePosition.mouseY,
+							}),
+						];
 			}
 
 			const minLevel = 0;
@@ -903,7 +903,7 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 				drawSelectRectAnimationRef.current?.update(
 					rect,
 					ignoreAnimation ||
-						getAppSettings()[AppSettingsGroup.Screenshot].disableAnimation,
+					getAppSettings()[AppSettingsGroup.Screenshot].disableAnimation,
 				);
 			}
 			resizeToolbarActionRef.current?.setSelectedRect(rect);
@@ -1054,7 +1054,7 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 				setSelectRect(
 					currentSelectRect,
 					ignoreAnimation ||
-						getScreenshotType()?.type === ScreenshotType.TopWindow,
+					getScreenshotType()?.type === ScreenshotType.TopWindow,
 				);
 			}
 		},
@@ -1062,9 +1062,9 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 	);
 	const onMouseMoveAutoSelectLastParamsRef = useRef<
 		| {
-				mousePosition: MousePosition;
-				ignoreAnimation: boolean;
-		  }
+			mousePosition: MousePosition;
+			ignoreAnimation: boolean;
+		}
 		| undefined
 	>(undefined);
 	const onMouseMoveAutoSelectRunningRef = useRef<boolean>(false);
@@ -1150,9 +1150,9 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 
 					dragAllSelectRectOffsetMousePosition = new MousePosition(
 						mousePosition.mouseX -
-							dragAllSelectRectMousePositionRef.current.mouseX,
+						dragAllSelectRectMousePositionRef.current.mouseX,
 						mousePosition.mouseY -
-							dragAllSelectRectMousePositionRef.current.mouseY,
+						dragAllSelectRectMousePositionRef.current.mouseY,
 					);
 
 					dragAllSelectRectMousePositionRef.current = mousePosition;
@@ -1390,16 +1390,25 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 			return;
 		}
 
-		const handleMouseDown = (e: MouseEvent) => {
-			if (e.button !== 0) {
+		// 使用 Pointer Events 统一支持鼠标 / 触摸 / 触控笔
+		const handlePointerDown = (e: PointerEvent) => {
+			// 仅鼠标需要区分主键，触摸 / 笔默认即主键
+			if (e.pointerType === "mouse" && e.button !== 0) {
 				return;
+			}
+
+			// 捕获指针，保证拖拽过程中（即使移出元素或经过其他图层）仍能收到事件
+			try {
+				layerContainerElement.setPointerCapture(e.pointerId);
+			} catch {
+				// 部分环境不支持，忽略
 			}
 
 			onMouseDown(
 				new MousePosition(e.clientX, e.clientY).scale(window.devicePixelRatio),
 			);
 		};
-		const handleMouseMove = (e: MouseEvent) => {
+		const handlePointerMove = (e: PointerEvent) => {
 			if (isDisableMouseMove()) {
 				return;
 			}
@@ -1408,16 +1417,23 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 				new MousePosition(e.clientX, e.clientY).scale(window.devicePixelRatio),
 			);
 		};
-		const handleMouseUp = (e: MouseEvent) => {
-			if (e.button !== 0) {
+		const handlePointerUp = (e: PointerEvent) => {
+			if (e.pointerType === "mouse" && e.button !== 0) {
 				return;
+			}
+
+			try {
+				layerContainerElement.releasePointerCapture(e.pointerId);
+			} catch {
+				// 忽略
 			}
 
 			onMouseUp();
 		};
-		layerContainerElement.addEventListener("mousedown", handleMouseDown);
-		layerContainerElement.addEventListener("mousemove", handleMouseMove);
-		layerContainerElement.addEventListener("mouseup", handleMouseUp);
+		layerContainerElement.addEventListener("pointerdown", handlePointerDown);
+		layerContainerElement.addEventListener("pointermove", handlePointerMove);
+		layerContainerElement.addEventListener("pointerup", handlePointerUp);
+		layerContainerElement.addEventListener("pointercancel", handlePointerUp);
 		layerContainerElement.addEventListener(
 			"wheel",
 			onMouseWheelRenderCallback,
@@ -1426,9 +1442,19 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 			},
 		);
 		return () => {
-			layerContainerElement.removeEventListener("mousedown", handleMouseDown);
-			layerContainerElement.removeEventListener("mousemove", handleMouseMove);
-			layerContainerElement.removeEventListener("mouseup", handleMouseUp);
+			layerContainerElement.removeEventListener(
+				"pointerdown",
+				handlePointerDown,
+			);
+			layerContainerElement.removeEventListener(
+				"pointermove",
+				handlePointerMove,
+			);
+			layerContainerElement.removeEventListener("pointerup", handlePointerUp);
+			layerContainerElement.removeEventListener(
+				"pointercancel",
+				handlePointerUp,
+			);
 			layerContainerElement.removeEventListener(
 				"wheel",
 				onMouseWheelRenderCallback,
@@ -1463,7 +1489,7 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 			return;
 		}
 
-		const handleMouseMove = () => {
+		const handlePointerMove = () => {
 			if (!updateLayerPointerEvents()) {
 				return;
 			}
@@ -1473,10 +1499,10 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 			);
 		};
 
-		document.addEventListener("mousemove", handleMouseMove);
+		document.addEventListener("pointermove", handlePointerMove);
 
 		return () => {
-			document.removeEventListener("mousemove", handleMouseMove);
+			document.removeEventListener("pointermove", handlePointerMove);
 		};
 	}, [
 		captureStep,
@@ -1754,9 +1780,9 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 	useEffect(() => {
 		if (
 			selectRectShadowConfigRef.current.shadowWidth !==
-				selectRectShadowConfigCache.shadowWidth ||
+			selectRectShadowConfigCache.shadowWidth ||
 			selectRectShadowConfigRef.current.shadowColor !==
-				selectRectShadowConfigCache.shadowColor
+			selectRectShadowConfigCache.shadowColor
 		) {
 			onShadowConfigChange(selectRectShadowConfigCache);
 		}
@@ -1824,6 +1850,8 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
                         width: 100vw;
                         height: 100vh;
                         z-index: ${zIndexs.Draw_SelectLayer};
+                        /* 禁用触摸默认手势（滚动 / 缩放），确保手指拖拽选区正常 */
+                        touch-action: none;
                     }
 
                     .select-layer-container > .select-layer-canvas {
