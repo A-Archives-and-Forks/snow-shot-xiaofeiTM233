@@ -67,6 +67,7 @@ import {
 	CloudSaveUrlFormat,
 	CloudSaveUrlType,
 	DoubleClickAction,
+	DragOutsideSelectRectAction,
 	FixedContentDoubleClickAction,
 	GifFormat,
 	KeyDisplayDirection,
@@ -754,6 +755,35 @@ export const FunctionSettingsPage = () => {
 		];
 	}, [intl]);
 
+	const dragOutsideSelectRectActionOptions = useMemo(() => {
+		return [
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.redrawSelection",
+				}),
+				value: DragOutsideSelectRectAction.RedrawSelection,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.adjustSelection",
+				}),
+				value: DragOutsideSelectRectAction.AdjustSelection,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.moveSelection",
+				}),
+				value: DragOutsideSelectRectAction.MoveSelection,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.none",
+				}),
+				value: DragOutsideSelectRectAction.None,
+			},
+		];
+	}, [intl]);
+
 	return (
 		<ContentWrap>
 			<GroupTitle
@@ -879,20 +909,36 @@ export const FunctionSettingsPage = () => {
 						</Row>
 					)}
 
-					<Row gutter={token.marginLG}>
-						<Col span={12}>
-							<ProFormSelect
-								name="doubleClickAction"
-								layout="horizontal"
-								label={
-									<IconLabel
-										label={<FormattedMessage id="draw.doubleClickAction" />}
-									/>
-								}
-								options={doubleClickActionOptions}
-							/>
-						</Col>
-					</Row>
+				<Row gutter={token.marginLG}>
+					<Col span={12}>
+						<ProFormSelect
+							name="doubleClickAction"
+							layout="horizontal"
+							label={
+								<IconLabel
+									label={<FormattedMessage id="draw.doubleClickAction" />}
+								/>
+							}
+							options={doubleClickActionOptions}
+						/>
+					</Col>
+
+					<Col span={12}>
+						<ProFormSelect
+							name="dragOutsideSelectRectAction"
+							layout="horizontal"
+							label={
+								<IconLabel
+									label={
+										<FormattedMessage id="draw.dragOutsideSelectRect" />
+									}
+								/>
+							}
+							options={dragOutsideSelectRectActionOptions}
+						/>
+					</Col>
+				</Row>
+
 
 					<Row gutter={token.marginLG}>
 						<Col span={12}>

@@ -37,6 +37,7 @@ import {
 	type AppSettingsData,
 	AppSettingsGroup,
 	AppSettingsTheme,
+	DragOutsideSelectRectAction,
 } from "@/types/appSettings";
 import type { ElementRect } from "@/types/commands/screenshot";
 import { DrawToolbarKeyEventKey } from "@/types/components/drawToolbar";
@@ -813,11 +814,11 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 				selectedRect,
 				currentLevel === elementRectList.length - 1
 					? captureBoundingBoxInfo.getActiveMonitorRect({
-							min_x: mousePosition.mouseX,
-							min_y: mousePosition.mouseY,
-							max_x: mousePosition.mouseX,
-							max_y: mousePosition.mouseY,
-						})
+						min_x: mousePosition.mouseX,
+						min_y: mousePosition.mouseY,
+						max_x: mousePosition.mouseX,
+						max_y: mousePosition.mouseY,
+					})
 					: captureBoundingBoxInfo.rect,
 			);
 
@@ -939,15 +940,68 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 					return;
 				}
 
-				// 改变状态为拖动
-				setSelectState(SelectState.Drag);
-				updateDragMode(mousePosition);
-				dragRectRef.current = getSelectRect();
-				dragAllSelectRectMousePositionRef.current = undefined;
+				// 判断鼠标是否处于选区内部（含边框容差）
+				const edgeTolerance =
+					EDGE_DETECTION_TOLERANCE * window.devicePixelRatio;
+				const isInSelectRect = positoinInRect(
+					{
+						min_x: selectRect.min_x - edgeTolerance,
+						min_y: selectRect.min_y - edgeTolerance,
+						max_x: selectRect.max_x + edgeTolerance,
+						max_y: selectRect.max_y + edgeTolerance,
+					},
+					mousePosition,
+				);
+
+				// 处于选区内部（含边框），保持原有的拖动 / 缩放逻辑
+				if (isInSelectRect) {
+					setSelectState(SelectState.Drag);
+					updateDragMode(mousePosition);
+					dragRectRef.current = getSelectRect();
+					dragAllSelectRectMousePositionRef.current = undefined;
+					return;
+				}
+
+				// 处于选区外部，根据配置执行对应的行为
+				const dragOutsideSelectRectAction =
+					getAppSettings()[AppSettingsGroup.FunctionScreenshot]
+						.dragOutsideSelectRectAction;
+
+				switch (dragOutsideSelectRectAction) {
+					case DragOutsideSelectRectAction.RedrawSelection:
+						// 重绘选区：从鼠标按下位置开始新的手动框选
+						dragRectRef.current = undefined;
+						setSelectState(SelectState.Manual);
+						dragAllSelectRectMousePositionRef.current = undefined;
+						break;
+					case DragOutsideSelectRectAction.AdjustSelection:
+						// 调整选区：在选区外拖拽时按位置调整 / 缩放选区
+						setSelectState(SelectState.Drag);
+						updateDragMode(mousePosition);
+						dragRectRef.current = getSelectRect();
+						dragAllSelectRectMousePositionRef.current = undefined;
+						break;
+					case DragOutsideSelectRectAction.MoveSelection:
+						// 移动选区：与在选区内部拖拽一致，强制整体移动（DragMode.All）
+						setSelectState(SelectState.Drag);
+						dragModeRef.current = DragMode.All;
+						changeCursor(convertDragModeToCursor(DragMode.All));
+						dragRectRef.current = getSelectRect();
+						dragAllSelectRectMousePositionRef.current = undefined;
+						break;
+					case DragOutsideSelectRectAction.None:
+					default:
+						// 无操作
+						break;
+				}
 			}
 		},
 		[
+			changeCursor,
+			convertDragModeToCursor,
 			drawToolbarActionRef,
+			finishCapture,
+			getAppSettings,
 			getCaptureStep,
 			getDrawState,
 			getSelectRect,

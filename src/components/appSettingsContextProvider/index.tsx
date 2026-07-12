@@ -44,6 +44,7 @@ import {
 	type CloudSaveUrlFormat,
 	CloudSaveUrlType,
 	type DoubleClickAction,
+	type DragOutsideSelectRectAction,
 	ExtraToolList,
 	type HdrColorAlgorithm,
 	type HistoryValidDuration,
@@ -960,6 +961,11 @@ const AppSettingsContextProviderCore: React.FC<{
 							? (newSettings.doubleClickAction as DoubleClickAction)
 							: (prevSettings?.doubleClickAction ??
 								defaultAppSettingsData[group].doubleClickAction),
+					dragOutsideSelectRectAction:
+						typeof newSettings?.dragOutsideSelectRectAction === "string"
+							? (newSettings.dragOutsideSelectRectAction as DragOutsideSelectRectAction)
+							: (prevSettings?.dragOutsideSelectRectAction ??
+								defaultAppSettingsData[group].dragOutsideSelectRectAction),
 					copyImageFileToClipboard:
 						typeof newSettings?.copyImageFileToClipboard === "boolean"
 							? newSettings.copyImageFileToClipboard
