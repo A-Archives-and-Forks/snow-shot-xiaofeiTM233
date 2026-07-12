@@ -183,7 +183,7 @@ export const draw = {
 	"draw.doubleClickAction.copy": "复制到剪贴板",
 	"draw.doubleClickAction.save": "保存为文件",
 	"draw.doubleClickAction.fixedToScreen": "贴图",
-	"draw.doubleClickAction.none": "无",
+	"draw.doubleClickAction.none": "无操作",
 	"draw.dragOutsideSelectRect": "选区外拖动",
 	"draw.dragOutsideSelectRect.modifySelection": "修改选区",
 	"draw.dragOutsideSelectRect.moveSelection": "移动选区",
