@@ -237,8 +237,8 @@ Priority order (highest to lowest):
 		shortcutCanleTip: false,
 		autoSaveOnCopy: false,
 		doubleClickAction: DoubleClickAction.Copy,
-		/** 选区外拖动（默认移动选区，保持原有行为） */
-		dragOutsideSelectRectAction: DragOutsideSelectRectAction.MoveSelection,
+		/** 选区外拖动（默认调整选区，保持原有行为） */
+		dragOutsideSelectRectAction: DragOutsideSelectRectAction.AdjustSelection,
 		copyImageFileToClipboard: false,
 		focusedWindowCopyToClipboard: true,
 		fullScreenCopyToClipboard: true,

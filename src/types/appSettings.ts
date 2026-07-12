@@ -178,10 +178,12 @@ export enum DoubleClickAction {
 }
 
 export enum DragOutsideSelectRectAction {
-	/** 修改选区 */
-	ModifySelection = "modifySelection",
+	/** 重绘选区 */
+	RedrawSelection = "modifySelection",
+	/** 调整选区 */
+	AdjustSelection = "moveSelection",
 	/** 移动选区 */
-	MoveSelection = "moveSelection",
+	MoveSelection = "moveSelectionInside",
 	/** 无操作 */
 	None = "none",
 }

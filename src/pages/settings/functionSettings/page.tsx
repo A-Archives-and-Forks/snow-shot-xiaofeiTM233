@@ -759,9 +759,15 @@ export const FunctionSettingsPage = () => {
 		return [
 			{
 				label: intl.formatMessage({
-					id: "draw.dragOutsideSelectRect.modifySelection",
+					id: "draw.dragOutsideSelectRect.redrawSelection",
 				}),
-				value: DragOutsideSelectRectAction.ModifySelection,
+				value: DragOutsideSelectRectAction.RedrawSelection,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.adjustSelection",
+				}),
+				value: DragOutsideSelectRectAction.AdjustSelection,
 			},
 			{
 				label: intl.formatMessage({

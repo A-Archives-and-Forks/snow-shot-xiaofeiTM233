@@ -968,14 +968,21 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 						.dragOutsideSelectRectAction;
 
 				switch (dragOutsideSelectRectAction) {
-					case DragOutsideSelectRectAction.ModifySelection:
-						// 修改选区：从鼠标按下位置开始新的手动框选
+					case DragOutsideSelectRectAction.RedrawSelection:
+						// 重绘选区：从鼠标按下位置开始新的手动框选
 						dragRectRef.current = undefined;
 						setSelectState(SelectState.Manual);
 						dragAllSelectRectMousePositionRef.current = undefined;
 						break;
+					case DragOutsideSelectRectAction.AdjustSelection:
+						// 调整选区：保持原有行为（移动选区）
+						setSelectState(SelectState.Drag);
+						updateDragMode(mousePosition);
+						dragRectRef.current = getSelectRect();
+						dragAllSelectRectMousePositionRef.current = undefined;
+						break;
 					case DragOutsideSelectRectAction.MoveSelection:
-						// 移动选区：保持原有行为
+						// 移动选区：与在选区内部拖拽选区行为一致
 						setSelectState(SelectState.Drag);
 						updateDragMode(mousePosition);
 						dragRectRef.current = getSelectRect();
