@@ -67,6 +67,7 @@ import {
 	CloudSaveUrlFormat,
 	CloudSaveUrlType,
 	DoubleClickAction,
+	DragOutsideSelectRectAction,
 	FixedContentDoubleClickAction,
 	GifFormat,
 	KeyDisplayDirection,
@@ -754,6 +755,29 @@ export const FunctionSettingsPage = () => {
 		];
 	}, [intl]);
 
+	const dragOutsideSelectRectActionOptions = useMemo(() => {
+		return [
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.modifySelection",
+				}),
+				value: DragOutsideSelectRectAction.ModifySelection,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.moveSelection",
+				}),
+				value: DragOutsideSelectRectAction.MoveSelection,
+			},
+			{
+				label: intl.formatMessage({
+					id: "draw.dragOutsideSelectRect.none",
+				}),
+				value: DragOutsideSelectRectAction.None,
+			},
+		];
+	}, [intl]);
+
 	return (
 		<ContentWrap>
 			<GroupTitle
@@ -893,6 +917,24 @@ export const FunctionSettingsPage = () => {
 							/>
 						</Col>
 					</Row>
+
+					<Row gutter={token.marginLG}>
+						<Col span={12}>
+							<ProFormSelect
+								name="dragOutsideSelectRectAction"
+								layout="horizontal"
+								label={
+									<IconLabel
+										label={
+											<FormattedMessage id="draw.dragOutsideSelectRect" />
+										}
+									/>
+								}
+								options={dragOutsideSelectRectActionOptions}
+							/>
+						</Col>
+					</Row>
+
 
 					<Row gutter={token.marginLG}>
 						<Col span={12}>

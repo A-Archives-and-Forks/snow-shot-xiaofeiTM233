@@ -9,6 +9,7 @@ import {
 	CloudSaveUrlType,
 	ColorPickerShowMode,
 	DoubleClickAction,
+	DragOutsideSelectRectAction,
 	ExtraToolList,
 	FixedContentDoubleClickAction,
 	GifFormat,
@@ -236,6 +237,8 @@ Priority order (highest to lowest):
 		shortcutCanleTip: false,
 		autoSaveOnCopy: false,
 		doubleClickAction: DoubleClickAction.Copy,
+		/** 选区外拖动 */
+		dragOutsideSelectRectAction: DragOutsideSelectRectAction.MoveSelection,
 		copyImageFileToClipboard: false,
 		focusedWindowCopyToClipboard: true,
 		fullScreenCopyToClipboard: true,
