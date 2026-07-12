@@ -1392,12 +1392,12 @@ const FixedContentCoreInner: React.FC<{
 
 	const [showScaleInfo, showScaleInfoTemporary] = useTempInfo();
 
-	// 滚轮缩放：先提交缩放状态（图片按新比例渲染），再以鼠标为中心缩放窗口。
+	// 滚轮缩放：先提交缩放状态（图片按新比例渲染），再缩放窗口（框体）。
 	// 1) setScale 先于窗口 IPC 提交，图片会先按新比例渲染，避免「窗口先放大、
-	//    图片被挤到左上角」的分步错位；
-	// 2) 窗口按鼠标位置居中缩放（同时改尺寸与位置），使鼠标指针下的图像内容
-	//    在屏幕上保持不动——这正是「以鼠标为中心缩放」。窗口必须随鼠标平移，
-	//    否则数学上无法让鼠标下的内容保持不动；
+	//    图片被挤到左上角」的分步错位；即「先放大图片（居中），再放大框体」；
+	// 2) 窗口缩放锚点由设置 zoomWithMouse 决定：
+	//    - true：以鼠标为中心，保持鼠标指针下的图像内容在屏幕上不动（窗口随鼠标平移）；
+	//    - false：以窗口中心为锚点对称放大，窗口中心固定在屏幕上，框体不漂移/偏移；
 	// 3) 每滚一格立即执行（无预览、无防抖），缩放档位为固定步进（delta），离散档位。
 	const scaleWindow = useCallback(
 		async (scaleDelta: number) => {
@@ -1442,35 +1442,55 @@ const FixedContentCoreInner: React.FC<{
 			const { width: newWidth, height: newHeight } =
 				getWindowPhysicalSize(targetScale);
 
-			// 以鼠标为中心缩放窗口：保持鼠标指针下的图像内容在屏幕上的位置不变。
-			// 这要求窗口同步平移其位置（数学上无法在「窗口不动」前提下实现鼠标中心缩放）。
+			// 缩放窗口（图片已先行渲染）。根据设置选择锚点：
+			// - 以鼠标为中心：保持鼠标指针下的图像内容在屏幕上不动（窗口需随鼠标平移）；
+			// - 以窗口中心为锚点：窗口对称放大、中心固定在屏幕上，框体不漂移/偏移，
+			//   图片在框内居中（即「先放大图片（居中），再放大框体」）。
+			const zoomWithMouse =
+				getAppSettings()[AppSettingsGroup.FunctionFixedContent]
+					.zoomWithMouse;
 			try {
-				const [[mouseX, mouseY], currentPosition, currentSize] =
-					await Promise.all([
-						getMousePosition(),
+				if (zoomWithMouse) {
+					const [[mouseX, mouseY], currentPosition, currentSize] =
+						await Promise.all([
+							getMousePosition(),
+							appWindow.outerPosition(),
+							appWindow.outerSize(),
+						]);
+
+					const mouseRelativeX =
+						(mouseX - currentPosition.x) / currentSize.width;
+					const mouseRelativeY =
+						(mouseY - currentPosition.y) / currentSize.height;
+
+					const newX = Math.round(mouseX - newWidth * mouseRelativeX);
+					const newY = Math.round(mouseY - newHeight * mouseRelativeY);
+
+					await setWindowRect(
+						newX,
+						newY,
+						newX + newWidth,
+						newY + newHeight,
+					);
+				} else {
+					const [currentPosition, currentSize] = await Promise.all([
 						appWindow.outerPosition(),
 						appWindow.outerSize(),
 					]);
+					const centerX = currentPosition.x + currentSize.width / 2;
+					const centerY = currentPosition.y + currentSize.height / 2;
+					const newX = Math.round(centerX - newWidth / 2);
+					const newY = Math.round(centerY - newHeight / 2);
 
-				const mouseRelativeX =
-					(mouseX - currentPosition.x) / currentSize.width;
-				const mouseRelativeY =
-					(mouseY - currentPosition.y) / currentSize.height;
-
-				const newX = Math.round(mouseX - newWidth * mouseRelativeX);
-				const newY = Math.round(mouseY - newHeight * mouseRelativeY);
-
-				await setWindowRect(
-					newX,
-					newY,
-					newX + newWidth,
-					newY + newHeight,
-				);
+					await setWindowRect(
+						newX,
+						newY,
+						newX + newWidth,
+						newY + newHeight,
+					);
+				}
 			} catch (error) {
-				appError(
-					"[scaleWindow] Error during mouse-centered scaling",
-					error,
-				);
+				appError("[scaleWindow] Error during window scaling", error);
 				await appWindow.setSize(new PhysicalSize(newWidth, newHeight));
 			}
 
@@ -1479,6 +1499,7 @@ const FixedContentCoreInner: React.FC<{
 		[
 			appError,
 			enableDrawRef,
+			getAppSettings,
 			getMousePosition,
 			getWindowPhysicalSize,
 			scaleRef,
