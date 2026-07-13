@@ -493,6 +493,12 @@ export const settings = {
 		"截圖",
 	"settings.functionSettings.trayIconSettings.iconClickAction.showMainWindow":
 		"顯示主視窗",
+	"settings.functionSettings.trayIconSettings.iconClickAction.translate":
+		"翻譯",
+	"settings.functionSettings.trayIconSettings.iconClickAction.aiChat":
+		"AI 對話",
+	"settings.functionSettings.trayIconSettings.iconClickAction.captureHistory":
+		"截圖歷史",
 	"settings.systemSettings.dataFile": "軟體資料",
 	"settings.systemSettings.dataDirectory": "資料目錄",
 	"settings.systemSettings.dataFilePath.setDirectory.tip":
