@@ -107,7 +107,7 @@ export const AboutPage = () => {
 						{intl.formatMessage({ id: "about.subtitle" })}
 					</Text>
 				</div>
-				<div style={{ marginTop: token.margin }}>
+				<Space wrap style={{ marginTop: token.margin }}>
 					<Tooltip title={commitSha ? `Commit SHA: ${commitSha}` : undefined}>
 						<Tag color="blue">
 							<a
@@ -126,7 +126,7 @@ export const AboutPage = () => {
 							{intl.formatMessage({ id: "about.author" })}
 						</a>
 					</Tag>
-				</div>
+				</Space>
 			</div>
 
 			<Divider />

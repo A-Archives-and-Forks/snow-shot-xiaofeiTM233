@@ -359,7 +359,7 @@ export const CaptureHistoryPage = () => {
 							const { selected_rect } = item;
 
 							return (
-								<>
+								<Space wrap size={[token.marginXS, token.marginXS]}>
 									<Tag>
 										<FormattedMessage id="tools.captureHistory.position" />
 										{`: ${selected_rect.min_x} , ${selected_rect.min_y}`}
@@ -377,7 +377,7 @@ export const CaptureHistoryPage = () => {
 										{`: `}
 										{getSourceDesc(item.source)}
 									</Tag>
-								</>
+								</Space>
 							);
 						},
 					},
