@@ -269,7 +269,7 @@ export const settings = {
 	"settings.functionSettings.outputSettings": "输出",
 	"settings.functionSettings.outputSettings.variables": "支持的变量",
 	"settings.functionSettings.outputSettings.variables.focusedWindowAppName":
-		"截取当前具有焦点的窗口的程序名",
+		"焦点窗口名称",
 	"settings.functionSettings.outputSettings.variables.date": "日期",
 	"settings.functionSettings.outputSettings.fileNameFormat": "文件名格式",
 	"settings.functionSettings.outputSettings.manualSaveFileNameFormat":
