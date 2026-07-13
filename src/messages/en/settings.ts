@@ -521,6 +521,12 @@ export const settings = {
 		"Screenshot",
 	"settings.functionSettings.trayIconSettings.iconClickAction.showMainWindow":
 		"Show Main Window",
+	"settings.functionSettings.trayIconSettings.iconClickAction.translate":
+		"Translate",
+	"settings.functionSettings.trayIconSettings.iconClickAction.aiChat":
+		"AI Chat",
+	"settings.functionSettings.trayIconSettings.iconClickAction.captureHistory":
+		"Capture History",
 	"settings.systemSettings.dataFile": "App Data",
 	"settings.systemSettings.dataDirectory": "Data Directory",
 	"settings.systemSettings.dataFilePath.setDirectory.tip":

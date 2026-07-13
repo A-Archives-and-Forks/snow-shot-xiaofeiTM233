@@ -150,6 +150,9 @@ export enum AppSettingsFixedContentInitialPosition {
 export enum TrayIconClickAction {
 	ShowMainWindow = "showMainWindow",
 	Screenshot = "screenshot",
+	Translate = "translate",
+	AiChat = "aiChat",
+	CaptureHistory = "captureHistory",
 }
 
 export enum CloudSaveUrlType {

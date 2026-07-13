@@ -422,6 +422,24 @@ export const FunctionSettingsPage = () => {
 				}),
 				value: TrayIconClickAction.ShowMainWindow,
 			},
+			{
+				label: intl.formatMessage({
+					id: "settings.functionSettings.trayIconSettings.iconClickAction.translate",
+				}),
+				value: TrayIconClickAction.Translate,
+			},
+			{
+				label: intl.formatMessage({
+					id: "settings.functionSettings.trayIconSettings.iconClickAction.aiChat",
+				}),
+				value: TrayIconClickAction.AiChat,
+			},
+			{
+				label: intl.formatMessage({
+					id: "settings.functionSettings.trayIconSettings.iconClickAction.captureHistory",
+				}),
+				value: TrayIconClickAction.CaptureHistory,
+			},
 		];
 	}, [intl]);
 
