@@ -472,7 +472,7 @@ export const settings = {
 	"settings.functionSettings.translationSettings.apiConfig.apiUri.required":
 		"請輸入 API 位址",
 	"settings.functionSettings.translationSettings.apiConfig.add":
-		"新增 LLM 配置",
+		"新增 API 配置",
 	"settings.functionSettings.translationSettings.apiConfig.apiKey.required":
 		"請輸入 API Key",
 	"settings.functionSettings.translationSettings.apiConfig.deeplPreferQualityOptimized":
