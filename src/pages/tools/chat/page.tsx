@@ -1398,14 +1398,6 @@ const Chat = () => {
 				);
 			}}
 		/>
-		<style jsx>{`
-			:global(.ant-sender-input):focus-visible,
-			:global(.ant-sender-input):focus,
-			:global(.ant-sender textarea):focus-visible,
-			:global(.ant-sender textarea):focus {
-				outline: none;
-			}
-		`}</style>
 		</div>
 	);
 
