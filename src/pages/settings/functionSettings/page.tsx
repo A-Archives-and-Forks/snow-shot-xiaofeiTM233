@@ -1630,10 +1630,8 @@ export const FunctionSettingsPage = () => {
 													/>
 												}
 												fieldProps={{
-													autoSize: {
-														minRows: 1,
-														maxRows: 1,
-													},
+													rows: 1,
+													style: { resize: "vertical" },
 												}}
 											/>
 										</Col>
@@ -1648,10 +1646,8 @@ export const FunctionSettingsPage = () => {
 													/>
 												}
 												fieldProps={{
-													autoSize: {
-														minRows: 1,
-														maxRows: 1,
-													},
+													rows: 1,
+													style: { resize: "vertical" },
 												}}
 											/>
 										</Col>
@@ -1950,10 +1946,8 @@ export const FunctionSettingsPage = () => {
 											},
 										]}
 										fieldProps={{
-											autoSize: {
-												minRows: 1,
-												maxRows: 1,
-											},
+											rows: 1,
+											style: { resize: "vertical" },
 										}}
 									/>
 								</Col>
