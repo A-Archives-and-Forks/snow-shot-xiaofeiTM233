@@ -29,6 +29,7 @@
 		"@ant-design/icons": "^6.3.2",
 		"@ant-design/pro-components": "3.1.14-2",
 		"@ant-design/x": "^2.8.0",
+		"@ant-design/x-sdk": "^2.8.0",
 		"@mg-chao/excalidraw": "file:..\\excalidraw\\packages\\excalidraw",
 		"@tanstack/react-router": "^1.134.9",
 		"@tauri-apps/api": "^2.9.0",
