@@ -2574,8 +2574,8 @@ export const FunctionSettingsPage = () => {
 											<FormattedMessage id="settings.functionSettings.videoRecordSettings.keyDisplaySettings" />
 										</SubGroupTitle>
 
-										<Row gutter={token.marginLG} style={{ width: "100%" }}>
-											<Col span={12} style={{ width: "100%" }}>
+										<Row gutter={token.marginLG}>
+											<Col span={12}>
 												<ProFormDigit
 													name="keyDisplayFontSize"
 													layout="horizontal"
@@ -2590,8 +2590,7 @@ export const FunctionSettingsPage = () => {
 													}}
 												/>
 											</Col>
-
-											<Col span={12} style={{ width: "100%" }}>
+											<Col span={12}>
 												<ProFormDigit
 													name="keyDisplayDuration"
 													layout="horizontal"
@@ -2607,9 +2606,6 @@ export const FunctionSettingsPage = () => {
 													}}
 												/>
 											</Col>
-										</Row>
-
-										<Row gutter={token.marginLG}>
 											<Col span={12}>
 												<ProFormDigit
 													name="keyDisplayMergeDuration"
@@ -2659,7 +2655,6 @@ export const FunctionSettingsPage = () => {
 													<ColorPicker showText placement="bottom" />
 												</ProForm.Item>
 											</Col>
-
 											<Col span={12}>
 												<ProForm.Item
 													name="keyDisplayTextColor"
