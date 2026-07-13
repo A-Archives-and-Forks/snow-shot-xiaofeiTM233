@@ -684,7 +684,7 @@ export const GeneralSettingsPage = () => {
 								name="toolbarHiddenToolList"
 								label={<FormattedMessage id="settings.customToolbarToolList" />}
 								options={customToolbarToolListOptions}
-								mode="multiple"
+								multiple
 							/>
 						</Col>
 					</Row>

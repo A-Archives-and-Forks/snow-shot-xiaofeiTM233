@@ -172,7 +172,7 @@ export const AboutPage = () => {
 				<Title level={3}>
 					{intl.formatMessage({ id: "about.contact.title" })}
 				</Title>
-				<Space direction="vertical" style={{ width: "100%" }}>
+				<Space orientation="vertical" style={{ width: "100%" }}>
 					<Button
 						type="primary"
 						icon={<GithubOutlined />}

@@ -888,7 +888,7 @@ export const FunctionSettingsPage = () => {
 												required={false}
 											>
 												<Select
-													mode="tags"
+													tags
 													style={{ width: "100%" }}
 													placeholder={intl.formatMessage({
 														id: "settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder",
@@ -1304,7 +1304,7 @@ export const FunctionSettingsPage = () => {
 										}
 									/>
 								}
-								mode="multiple"
+								multiple
 								options={disableQuickSelectElementToolListOptions}
 							/>
 						</Col>
