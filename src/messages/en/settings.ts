@@ -281,7 +281,7 @@ export const settings = {
 	"settings.functionSettings.outputSettings": "Output Settings",
 	"settings.functionSettings.outputSettings.variables": "Supported Variables",
 	"settings.functionSettings.outputSettings.variables.focusedWindowAppName":
-		"Focused window application name",
+		"Focused window name",
 	"settings.functionSettings.outputSettings.variables.date": "Date",
 	"settings.functionSettings.outputSettings.fileNameFormat": "File Name Format",
 	"settings.functionSettings.outputSettings.manualSaveFileNameFormat":
