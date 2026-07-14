@@ -408,6 +408,20 @@ export const CaptureHistoryPage = () => {
                     padding-inline: 0 !important;
                     padding-block: 0 !important;
                 }
+                /* antd v6 升级后 ProList 列表项行的 flex 布局失效，
+                   导致每行左侧复选框与右侧日期标题被拆成上下两行。强制水平排列。 */
+                :global(.capture-history-list .ant-pro-list-row) {
+                    display: flex !important;
+                    flex-direction: row !important;
+                    align-items: flex-start;
+                }
+                :global(.capture-history-list .ant-pro-list-row-select) {
+                    flex: none;
+                }
+                :global(.capture-history-list .ant-pro-list-row-content) {
+                    flex: 1;
+                    min-width: 0;
+                }
             `}</style>
 		</>
 	);

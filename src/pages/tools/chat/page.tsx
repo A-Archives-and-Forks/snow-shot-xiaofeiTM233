@@ -1598,19 +1598,30 @@ const Chat = () => {
                     margin-top: ${token.marginXXS}px;
                 }
 
-                /* antd v6 升级后 Sender 输入框聚焦会出现异常蓝色边线，移除聚焦时的边框与光晕 */
+                /* antd v6 升级后 Sender 输入框聚焦会出现异常蓝色边线：
+                   仅移除 textarea 的蓝色 focus-visible outline，保留 hover/focus 时的中性边框，
+                   避免把 .ant-sender 的边框设为透明导致输入框在 hover 时“消失” */
+                :global(.ant-sender) {
+                    border-color: var(--antd-color-border) !important;
+                }
                 :global(.ant-sender textarea),
                 :global(.ant-sender .ant-input) {
                     border-color: transparent !important;
                     box-shadow: none !important;
                 }
-                :global(.ant-sender textarea):focus,
-                :global(.ant-sender .ant-input):focus,
-                :global(.ant-sender.ant-sender-focused),
-                :global(.ant-sender:hover) {
-                    border-color: transparent !important;
+                :global(.ant-sender):hover,
+                :global(.ant-sender.ant-sender-focused) {
+                    border-color: var(--antd-color-border) !important;
                     box-shadow: none !important;
                     outline: none !important;
+                }
+                :global(.ant-sender textarea):focus,
+                :global(.ant-sender .ant-input):focus,
+                :global(.ant-sender textarea):focus-visible,
+                :global(.ant-sender .ant-input):focus-visible {
+                    outline: none !important;
+                    border-color: transparent !important;
+                    box-shadow: none !important;
                 }
             `}</style>
 		</div>
