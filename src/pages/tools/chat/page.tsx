@@ -5,7 +5,6 @@ import {
 	Bubble,
 	Conversations,
 	Sender,
-	Suggestion,
 	Welcome,
 	type BubbleItemType,
 	type ConversationItemType,
@@ -26,6 +25,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import {
 	Button,
 	Card,
+	ConfigProvider,
 	Drawer,
 	Select,
 	type SelectProps,
@@ -731,8 +731,21 @@ const Chat = () => {
 
 	const loading = isRequesting;
 
+	// x-sdk 的 abort() 在无活动请求时会因内部 requestHandler 为 undefined 而抛错，
+	// 这里用 ref 记录最新请求状态，仅在确有请求时调用 abort，并对异常兜底。
+	const isRequestingRef = useRef(false);
+	useEffect(() => {
+		isRequestingRef.current = isRequesting;
+	}, [isRequesting]);
+
 	const abortChat = useCallback(() => {
-		abort();
+		if (isRequestingRef.current) {
+			try {
+				abort();
+			} catch {
+				// 忽略无活动请求时的 abort 异常
+			}
+		}
 		setSendQueueMessages([]);
 	}, [setSendQueueMessages, abort]);
 
@@ -1328,73 +1341,65 @@ const Chat = () => {
 					}}
 				/>
 			</div>
-			{/** 输入框 */}
-			<Suggestion
-				items={[]}
-				onSelect={(itemVal) => setInputValue(`[${itemVal}]:`)}
-			>
-				{({ onKeyDown }) => (
-					<Sender
-						ref={senderRef}
-						loading={senderLoading}
-						value={inputValue}
-						onChange={(v) => {
-							if (v.length > 10000) {
-								setInputValue(v.substring(0, 10000));
-							} else {
-								setInputValue(v);
-							}
-						}}
-						disabled={sessionStoreLoading}
-						onSubmit={async (message) => {
-							if (!curSessionRef.current) {
-								await createNewSession();
-							}
+		{/** 输入框 */}
+		<ConfigProvider
+			theme={{ token: { controlOutline: "transparent", controlOutlineWidth: 0 } }}
+		>
+			<Sender
+				ref={senderRef}
+			loading={senderLoading}
+			value={inputValue}
+			onChange={(v) => {
+				if (v.length > 10000) {
+					setInputValue(v.substring(0, 10000));
+				} else {
+					setInputValue(v);
+				}
+			}}
+			disabled={sessionStoreLoading}
+			onSubmit={async (message) => {
+				if (!curSessionRef.current) {
+					await createNewSession();
+				}
 
-							onSenderSubmit(message);
+				onSenderSubmit(message);
+			}}
+			onCancel={abortChat}
+			placeholder={intl.formatMessage({ id: "tools.chat.placeholder" })}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" && (senderLoading || userSendingRef.current)) {
+					setSendQueueMessages((prev) =>
+						prev.concat({
+							content: inputValue,
+							title: intl.formatMessage({
+								id: "tools.chat.sendQueue.userMessage",
+							}),
+						}),
+					);
+					setInputValue("");
+				}
+			}}
+			suffix={(_, info) => {
+				const { SendButton, LoadingButton } = info.components;
+				return (
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							gap: token.marginXS,
 						}}
-						onCancel={abortChat}
-						placeholder={intl.formatMessage({ id: "tools.chat.placeholder" })}
-						onKeyDown={(e) => {
-							if (
-								e.key === "Enter" &&
-								(senderLoading || userSendingRef.current)
-							) {
-								setSendQueueMessages((prev) =>
-									prev.concat({
-										content: inputValue,
-										title: intl.formatMessage({
-											id: "tools.chat.sendQueue.userMessage",
-										}),
-									}),
-								);
-								setInputValue("");
-							}
-
-							onKeyDown(e);
-						}}
-						suffix={(_, info) => {
-							const { SendButton, LoadingButton } = info.components;
-							return (
-								<div
-									style={{
-										display: "flex",
-										alignItems: "center",
-										gap: token.marginXS,
-									}}
-								>
-									<SendQueueMessageList queue={sendQueueMessages} />
-									{loading ? (
-										<LoadingButton type="default" />
-									) : (
-										<SendButton type="primary" />
-									)}
-								</div>
-							);
-						}}
-					/>
-				)}
-			</Suggestion>
+					>
+						<SendQueueMessageList queue={sendQueueMessages} />
+						{loading ? (
+							<LoadingButton type="default" />
+						) : (
+							<SendButton type="primary" />
+						)}
+					</div>
+				);
+			}}
+		/>
+		</ConfigProvider>
 		</div>
 	);
 
