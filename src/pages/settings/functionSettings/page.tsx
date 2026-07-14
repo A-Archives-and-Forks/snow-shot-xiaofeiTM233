@@ -1304,7 +1304,7 @@ export const FunctionSettingsPage = () => {
 										}
 									/>
 								}
-								multiple
+								fieldProps={{ mode: "multiple" }}
 								options={disableQuickSelectElementToolListOptions}
 							/>
 						</Col>

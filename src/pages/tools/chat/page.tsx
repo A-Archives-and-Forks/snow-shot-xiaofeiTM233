@@ -1182,18 +1182,14 @@ const Chat = () => {
 
 	const handleUserSubmit = useCallback(
 		(val: string, flowConfig?: ChatMessageFlowConfig) => {
-		// @ant-design/x v2 中 onRequest 需要第二个参数 opts: { extra }
-		onRequest(
-			{
-				stream: true,
-				message: {
-					content: val,
-					role: "user",
-					flow_config: flowConfig,
-				},
+		onRequest({
+			stream: true,
+			message: {
+				content: val,
+				role: "user",
+				flow_config: flowConfig,
 			},
-			{ extra: {} },
-		);
+		});
 
 			if (
 				sessionListRef.current.find((i) => i.key === curSessionRef.current)
