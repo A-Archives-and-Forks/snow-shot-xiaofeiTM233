@@ -23,9 +23,9 @@ import {
 import { useSearch } from "@tanstack/react-router";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import {
+	Avatar,
 	Button,
 	Card,
-	ConfigProvider,
 	Drawer,
 	Select,
 	type SelectProps,
@@ -976,14 +976,16 @@ const Chat = () => {
 	const bubbleItems = useMemo((): BubbleItemType[] | undefined => {
 		if (!messages || messages.length === 0) return undefined;
 
-		const botAvatar = {
-			icon: <BotIcon />,
-			style: {
-				color: token.colorPrimary,
-				backgroundColor: "transparent",
-				fontSize: "2em",
-			},
-		};
+		const botAvatar = (
+			<Avatar
+				icon={<BotIcon />}
+				style={{
+					color: token.colorPrimary,
+					backgroundColor: "transparent",
+					fontSize: "2em",
+				}}
+			/>
+		);
 		const list = messages.map((i): BubbleItemType => {
 			const msg = i.message as ChatMessage;
 			if (i.status === "loading") {
@@ -1342,11 +1344,8 @@ const Chat = () => {
 				/>
 			</div>
 		{/** 输入框 */}
-		<ConfigProvider
-			theme={{ token: { controlOutline: "transparent", controlOutlineWidth: 0 } }}
-		>
-			<Sender
-				ref={senderRef}
+		<Sender
+			ref={senderRef}
 			loading={senderLoading}
 			value={inputValue}
 			onChange={(v) => {
@@ -1399,7 +1398,14 @@ const Chat = () => {
 				);
 			}}
 		/>
-		</ConfigProvider>
+		<style jsx>{`
+			:global(.ant-sender-input):focus-visible,
+			:global(.ant-sender-input):focus,
+			:global(.ant-sender textarea):focus-visible,
+			:global(.ant-sender textarea):focus {
+				outline: none;
+			}
+		`}</style>
 		</div>
 	);
 
