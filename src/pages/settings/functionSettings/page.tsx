@@ -888,7 +888,7 @@ export const FunctionSettingsPage = () => {
 												required={false}
 											>
 												<Select
-													tags
+													mode="tags"
 													style={{ width: "100%" }}
 													placeholder={intl.formatMessage({
 														id: "settings.functionSettings.screenshotSettings.windowAutoSelectBlacklist.placeholder",

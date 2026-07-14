@@ -109,7 +109,7 @@ export const AboutPage = () => {
 				</div>
 				<Space wrap style={{ marginTop: token.margin }}>
 					<Tooltip title={commitSha ? `Commit SHA: ${commitSha}` : undefined}>
-						<Tag color="blue">
+						<Tag color="blue" variant="outlined">
 							<a
 								style={{ color: token.colorLink }}
 								onClick={() => openUrl("https://snowshot.top/")}
@@ -118,7 +118,7 @@ export const AboutPage = () => {
 							</a>
 						</Tag>
 					</Tooltip>
-					<Tag color="green">
+					<Tag color="green" variant="outlined">
 						<a
 							style={{ color: token.colorLink }}
 							onClick={() => openUrl("https://github.com/mg-chao")}

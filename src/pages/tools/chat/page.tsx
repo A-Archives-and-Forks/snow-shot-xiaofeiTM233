@@ -317,9 +317,9 @@ type ChatRequestBody = {
 };
 
 class SnowShotChatProvider extends AbstractChatProvider<
+	ChatMessage,
 	ChatRequestBody,
-	SSEOutput,
-	ChatMessage
+	SSEOutput
 > {
 	private selectedModelRef: { current: string | undefined };
 	private getAppSettings: () => AppSettingsData;
@@ -1182,14 +1182,18 @@ const Chat = () => {
 
 	const handleUserSubmit = useCallback(
 		(val: string, flowConfig?: ChatMessageFlowConfig) => {
-			onRequest({
+		// @ant-design/x v2 中 onRequest 需要第二个参数 opts: { extra }
+		onRequest(
+			{
 				stream: true,
 				message: {
 					content: val,
 					role: "user",
 					flow_config: flowConfig,
 				},
-			});
+			},
+			{ extra: {} },
+		);
 
 			if (
 				sessionListRef.current.find((i) => i.key === curSessionRef.current)
@@ -1373,7 +1377,7 @@ const Chat = () => {
 
 							onKeyDown(e);
 						}}
-						actions={(_, info) => {
+						suffix={(_, info) => {
 							const { SendButton, LoadingButton } = info.components;
 							return (
 								<div
@@ -1585,6 +1589,21 @@ const Chat = () => {
 
                 :global(.ant-bubble-content .ant-typography > p):first-child {
                     margin-top: ${token.marginXXS}px;
+                }
+
+                /* antd v6 升级后 Sender 输入框聚焦会出现异常蓝色边线，移除聚焦时的边框与光晕 */
+                :global(.ant-sender textarea),
+                :global(.ant-sender .ant-input) {
+                    border-color: transparent !important;
+                    box-shadow: none !important;
+                }
+                :global(.ant-sender textarea):focus,
+                :global(.ant-sender .ant-input):focus,
+                :global(.ant-sender.ant-sender-focused),
+                :global(.ant-sender:hover) {
+                    border-color: transparent !important;
+                    box-shadow: none !important;
+                    outline: none !important;
                 }
             `}</style>
 		</div>

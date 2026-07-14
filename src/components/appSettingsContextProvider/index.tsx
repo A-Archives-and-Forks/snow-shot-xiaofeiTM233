@@ -1664,6 +1664,7 @@ const AppSettingsContextProviderCore: React.FC<{
 				locale={antdLocale}
 				modal={{ mask: { blur: false } }}
 				drawer={{ mask: { blur: false } }}
+				tag={{ styles: { root: { marginInlineEnd: 8 } } }}
 			>
 				<IntlProvider
 					locale={appSettings[AppSettingsGroup.Common].language}
