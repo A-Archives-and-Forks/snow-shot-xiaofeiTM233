@@ -1609,10 +1609,17 @@ const Chat = () => {
                     border-color: transparent !important;
                     box-shadow: none !important;
                 }
-                :global(.ant-sender):hover,
-                :global(.ant-sender.ant-sender-focused) {
+                :global(.ant-sender):hover {
                     border-color: var(--antd-color-border) !important;
                     box-shadow: none !important;
+                    outline: none !important;
+                }
+                /* 聚焦时恢复旧版的浮起阴影 + 蓝色边框（与旧版 .ant-sender:focus-within 一致） */
+                :global(.ant-sender.ant-sender-focused) {
+                    border-color: var(--antd-color-primary) !important;
+                    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+                        0 3px 6px -4px rgba(0, 0, 0, 0.12),
+                        0 9px 28px 8px rgba(0, 0, 0, 0.05) !important;
                     outline: none !important;
                 }
                 :global(.ant-sender textarea):focus,
