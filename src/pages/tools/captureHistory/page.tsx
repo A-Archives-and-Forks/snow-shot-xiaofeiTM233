@@ -175,6 +175,12 @@ export const CaptureHistoryPage = () => {
 				}}
 				tableAlertOptionRender={tableAlertOptionRender}
 				itemLayout="vertical"
+				split
+				cardProps={{
+					styles: {
+						body: { paddingInline: 0, paddingBlock: 0 },
+					},
+				}}
 				rowKey="id"
 				headerTitle={
 					<>
@@ -402,46 +408,6 @@ export const CaptureHistoryPage = () => {
 					},
 				}}
 			/>
-
-			<style jsx>{`
-                :global(.capture-history-list .ant-pro-card-body) {
-                    padding-inline: 0 !important;
-                    padding-block: 0 !important;
-                }
-                /* antd v6 下 ProList 列表项行的 flex 布局失效：
-                   整行/内容容器实际挂载的是 CSS Modules 哈希类名（如 css-ry7cab），
-                   没有稳定的全局类名可命中。改用 :has() 依据已确认存在的子元素全局类名
-                   定位父容器并强制水平 flex：
-                   - 直接包含复选框(.ant-pro-list-row-select / .ant-checkbox-wrapper)的容器 = 整行
-                   - 直接包含 meta(.ant-pro-list-item-meta)的容器 = 内容区（日期与操作一左一右） */
-                :global(.capture-history-list div:has(> .ant-pro-list-row-select)),
-                :global(.capture-history-list div:has(> .ant-checkbox-wrapper)) {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: flex-start !important;
-                    flex-wrap: nowrap !important;
-                }
-                :global(.capture-history-list div:has(> .ant-pro-list-item-meta)) {
-                    display: flex !important;
-                    flex-direction: row !important;
-                    align-items: flex-start !important;
-                    flex-wrap: nowrap !important;
-                }
-                /* 复选框列不撑开 */
-                :global(.capture-history-list .ant-pro-list-row-select),
-                :global(.capture-history-list .ant-checkbox-wrapper) {
-                    flex: none !important;
-                }
-                /* 日期 meta 占据剩余空间，操作选项靠右且不撑开 */
-                :global(.capture-history-list .ant-pro-list-item-meta) {
-                    flex: 1 1 auto !important;
-                    min-width: 0 !important;
-                }
-                :global(.capture-history-list .ant-pro-list-row-header-option) {
-                    flex: none !important;
-                    margin-inline-start: auto !important;
-                }
-            `}</style>
 		</>
 	);
 };
