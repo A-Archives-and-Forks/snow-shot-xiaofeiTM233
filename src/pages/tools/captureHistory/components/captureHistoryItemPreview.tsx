@@ -1,4 +1,5 @@
-import { Image, Tooltip } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
+import { Image, Tooltip, useLocale } from "antd";
 import { useState } from "react";
 import { FormattedMessage } from "react-intl";
 import type { CaptureHistoryRecordItem } from "../extra";
@@ -7,6 +8,7 @@ export const CaptureHistoryItemPreview: React.FC<{
 	item: CaptureHistoryRecordItem;
 }> = ({ item }) => {
 	const [showCaptureResult, setShowCaptureResult] = useState(true);
+	const [imageLocale] = useLocale("Image");
 
 	return (
 		<Tooltip
@@ -20,6 +22,14 @@ export const CaptureHistoryItemPreview: React.FC<{
 				alt="preview"
 				loading="lazy"
 				key={item.id}
+				preview={{
+					mask: (
+						<span>
+							<EyeOutlined />
+							{imageLocale.preview}
+						</span>
+					),
+				}}
 				src={
 					showCaptureResult
 						? (item.capture_result_file_url ?? item.file_url)
