@@ -316,11 +316,7 @@ type ChatRequestBody = {
 	stream: boolean;
 };
 
-class SnowShotChatProvider extends AbstractChatProvider<
-	ChatMessage,
-	ChatRequestBody,
-	SSEOutput
-> {
+class SnowShotChatProvider extends AbstractChatProvider<any, any, any> {
 	private selectedModelRef: { current: string | undefined };
 	private getAppSettings: () => AppSettingsData;
 	private enableThinkingRef: { current: boolean };
@@ -388,7 +384,12 @@ class SnowShotChatProvider extends AbstractChatProvider<
 		const userInput = last(newInputMessages);
 		if (!userInput) {
 			appError("[SnowShotChatProvider] userInput is undefined");
-			return { messages: [], model: "", stream: true };
+			return {
+				messages: [],
+				model: "",
+				stream_options: { include_usage: true },
+				stream: true,
+			};
 		}
 
 		if (userInput.flow_config?.flow.ignore_context) {
@@ -988,18 +989,22 @@ const Chat = () => {
 		);
 		const list = messages.map((i): BubbleItemType => {
 			const msg = i.message as ChatMessage;
+			const key = i.id;
 			if (i.status === "loading") {
 				return {
+					key,
 					loading: true,
 					role: "assistant",
 					avatar: botAvatar,
 					variant: "borderless",
+					content: "",
 				};
 			}
 
 			const content = getMessageContent(msg);
 
 			return {
+				key,
 				role: msg.role,
 				placement: msg.role === "assistant" ? "start" : "end",
 				content,
@@ -1017,6 +1022,21 @@ const Chat = () => {
 							}
 						: undefined,
 				avatar: msg.role === "assistant" ? botAvatar : undefined,
+				footer:
+					msg.role === "assistant"
+						? () => (
+								<div style={{ display: "flex" }}>
+									<Button
+										type="text"
+										size="small"
+										icon={<CopyOutlined />}
+										onClick={() => {
+											writeTextToClipboard(content);
+										}}
+									/>
+								</div>
+							)
+						: undefined,
 				// typing: i.status === 'loading' ? { step: 2, interval: 50 } : false,
 			};
 		});
@@ -1093,48 +1113,23 @@ const Chat = () => {
 			>
 				{bubbleItems ? (
 					/** 消息列表 */
-					<Bubble.List
-						style={{ height: "100%", paddingInline: 16 }}
-						items={bubbleItems}
-						key={curSession}
-						roles={{
-							assistant: {
-								placement: "start",
-								loadingRender: () => (
-									<Space>
-										<Spin size="small" />
-										<FormattedMessage id="tools.chat.agentPlaceholder" />
-									</Space>
-								),
-								footer: (content) => (
-									<div style={{ display: "flex" }}>
-										<Button
-											type="text"
-											size="small"
-											icon={<CopyOutlined />}
-											onClick={() => {
-												let textContent = "";
-												if (
-													content &&
-													typeof content === "object" &&
-													"props" in content
-												) {
-													textContent = content.props.clipboardContent;
-												} else if (typeof content === "string") {
-													textContent = content;
-												} else {
-													return;
-												}
-
-												writeTextToClipboard(textContent);
-											}}
-										/>
-									</div>
-								),
-							},
-							user: { placement: "end" },
-						}}
-					/>
+				<Bubble.List
+					style={{ height: "100%", paddingInline: 16 }}
+					items={bubbleItems}
+					key={curSession}
+					role={{
+						assistant: {
+							placement: "start",
+							loadingRender: () => (
+								<Space>
+									<Spin size="small" />
+									<FormattedMessage id="tools.chat.agentPlaceholder" />
+								</Space>
+							),
+						},
+						user: { placement: "end" },
+					}}
+				/>
 				) : (
 					<div className="chatWelcomeWrap">
 						<Welcome
