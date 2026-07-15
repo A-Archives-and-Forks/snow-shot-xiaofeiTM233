@@ -107,7 +107,7 @@ export const AboutPage = () => {
 						{intl.formatMessage({ id: "about.subtitle" })}
 					</Text>
 				</div>
-				<Space wrap style={{ marginTop: token.margin }}>
+				<Space wrap gap={0} style={{ marginTop: token.margin }}>
 					<Tooltip title={commitSha ? `Commit SHA: ${commitSha}` : undefined}>
 						<Tag color="blue" variant="outlined">
 							<a
