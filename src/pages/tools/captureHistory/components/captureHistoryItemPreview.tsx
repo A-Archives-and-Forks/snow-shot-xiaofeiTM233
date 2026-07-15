@@ -1,5 +1,5 @@
 import { EyeOutlined } from "@ant-design/icons";
-import { Image, Tooltip, useLocale } from "antd";
+import { Image, Tooltip } from "antd";
 import { useState } from "react";
 import { FormattedMessage } from "react-intl";
 import type { CaptureHistoryRecordItem } from "../extra";
@@ -8,7 +8,6 @@ export const CaptureHistoryItemPreview: React.FC<{
 	item: CaptureHistoryRecordItem;
 }> = ({ item }) => {
 	const [showCaptureResult, setShowCaptureResult] = useState(true);
-	const [imageLocale] = useLocale("Image");
 
 	const resultUrl = item.capture_result_file_url;
 	const fileUrl = item.file_url;
@@ -16,7 +15,7 @@ export const CaptureHistoryItemPreview: React.FC<{
 	const mask = (
 		<span>
 			<EyeOutlined />
-			{imageLocale.preview}
+			<FormattedMessage id="tools.captureHistory.preview" />
 		</span>
 	);
 
