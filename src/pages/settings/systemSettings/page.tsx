@@ -322,50 +322,52 @@ export const SystemSettingsPage = () => {
 							</ProForm.Item>
 						</Col>
 						{currentPlatform === "windows" && (
-							<Col span={12}>
-								<ProForm.Item
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission" />
-											}
-											tooltipTitle={
-												<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission.tip" />
-											}
-										/>
-									}
-								>
-									{isAdmin ? (
-										<div style={{ color: token.colorSuccess }}>
-											<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission.enabled" />
-										</div>
-									) : (
-										<Button
-											type="default"
-											onClick={() => {
-												restartWithAdmin();
-											}}
-										>
-											<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission.useAdminRestart" />
-										</Button>
-									)}
-								</ProForm.Item>
-							</Col>
-							<Col span={12}>
-								<ProFormSwitch
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.commonSettings.boostProcessPriority" />
-											}
-											tooltipTitle={
-												<FormattedMessage id="settings.systemSettings.commonSettings.boostProcessPriority.tip" />
-											}
-										/>
-									}
-									name="boostProcessPriority"
-								/>
-							</Col>
+							<>
+								<Col span={12}>
+									<ProForm.Item
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission" />
+												}
+												tooltipTitle={
+													<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission.tip" />
+												}
+											/>
+										}
+									>
+										{isAdmin ? (
+											<div style={{ color: token.colorSuccess }}>
+												<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission.enabled" />
+											</div>
+										) : (
+											<Button
+												type="default"
+												onClick={() => {
+													restartWithAdmin();
+												}}
+											>
+												<FormattedMessage id="settings.systemSettings.commonSettings.adminPermission.useAdminRestart" />
+											</Button>
+										)}
+									</ProForm.Item>
+								</Col>
+								<Col span={12}>
+									<ProFormSwitch
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.commonSettings.boostProcessPriority" />
+												}
+												tooltipTitle={
+													<FormattedMessage id="settings.systemSettings.commonSettings.boostProcessPriority.tip" />
+												}
+											/>
+										}
+										name="boostProcessPriority"
+									/>
+								</Col>
+							</>
 						)}
 					</Row>
 				</ProForm>
@@ -429,61 +431,76 @@ export const SystemSettingsPage = () => {
 								valuePropName="checked"
 							/>
 						</Col>
-					</Row>
 
-					{currentPlatform === "windows" && (
-						<Row gutter={token.marginLG}>
-							<Col span={24}>
-								<ProFormSwitch
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.correctColorFilter" />
-											}
-											tooltipTitle={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.correctColorFilter.tip" />
-											}
-										/>
-									}
-									name="correctColorFilter"
-									valuePropName="checked"
-								/>
-							</Col>
+						{currentPlatform === "windows" && (
+							<>
+								<Col span={12}>
+									<ProFormSwitch
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.tryWriteBitmapImageToClipboard" />
+												}
+												tooltipTitle={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.tryWriteBitmapImageToClipboard.tip" />
+												}
+											/>
+										}
+										name="tryWriteBitmapImageToClipboard"
+										valuePropName="checked"
+									/>
+								</Col>
 
-							<Col span={12}>
-								<ProFormSwitch
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.enableCorrectHdrColor" />
-											}
-											tooltipTitle={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.enableCorrectHdrColor.tip" />
-											}
-										/>
-									}
-									name="correctHdrColor"
-									valuePropName="checked"
-								/>
-							</Col>
+								<Col span={24}>
+									<ProFormSwitch
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.correctColorFilter" />
+												}
+												tooltipTitle={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.correctColorFilter.tip" />
+												}
+											/>
+										}
+										name="correctColorFilter"
+										valuePropName="checked"
+									/>
+								</Col>
 
-							<Col span={12}>
-								<ProFormSelect
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.enableCorrectHdrColor.algorithm" />
-											}
-										/>
-									}
-									name="correctHdrColorAlgorithm"
-									options={hdrColorAlgorithmOptions}
-								/>
-							</Col>
-						</Row>
-					)}
+								<Col span={12}>
+									<ProFormSwitch
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.enableCorrectHdrColor" />
+												}
+												tooltipTitle={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.enableCorrectHdrColor.tip" />
+												}
+											/>
+										}
+										name="correctHdrColor"
+										valuePropName="checked"
+									/>
+								</Col>
 
-					<Row gutter={token.marginLG}>
+								<Col span={12}>
+									<ProFormSelect
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.enableCorrectHdrColor.algorithm" />
+												}
+											/>
+										}
+										name="correctHdrColorAlgorithm"
+										options={hdrColorAlgorithmOptions}
+									/>
+								</Col>
+							</>
+						)}
+
 						<Col span={12}>
 							<ProFormSwitch
 								label={
@@ -526,77 +543,57 @@ export const SystemSettingsPage = () => {
 								valuePropName="checked"
 							/>
 						</Col>
-					</Row>
 
-					{isReadyStatus?.(PLUGIN_ID_RAPID_OCR) && (
-						<Row gutter={token.marginLG}>
-							<Col span={12}>
-								<ProFormSwitch
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrHotStart" />
-											}
-											tooltipTitle={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrHotStart.tip" />
-											}
-										/>
-									}
-									name="ocrHotStart"
-									valuePropName="checked"
-								/>
-							</Col>
+						{isReadyStatus?.(PLUGIN_ID_RAPID_OCR) && (
+							<>
+								<Col span={12}>
+									<ProFormSwitch
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrHotStart" />
+												}
+												tooltipTitle={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrHotStart.tip" />
+												}
+											/>
+										}
+										name="ocrHotStart"
+										valuePropName="checked"
+									/>
+								</Col>
 
-							<Col span={12}>
-								<ProFormSwitch
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrModelWriteToMemory" />
-											}
-											tooltipTitle={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrModelWriteToMemory.tip" />
-											}
-										/>
-									}
-									name="ocrModelWriteToMemory"
-									valuePropName="checked"
-								/>
-							</Col>
+								<Col span={12}>
+									<ProFormSwitch
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrModelWriteToMemory" />
+												}
+												tooltipTitle={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrModelWriteToMemory.tip" />
+												}
+											/>
+										}
+										name="ocrModelWriteToMemory"
+										valuePropName="checked"
+									/>
+								</Col>
 
-							<Col span={12}>
-								<ProFormSwitch
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrDetectAngle" />
-											}
-										/>
-									}
-									name="ocrDetectAngle"
-									valuePropName="checked"
-								/>
-							</Col>
-						</Row>
-					)}
-					<Row gutter={token.marginLG}>
-						{currentPlatform === "windows" && (
-							<Col span={12}>
-								<ProFormSwitch
-									label={
-										<IconLabel
-											label={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.tryWriteBitmapImageToClipboard" />
-											}
-											tooltipTitle={
-												<FormattedMessage id="settings.systemSettings.screenshotSettings.tryWriteBitmapImageToClipboard.tip" />
-											}
-										/>
-									}
-									name="tryWriteBitmapImageToClipboard"
-									valuePropName="checked"
-								/>
-							</Col>
+								<Col span={12}>
+									<ProFormSwitch
+										label={
+											<IconLabel
+												label={
+													<FormattedMessage id="settings.systemSettings.screenshotSettings.ocrDetectAngle" />
+												}
+											/>
+										}
+										name="ocrDetectAngle"
+										valuePropName="checked"
+									/>
+								</Col>
+							</>
 						)}
 					</Row>
 				</ProForm>
@@ -719,24 +716,6 @@ export const SystemSettingsPage = () => {
 				>
 					<Row gutter={token.marginLG}>
 						<Col span={12}>
-							<ProFormSwitch
-								label={
-									<IconLabel
-										label={
-											<FormattedMessage id="settings.systemSettings.scrollScreenshotSettings.tryRollback" />
-										}
-										tooltipTitle={
-											<FormattedMessage id="settings.systemSettings.scrollScreenshotSettings.tryRollback.tip" />
-										}
-									/>
-								}
-								name="tryRollback"
-							/>
-						</Col>
-					</Row>
-
-					<Row gutter={token.marginLG}>
-						<Col span={12}>
 							<ProFormSlider
 								label={
 									<IconLabel
@@ -849,6 +828,21 @@ export const SystemSettingsPage = () => {
 									128: "128",
 								}}
 								layout="vertical"
+							/>
+						</Col>
+						<Col span={12}>
+							<ProFormSwitch
+								label={
+									<IconLabel
+										label={
+											<FormattedMessage id="settings.systemSettings.scrollScreenshotSettings.tryRollback" />
+										}
+										tooltipTitle={
+											<FormattedMessage id="settings.systemSettings.scrollScreenshotSettings.tryRollback.tip" />
+										}
+									/>
+								}
+								name="tryRollback"
 							/>
 						</Col>
 					</Row>
@@ -1113,6 +1107,40 @@ export const SystemSettingsPage = () => {
 								</Space>
 							</ProForm.Item>
 						</Col>
+						<Col span={24}>
+							<ProForm.Item
+								label={
+									<IconLabel
+										label={
+											<FormattedMessage id="settings.systemSettings.appLogFilePath" />
+										}
+									/>
+								}
+							>
+								<Space wrap>
+									<Typography.Text
+										copyable={{
+											text: appLogPath,
+										}}
+									>
+										{appLogPath}
+									</Typography.Text>
+									<Button
+										onClick={async () => {
+											try {
+												await openPath(appLogPath);
+											} catch {
+												message.error(
+													<FormattedMessage id="settings.systemSettings.appLogFilePath.open.failed" />,
+												);
+											}
+										}}
+									>
+										<FormattedMessage id="settings.systemSettings.appLogFilePath.open" />
+									</Button>
+								</Space>
+							</ProForm.Item>
+						</Col>
 						<Col span={12}>
 							<ProForm.Item
 								label={
@@ -1149,40 +1177,6 @@ export const SystemSettingsPage = () => {
 								>
 									<FormattedMessage id="settings.systemSettings.dataFile.clearAll" />
 								</Button>
-							</ProForm.Item>
-						</Col>
-						<Col span={24}>
-							<ProForm.Item
-								label={
-									<IconLabel
-										label={
-											<FormattedMessage id="settings.systemSettings.appLogFilePath" />
-										}
-									/>
-								}
-							>
-								<Space wrap>
-									<Typography.Text
-										copyable={{
-											text: appLogPath,
-										}}
-									>
-										{appLogPath}
-									</Typography.Text>
-									<Button
-										onClick={async () => {
-											try {
-												await openPath(appLogPath);
-											} catch {
-												message.error(
-													<FormattedMessage id="settings.systemSettings.appLogFilePath.open.failed" />,
-												);
-											}
-										}}
-									>
-										<FormattedMessage id="settings.systemSettings.appLogFilePath.open" />
-									</Button>
-								</Space>
 							</ProForm.Item>
 						</Col>
 					</Row>
