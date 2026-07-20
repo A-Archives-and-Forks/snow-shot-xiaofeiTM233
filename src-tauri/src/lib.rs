@@ -32,7 +32,100 @@ use snow_shot_app_services::resize_window_service;
 use snow_shot_app_services::video_record_service;
 use snow_shot_app_shared::EnigoManager;
 use snow_shot_global_state::{CaptureState, ReadClipboardState, WebViewSharedBufferState};
+use serde::{Deserialize, Serialize};
 use snow_shot_plugin_service::plugin_service;
+
+/// 主窗口几何信息（outer size / outer position）。
+///
+/// 用 outer 而非 inner，避免无边框窗口（`set_decorations(false)` 自定义标题栏）
+/// 下 inner/outer 不一致导致恢复出的尺寸比例失真（重启后变成方形/高度异常）。
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct MainWindowGeometry {
+    width: u32,
+    height: u32,
+    x: i32,
+    y: i32,
+}
+
+/// 是否记住关闭时的窗口位置和大小（由前端设置开关控制）。
+static REMEMBER_WINDOW_GEOMETRY: std::sync::OnceLock<std::sync::Mutex<bool>> =
+    std::sync::OnceLock::new();
+
+fn remember_window_geometry_enabled() -> bool {
+    *REMEMBER_WINDOW_GEOMETRY
+        .get_or_init(|| std::sync::Mutex::new(true))
+        .lock()
+        .unwrap()
+}
+
+fn set_remember_window_geometry_enabled(enabled: bool) {
+    *REMEMBER_WINDOW_GEOMETRY
+        .get_or_init(|| std::sync::Mutex::new(true))
+        .lock()
+        .unwrap() = enabled;
+}
+
+/// 读取主窗口当前 outer 尺寸/位置并落盘。
+fn save_main_window_geometry(app: &tauri::AppHandle) {
+    // 开关关闭时不保存，确保关闭软件后下次启动恢复默认尺寸/位置
+    if !remember_window_geometry_enabled() {
+        return;
+    }
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let (size, pos) = match (window.outer_size(), window.outer_position()) {
+        (Ok(s), Ok(p)) => (s, p),
+        _ => return,
+    };
+    let geo = MainWindowGeometry {
+        width: size.width,
+        height: size.height,
+        x: pos.x,
+        y: pos.y,
+    };
+    if let Ok(dir) = app.path().app_config_dir() {
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(content) = serde_json::to_string(&geo) {
+            let _ = std::fs::write(dir.join("main-window-geometry.json"), content);
+        }
+    }
+}
+
+/// 恢复主窗口上一次保存的尺寸/位置（在 setup 阶段、decorations 确定后调用）。
+fn restore_main_window_geometry(app: &tauri::AppHandle) {
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let Ok(dir) = app.path().app_config_dir() else {
+        return;
+    };
+    let Ok(content) = std::fs::read_to_string(dir.join("main-window-geometry.json")) else {
+        return;
+    };
+    let Ok(geo) = serde_json::from_str::<MainWindowGeometry>(&content) else {
+        return;
+    };
+    if geo.width > 0 && geo.height > 0 {
+        let _ = window.set_size(tauri::PhysicalSize::new(geo.width, geo.height));
+        let _ = window.set_position(tauri::PhysicalPosition::new(geo.x, geo.y));
+    }
+}
+
+/// 前端开关「记住关闭时窗口的位置和大小」变化时调用。
+/// 关闭时删除已保存的几何文件，使下次启动恢复默认。
+#[tauri::command]
+fn set_remember_window_geometry(app: tauri::AppHandle, remember: Option<bool>) {
+    // 前端旧配置/未加载时可能传入 undefined，JSON 序列化后该 key 被丢弃，
+    // 这里回退到默认 true，避免命令因缺少必需参数而报错。
+    let remember = remember.unwrap_or(true);
+    set_remember_window_geometry_enabled(remember);
+    if !remember {
+        if let Ok(dir) = app.path().app_config_dir() {
+            let _ = std::fs::remove_file(dir.join("main-window-geometry.json"));
+        }
+    }
+}
 
 #[cfg(feature = "dhat-heap")]
 pub static PROFILER: std::sync::LazyLock<Mutex<Option<dhat::Profiler>>> =
@@ -104,15 +197,6 @@ pub fn run() {
     #[allow(unused_mut)]
     let mut app_builder = tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(
-            tauri_plugin_window_state::Builder::new()
-                .with_state_flags(
-                    tauri_plugin_window_state::StateFlags::SIZE
-                        | tauri_plugin_window_state::StateFlags::POSITION,
-                )
-                .with_filter(|label| label == "main")
-                .build(),
-        )
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             let app_window = app.get_webview_window("main").expect("no main window");
@@ -165,7 +249,7 @@ pub fn run() {
                 })
                 .build(),
         )
-        .setup(|app| {
+        .setup(move |app| {
             let main_window = app
                 .get_webview_window("main")
                 .expect("[lib::setup] no main window");
@@ -190,27 +274,38 @@ pub fn run() {
                 app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             }
 
+            // 恢复主窗口上一次保存的大小和位置（outer size/position，在 decorations 确定后）
+            restore_main_window_geometry(app.handle());
+
             // 监听窗口关闭事件，拦截关闭按钮
             let window_clone = main_window.clone();
+            let app_handle_for_geo = app.handle().clone();
             main_window.on_window_event(move |event| {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    api.prevent_close();
+                match event {
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
+                        api.prevent_close();
+                        save_main_window_geometry(&app_handle_for_geo);
 
-                    #[cfg(target_os = "windows")]
-                    {
-                        if let Err(e) = window_clone.hide() {
-                            log::error!("[setup] hide window error: {:?}", e);
+                        #[cfg(target_os = "windows")]
+                        {
+                            if let Err(e) = window_clone.hide() {
+                                log::error!("[setup] hide window error: {:?}", e);
+                            }
                         }
-                    }
 
-                    #[cfg(target_os = "macos")]
-                    {
-                        if let Err(e) = window_clone.hide() {
-                            log::error!("[setup] hide window error: {:?}", e);
+                        #[cfg(target_os = "macos")]
+                        {
+                            if let Err(e) = window_clone.hide() {
+                                log::error!("[setup] hide window error: {:?}", e);
+                            }
                         }
-                    }
 
-                    window_clone.emit("on-hide-main-window", ()).unwrap();
+                        window_clone.emit("on-hide-main-window", ()).unwrap();
+                    }
+                    tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_) => {
+                        save_main_window_geometry(&app_handle_for_geo);
+                    }
+                    _ => {}
                 }
             });
 
@@ -308,6 +403,7 @@ pub fn run() {
             core::show_main_window,
             core::set_window_rect,
             core::get_commit_sha,
+            set_remember_window_geometry,
             scroll_screenshot::scroll_screenshot_get_image_data,
             scroll_screenshot::scroll_screenshot_init,
             scroll_screenshot::scroll_screenshot_capture,
@@ -376,6 +472,12 @@ pub fn run() {
                     }
                 }
             }
+        })
+        .on_event(move |app, event| {
+            // 应用退出时持久化主窗口几何信息，确保即使未触发关闭按钮也能保存
+            if let tauri::RunEvent::Exit = event {
+                save_main_window_geometry(app);
+            }
         });
 
     #[cfg(target_os = "windows")]
@@ -383,7 +485,14 @@ pub fn run() {
         app_builder = app_builder.manage(shared_buffer_service);
     }
 
-    app_builder
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+    let app = app_builder
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(move |app, event| {
+        // 应用退出时持久化主窗口几何信息，确保即使未触发关闭按钮也能保存
+        if let tauri::RunEvent::Exit = event {
+            save_main_window_geometry(app);
+        }
+    });
 }

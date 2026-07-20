@@ -754,6 +754,11 @@ const AppSettingsContextProviderCore: React.FC<{
 							? newSettings.boostProcessPriority
 							: (prevSettings?.boostProcessPriority ??
 								defaultAppSettingsData[group].boostProcessPriority),
+					rememberWindowGeometry:
+						typeof newSettings?.rememberWindowGeometry === "boolean"
+							? newSettings.rememberWindowGeometry
+							: (prevSettings?.rememberWindowGeometry ??
+								defaultAppSettingsData[group].rememberWindowGeometry),
 				};
 			} else if (group === AppSettingsGroup.SystemChat) {
 				newSettings = newSettings as AppSettingsData[typeof group];
