@@ -913,6 +913,14 @@ const AppSettingsContextProviderCore: React.FC<{
 									typeof item.deepl_prefer_quality_optimized === "boolean"
 										? item.deepl_prefer_quality_optimized
 										: false,
+								max_requests_per_second:
+									typeof item.max_requests_per_second === "number"
+										? item.max_requests_per_second
+										: undefined,
+								max_paragraph_count:
+									typeof item.max_paragraph_count === "number"
+										? item.max_paragraph_count
+										: undefined,
 							}))
 						: (prevSettings?.translationApiConfigList ??
 							defaultAppSettingsData[group].translationApiConfigList),

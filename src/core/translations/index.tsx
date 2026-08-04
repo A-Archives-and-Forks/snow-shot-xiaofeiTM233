@@ -351,18 +351,18 @@ export const useTranslationRequest = (options?: {
 						};
 					}
 
-					options?.onComplete?.(
-						result.translations.map((item) => ({
-							content: item.text,
-						})),
-						params.requestId,
+					const deeplTranslatedResults = result.translations.map((item) => ({
+						content: item.text,
+					}));
+
+					options?.onComplete?.(deeplTranslatedResults, params.requestId);
+					setTranslatedContent(
+						deeplTranslatedResults.map((item) => item.content).join("\n"),
 					);
 
 					return {
 						success: true,
-						result: result.translations.map((item) => ({
-							content: item.text,
-						})),
+						result: deeplTranslatedResults,
 					};
 				}
 
@@ -389,18 +389,18 @@ export const useTranslationRequest = (options?: {
 						};
 					}
 
-					options?.onComplete?.(
-						result.translations.map((item) => ({
-							content: item.text,
-						})),
-						params.requestId,
+					const customTranslatedResults = result.translations.map((item) => ({
+						content: item.text,
+					}));
+
+					options?.onComplete?.(customTranslatedResults, params.requestId);
+					setTranslatedContent(
+						customTranslatedResults.map((item) => item.content).join("\n"),
 					);
 
 					return {
 						success: true,
-						result: result.translations.map((item) => ({
-							content: item.text,
-						})),
+						result: customTranslatedResults,
 					};
 				}
 			}
