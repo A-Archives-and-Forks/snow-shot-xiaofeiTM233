@@ -393,6 +393,24 @@ const DrawPageCore: React.FC<{
 				imageBuffer,
 				captureBoundingBoxInfo,
 			);
+
+			// 黑屏兜底：实测多窗口实例并存/窗口重建时，worker 渲染容器可能为空
+			// （childrenCount: 0），导致预览与保存/复制全部黑屏。这里检查渲染结果，
+			// 空则用主线程持有的 sharedBuffer 拷贝重新渲染。
+			try {
+				const childrenCount =
+					await imageLayerActionRef.current?.ensureImageRendered(
+						capturedSharedBufferRef.current,
+					);
+				if (childrenCount === 0) {
+					appError(
+						"[DrawPageCore] screenshot container still empty after ensureImageRendered, result will be black",
+					);
+				}
+			} catch (error) {
+				appError("[DrawPageCore] ensureImageRendered failed", error);
+			}
+
 			appInfo("[DIAG] readyCapture: done");
 		},
 		[onCaptureLoad, setCaptureLoading, setCaptureEvent],

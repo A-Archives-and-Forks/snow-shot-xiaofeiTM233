@@ -68,6 +68,66 @@ import {
 
 export const INIT_CONTAINER_KEY = "init_container";
 
+/**
+ * 黑屏兜底：让 worker 检查截图容器是否已渲染，空则用主线程持有的 sharedBuffer
+ * 拷贝重新渲染。返回容器 children 数量（> 0 表示渲染正常）。
+ */
+export const ensureImageRenderedAction = async (
+	renderWorker: Worker | undefined,
+	canvasContainerMapRef: RefObject<Map<string, Container>>,
+	currentImageTextureRef: RefObject<Texture | undefined>,
+	sharedBufferImageTextureRef: RefObject<Texture | undefined>,
+	imageSharedBufferRef: RefObject<ImageSharedBufferData | undefined>,
+	baseImageTextureRef: RefObject<Texture | undefined>,
+	blurSpriteMapRef: RefObject<Map<string, BlurSprite>>,
+	containerKey: string,
+	fallbackImageBuffer: ImageSharedBufferData | undefined,
+): Promise<number> => {
+	return new Promise((resolve) => {
+		if (renderWorker) {
+			const handleMessage = (event: MessageEvent<RenderResult>) => {
+				const { type, payload } = event.data;
+				if (type === BaseLayerRenderMessageType.EnsureImageRendered) {
+					resolve(payload.childrenCount);
+					renderWorker.removeEventListener("message", handleMessage);
+				}
+			};
+			renderWorker.addEventListener("message", handleMessage);
+
+			const EnsureImageRenderedData: BaseLayerRenderEnsureImageRenderedData = {
+				type: BaseLayerRenderMessageType.EnsureImageRendered,
+				payload: {
+					containerKey,
+					imageBuffer: fallbackImageBuffer,
+				},
+			};
+
+			if (
+				fallbackImageBuffer &&
+				fallbackImageBuffer.sharedBuffer?.buffer &&
+				fallbackImageBuffer.sharedBuffer.buffer.byteLength > 0
+			) {
+				renderWorker.postMessage(EnsureImageRenderedData, {
+					transfer: [fallbackImageBuffer.sharedBuffer.buffer],
+				});
+			} else {
+				renderWorker.postMessage(EnsureImageRenderedData);
+			}
+		} else {
+			renderEnsureImageRenderedAction(
+				canvasContainerMapRef,
+				currentImageTextureRef,
+				sharedBufferImageTextureRef,
+				imageSharedBufferRef,
+				baseImageTextureRef,
+				blurSpriteMapRef,
+				containerKey,
+				fallbackImageBuffer,
+			).then(resolve);
+		}
+	});
+};
+
 export const initCanvasAction = async (
 	renderWorker: Worker | undefined,
 	canvasAppRef: RefObject<Application | undefined>,

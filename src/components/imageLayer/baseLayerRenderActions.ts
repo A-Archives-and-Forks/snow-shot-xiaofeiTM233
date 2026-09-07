@@ -527,6 +527,58 @@ export const renderAddImageToContainerAction = async (
 	}
 };
 
+/**
+ * 黑屏兜底：检查截图容器是否已渲染（有 sprite）。
+ * 实测黑屏时 export 出的图 childrenCount 为 0（截图数据从未进入渲染容器，
+ * 多窗口实例并存/窗口重建后 worker 容器被清空），画面与导出结果全黑。
+ * 容器为空且传入兜底 buffer 有效时，重新执行 addImageToContainer 渲染。
+ * 返回容器 children 数量（> 0 表示渲染正常）。
+ */
+export const renderEnsureImageRenderedAction = async (
+	canvasContainerMapRef: RefType<Map<string, PIXI.Container>>,
+	currentImageTextureRef: RefType<PIXI.Texture | undefined>,
+	sharedBufferImageTextureRef: RefType<PIXI.Texture | undefined>,
+	imageSharedBufferRef: RefType<ImageSharedBufferData | undefined>,
+	baseImageTextureRef: RefType<PIXI.Texture | undefined>,
+	blurSpriteMapRef: RefType<Map<string, BlurSprite>>,
+	containerKey: string,
+	fallbackImageBuffer: ImageSharedBufferData | undefined,
+): Promise<number> => {
+	const container = canvasContainerMapRef.current.get(containerKey);
+	const childrenCount = container?.children.length ?? 0;
+	if (childrenCount > 0) {
+		return childrenCount;
+	}
+
+	renderLog(
+		"warn",
+		`[renderEnsureImageRenderedAction] INIT container is EMPTY (childrenCount: 0), fallback buffer: ${!!fallbackImageBuffer}, re-rendering`,
+	);
+	if (!fallbackImageBuffer) {
+		return 0;
+	}
+
+	await renderAddImageToContainerAction(
+		canvasContainerMapRef,
+		currentImageTextureRef,
+		sharedBufferImageTextureRef,
+		imageSharedBufferRef,
+		baseImageTextureRef,
+		containerKey,
+		fallbackImageBuffer,
+		false,
+		blurSpriteMapRef,
+	);
+
+	const updated = canvasContainerMapRef.current.get(containerKey);
+	const updatedCount = updated?.children.length ?? 0;
+	renderLog(
+		updatedCount > 0 ? "info" : "error",
+		`[renderEnsureImageRenderedAction] re-render done, childrenCount: ${updatedCount}`,
+	);
+	return updatedCount;
+};
+
 export const renderTransferImageSharedBufferAction = (
 	imageSharedBufferRef: RefType<ImageSharedBufferData | undefined>,
 ) => {
