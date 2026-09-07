@@ -39,6 +39,8 @@ export enum BaseLayerRenderMessageType {
 	ApplyProcessImageConfigToCanvas = "applyProcessImageConfigToCanvas",
 	// worker 内部诊断日志转发（worker 的 console 不落盘，需转发到主线程由 appInfo/appWarn 落盘）
 	ForwardLog = "forwardLog",
+	// 确保截图已渲染：检查 INIT 容器，空则用传入的 buffer 重新添加（黑屏兜底）
+	EnsureImageRendered = "ensureImageRendered",
 }
 
 export type BaseLayerRenderInitData = {
@@ -211,6 +213,15 @@ export type BaseLayerRenderForwardLogData = {
 	};
 };
 
+// 黑屏兜底：检查 INIT 容器是否有截图，空则用传入的 sharedBuffer 重新渲染
+export type BaseLayerRenderEnsureImageRenderedData = {
+	type: BaseLayerRenderMessageType.EnsureImageRendered;
+	payload: {
+		containerKey: string;
+		imageBuffer: ImageSharedBufferData | undefined;
+	};
+};
+
 export type BaseLayerRenderData =
 	| BaseLayerRenderInitData
 	| BaseLayerRenderDisposeData
@@ -233,7 +244,9 @@ export type BaseLayerRenderData =
 	| BaseLayerRenderClearContextData
 	| BaseLayerRenderInitBaseImageTextureData
 	| BaseLayerRenderTransferImageSharedBufferData
-	| BaseLayerRenderApplyProcessImageConfigToCanvasData;
+	| BaseLayerRenderApplyProcessImageConfigToCanvasData
+	| BaseLayerRenderForwardLogData
+	| BaseLayerRenderEnsureImageRenderedData;
 
 export type RenderInitResult = {
 	type: BaseLayerRenderMessageType.Init;
@@ -358,6 +371,13 @@ export type RenderForwardLogResult = {
 	payload: undefined;
 };
 
+export type RenderEnsureImageRenderedResult = {
+	type: BaseLayerRenderMessageType.EnsureImageRendered;
+	payload: {
+		childrenCount: number;
+	};
+};
+
 export type RenderBlurSpriteResult =
 	| RenderCreateBlurSpriteResult
 	| RenderUpdateBlurSpriteResult
@@ -387,4 +407,5 @@ export type RenderResult =
 	| RenderInitBaseImageTextureResult
 	| RenderTransferImageSharedBufferResult
 	| RenderApplyProcessImageConfigToCanvasResult
-	| RenderForwardLogResult;
+	| RenderForwardLogResult
+	| RenderEnsureImageRenderedResult;

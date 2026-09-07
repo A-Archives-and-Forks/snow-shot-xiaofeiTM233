@@ -28,6 +28,7 @@ import { appError, appInfo, appWarn } from "@/utils/log";
 import {
 	addImageToContainerAction,
 	applyProcessImageConfigToCanvasAction,
+	ensureImageRenderedAction,
 	canvasRenderAction,
 	clearCanvasAction,
 	clearContainerAction,
@@ -75,6 +76,13 @@ export type ImageLayerActionType = {
 	renderImageSharedBufferToPng: (
 		imageSharedBuffer?: ImageSharedBufferData,
 	) => Promise<ArrayBuffer | undefined>;
+	/**
+	 * 黑屏兜底：检查截图容器是否已渲染，空则用传入的 sharedBuffer 拷贝重新渲染。
+	 * 返回容器 children 数量（> 0 表示渲染正常）。
+	 */
+	ensureImageRendered: (
+		fallbackImageBuffer: ImageSharedBufferData | undefined,
+	) => Promise<number>;
 	getImageBitmap: (
 		selectRect: ElementRect,
 		renderContainerKey?: string,
@@ -394,6 +402,15 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 				canvasAppRef,
 				initOptions,
 				offscreenCanvasRef.current ? [offscreenCanvasRef.current] : undefined,
+				{
+					canvasContainerMapRef,
+					currentImageTextureRef,
+					sharedBufferImageTextureRef,
+					imageSharedBufferRef,
+					baseImageTextureRef,
+					blurSpriteMapRef,
+					containerKey: INIT_CONTAINER_KEY,
+				},
 			);
 
 			// 初始化会销毁并重建画布应用，此前创建的初始容器与已应用的画布尺寸都会
@@ -589,6 +606,23 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 		}
 		return await encodeImage(encodeImageWorker, buffer);
 	}, [encodeImageWorker, rendererWorker]);
+
+	// 黑屏兜底：检查截图容器是否已渲染，空则用主线程持有的 sharedBuffer 拷贝重新渲染
+	const ensureImageRendered = useCallback<
+		ImageLayerActionType["ensureImageRendered"]
+	>(async (fallbackImageBuffer) => {
+		return await ensureImageRenderedAction(
+			rendererWorker,
+			canvasContainerMapRef,
+			currentImageTextureRef,
+			sharedBufferImageTextureRef,
+			imageSharedBufferRef,
+			baseImageTextureRef,
+			blurSpriteMapRef,
+			INIT_CONTAINER_KEY,
+			fallbackImageBuffer,
+		);
+	}, [rendererWorker]);
 
 	const renderToPng = useCallback<ImageLayerActionType["renderToPng"]>(
 		async (selectRect: ElementRect, containerId: string | undefined) => {
@@ -1032,6 +1066,7 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 			initBaseImageTexture,
 			transferImageSharedBuffer,
 			renderImageSharedBufferToPng,
+			ensureImageRendered,
 			applyProcessImageConfigToCanvas,
 		}),
 		[
@@ -1063,6 +1098,7 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 			initBaseImageTexture,
 			transferImageSharedBuffer,
 			renderImageSharedBufferToPng,
+			ensureImageRendered,
 			applyProcessImageConfigToCanvas,
 		],
 	);

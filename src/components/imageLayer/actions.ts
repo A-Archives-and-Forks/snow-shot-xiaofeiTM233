@@ -38,6 +38,8 @@ import {
 	renderUpdateHighlightAction,
 	renderUpdateHighlightElementPropsAction,
 	renderUpdateWatermarkSpriteAction,
+	renderEnsureImageRenderedAction,
+	type ContextRestoreRefs,
 	type WatermarkProps,
 } from "./baseLayerRenderActions";
 import {
@@ -51,6 +53,7 @@ import {
 	type BaseLayerRenderCreateNewCanvasContainerData,
 	type BaseLayerRenderDeleteBlurSpriteData,
 	type BaseLayerRenderDisposeData,
+	type BaseLayerRenderEnsureImageRenderedData,
 	type BaseLayerRenderGetImageBitmapData,
 	type BaseLayerRenderInitBaseImageTextureData,
 	type BaseLayerRenderInitData,
@@ -66,13 +69,113 @@ import {
 	type RenderResult,
 } from "./workers/renderWorkerTypes";
 
-export const INIT_CONTAINER_KEY = "init_container";
+// 截图主容器 key：定义移至 baseLayerRenderActions（渲染层内部需要），此处 re-export 保持兼容
+export { INIT_CONTAINER_KEY } from "./baseLayerRenderActions";
+
+/**
+ * 黑屏兜底：让 worker 检查截图容器是否已渲染，空则用主线程持有的 sharedBuffer
+ * 拷贝重新渲染。返回容器 children 数量（> 0 表示渲染正常）。
+ */
+export const ensureImageRenderedAction = async (
+	renderWorker: Worker | undefined,
+	canvasContainerMapRef: RefObject<Map<string, Container>>,
+	currentImageTextureRef: RefObject<Texture | undefined>,
+	sharedBufferImageTextureRef: RefObject<Texture | undefined>,
+	imageSharedBufferRef: RefObject<ImageSharedBufferData | undefined>,
+	baseImageTextureRef: RefObject<Texture | undefined>,
+	blurSpriteMapRef: RefObject<Map<string, BlurSprite>>,
+	containerKey: string,
+	fallbackImageBuffer: ImageSharedBufferData | undefined,
+): Promise<number> => {
+	/**
+	 * 两步查询，避免无条件 transfer 破坏主线程兜底拷贝：
+	 * 1) 先发不带 buffer 的检查请求，拿容器 children 数；
+	 *    （此路径绝不 transfer，保证 capturedSharedBufferRef 数据完好）
+	 * 2) 仅当容器为空（childrenCount === 0）且兜底 buffer 有效时，
+	 *    才发第二次请求（带 buffer transfer）触发重新渲染。
+	 * 附 3 秒超时保护，防止 worker 无响应导致 readyCapture 卡死。
+	 */
+	const queryOnce = (
+		withBuffer: boolean,
+	): Promise<number | undefined> => {
+		return new Promise((resolve) => {
+			if (!renderWorker) {
+				resolve(undefined);
+				return;
+			}
+			const timeout = setTimeout(() => {
+				renderWorker.removeEventListener("message", handleMessage);
+				resolve(undefined);
+			}, 3000);
+
+			const handleMessage = (event: MessageEvent<RenderResult>) => {
+				const { type, payload } = event.data;
+				if (type === BaseLayerRenderMessageType.EnsureImageRendered) {
+					clearTimeout(timeout);
+					renderWorker.removeEventListener("message", handleMessage);
+					resolve(payload.childrenCount);
+				}
+			};
+			renderWorker.addEventListener("message", handleMessage);
+
+			const bufferToSend = withBuffer ? fallbackImageBuffer : undefined;
+			const EnsureImageRenderedData: BaseLayerRenderEnsureImageRenderedData =
+				{
+					type: BaseLayerRenderMessageType.EnsureImageRendered,
+					payload: {
+						containerKey,
+						imageBuffer: bufferToSend,
+					},
+				};
+
+			if (
+				bufferToSend &&
+				bufferToSend.sharedBuffer?.buffer &&
+				bufferToSend.sharedBuffer.buffer.byteLength > 0
+			) {
+				renderWorker.postMessage(EnsureImageRenderedData, {
+					transfer: [bufferToSend.sharedBuffer.buffer],
+				});
+			} else {
+				renderWorker.postMessage(EnsureImageRenderedData);
+			}
+		});
+	};
+
+	if (!renderWorker) {
+		return renderEnsureImageRenderedAction(
+			canvasContainerMapRef,
+			currentImageTextureRef,
+			sharedBufferImageTextureRef,
+			imageSharedBufferRef,
+			baseImageTextureRef,
+			blurSpriteMapRef,
+			containerKey,
+			fallbackImageBuffer,
+		);
+	}
+
+	// 第一步：只查状态，不 transfer 任何数据
+	const initialCount = await queryOnce(false);
+	if (initialCount === undefined) {
+		// 超时/异常，视作容器可能异常，但不消耗兜底数据
+		return 0;
+	}
+	if (initialCount > 0) {
+		return initialCount;
+	}
+
+	// 第二步：容器确认为空，才用兜底 buffer（transfer）重新渲染
+	const fallbackCount = await queryOnce(true);
+	return fallbackCount ?? 0;
+};
 
 export const initCanvasAction = async (
 	renderWorker: Worker | undefined,
 	canvasAppRef: RefObject<Application | undefined>,
 	appOptions: Partial<ApplicationOptions>,
 	transfer: Transferable[] | undefined,
+	contextRestoreRefs?: ContextRestoreRefs,
 ): Promise<OffscreenCanvas | HTMLCanvasElement | undefined> => {
 	return new Promise((resolve) => {
 		if (renderWorker) {
@@ -98,9 +201,11 @@ export const initCanvasAction = async (
 				renderWorker.postMessage(InitData);
 			}
 		} else {
-			renderInitCanvasAction(canvasAppRef, appOptions).then((canvas) => {
-				resolve(canvas);
-			});
+			renderInitCanvasAction(canvasAppRef, appOptions, contextRestoreRefs).then(
+				(canvas) => {
+					resolve(canvas);
+				},
+			);
 		}
 	});
 };
@@ -494,9 +599,7 @@ export const addImageToContainerAction = async (
 				});
 			} else {
 				appInfo(
-					`[addImageToContainerAction] non-sharedBuffer path, imageSrc type: ${typeof imageSrc}, ${
-						imageSrc && "type" in imageSrc ? imageSrc.type : ""
-					}`,
+					`[addImageToContainerAction] non-sharedBuffer path, imageSrc: ${JSON.stringify(imageSrc)?.slice(0, 80)}`,
 				);
 				renderWorker.postMessage(AddImageToContainerData);
 			}

@@ -34,12 +34,15 @@ import {
 	renderUpdateHighlightAction,
 	renderUpdateHighlightElementPropsAction,
 	renderUpdateWatermarkSpriteAction,
+	renderEnsureImageRenderedAction,
+	INIT_CONTAINER_KEY,
 	setForwardLog,
 	type WatermarkProps,
 } from "../baseLayerRenderActions";
 import {
 	type BaseLayerRenderAddImageToContainerData,
 	type BaseLayerRenderApplyProcessImageConfigToCanvasData,
+	type BaseLayerRenderEnsureImageRenderedData,
 	type BaseLayerRenderClearContainerData,
 	type BaseLayerRenderCreateBlurSpriteData,
 	type BaseLayerRenderCreateNewCanvasContainerData,
@@ -116,7 +119,15 @@ const highlightElementMapRef: RefWrap<Map<string, HighlightElement>> = {
 };
 
 const handleInit = async (data: BaseLayerRenderInitData) => {
-	await renderInitCanvasAction(canvasAppRef, data.payload.appOptions);
+	await renderInitCanvasAction(canvasAppRef, data.payload.appOptions, {
+		canvasContainerMapRef,
+		currentImageTextureRef,
+		sharedBufferImageTextureRef,
+		imageSharedBufferRef,
+		baseImageTextureRef,
+		blurSpriteMapRef,
+		containerKey: INIT_CONTAINER_KEY,
+	});
 };
 
 const handleDispose = async () => {
@@ -303,6 +314,22 @@ const handleTransferImageSharedBuffer = () => {
 	return renderTransferImageSharedBufferAction(imageSharedBufferRef);
 };
 
+// 黑屏兜底：INIT 容器为空时用主线程的 sharedBuffer 拷贝重新渲染
+const handleEnsureImageRendered = async (
+	data: BaseLayerRenderEnsureImageRenderedData,
+): Promise<number> => {
+	return renderEnsureImageRenderedAction(
+		canvasContainerMapRef,
+		currentImageTextureRef,
+		sharedBufferImageTextureRef,
+		imageSharedBufferRef,
+		baseImageTextureRef,
+		blurSpriteMapRef,
+		data.payload.containerKey,
+		data.payload.imageBuffer,
+	);
+};
+
 const handleApplyProcessImageConfigToCanvas = (
 	data: BaseLayerRenderApplyProcessImageConfigToCanvasData,
 ) => {
@@ -337,6 +364,14 @@ self.onmessage = async ({ data }: MessageEvent<BaseLayerRenderData>) => {
 			message = {
 				type: BaseLayerRenderMessageType.ForwardLog,
 				payload: undefined,
+			};
+			break;
+		}
+		case BaseLayerRenderMessageType.EnsureImageRendered: {
+			const childrenCount = await handleEnsureImageRendered(data);
+			message = {
+				type: BaseLayerRenderMessageType.EnsureImageRendered,
+				payload: { childrenCount },
 			};
 			break;
 		}

@@ -10,6 +10,10 @@ import type { RefWrap } from "./workers/renderWorkerTypes";
 
 export type RefType<T> = RefWrap<T> | RefObject<T>;
 
+// 截图主容器 key（原定义在 actions.ts，因渲染层内部需要使用而移到这里，
+// actions.ts 从此处 re-export 保持兼容）
+export const INIT_CONTAINER_KEY = "init_container";
+
 /**
  * 渲染层日志：worker 线程的 console 不通过 tauri-log 落盘，黑屏排查时看不到 worker 内部状态。
  * 由 renderWorker 入口设置 forwardLog 为 postMessage 转发，主线程收到后 appInfo/appWarn 落盘；
@@ -65,9 +69,27 @@ export const renderDisposeCanvasAction = (
 // 尺寸，在每次初始化完成后都重新应用
 let lastResizeCanvasSize: { width: number; height: number } | undefined;
 
+// WebGL 上下文丢失监听去重：同一 canvas 只注册一次（重建 PIXI Application 后
+// canvas 复用，重复注册会导致恢复回调堆积）
+const contextLossListenersAttached = new WeakSet<object>();
+// 防并发重建：restore 事件可能连续触发多次
+let contextRestoreRebuilding = false;
+
+/** WebGL 上下文恢复时重建截图纹理所需的引用集合 */
+export type ContextRestoreRefs = {
+	canvasContainerMapRef: RefType<Map<string, PIXI.Container>>;
+	currentImageTextureRef: RefType<PIXI.Texture | undefined>;
+	sharedBufferImageTextureRef: RefType<PIXI.Texture | undefined>;
+	imageSharedBufferRef: RefType<ImageSharedBufferData | undefined>;
+	baseImageTextureRef: RefType<PIXI.Texture | undefined>;
+	blurSpriteMapRef?: RefType<Map<string, BlurSprite>>;
+	containerKey: string;
+};
+
 export const renderInitCanvasAction = async (
 	canvasAppRef: RefType<Application | undefined>,
 	appOptions: Partial<ApplicationOptions>,
+	contextRestoreRefs?: ContextRestoreRefs,
 ): Promise<OffscreenCanvas | HTMLCanvasElement | undefined> => {
 	renderDisposeCanvasAction(canvasAppRef);
 
@@ -101,6 +123,92 @@ export const renderInitCanvasAction = async (
 			lastResizeCanvasSize.height,
 		);
 	}
+
+	// WebGL 上下文丢失（CONTEXT_LOST_WEBGL）是黑屏的直接根因：
+	// 上下文丢失后 PIXI 的纹理/shader 全部失效，画面与导出结果全黑。
+	// 常见诱因：GPU 显存压力、WebGL 上下文数量超限（多窗口实例并存时
+	// 每个窗口的渲染 worker 各持一个上下文）、大画布 resize（实测 5120x2000
+	// 必现）、驱动重置。
+	// 实测 PIXI v8 的 context restore 在部分环境（WebView2 + 特定 GPU/驱动）
+	// 下不完整：纹理可重传但 shader 初始化失败（"Could not initialize shader"），
+	// 渲染结果依旧全黑。因此恢复时必须【完全重建渲染器】：
+	// dispose 旧 PIXI Application → 重新 init（同一 canvas）→ 重新渲染截图
+	// （imageSharedBufferRef 数据仍在 CPU 内存，可在新上下文重建）。
+	const captureCanvas = canvasApp.canvas;
+	// 防重复注册：重建后的 PIXI Application 复用同一个 canvas，
+	// 不做去重会导致事件监听器随重建次数堆积。
+	if (!contextLossListenersAttached.has(captureCanvas)) {
+		contextLossListenersAttached.add(captureCanvas);
+		captureCanvas.addEventListener("webglcontextlost", (event) => {
+			event.preventDefault();
+			renderLog(
+				"error",
+				"[renderInitCanvasAction] WebGL CONTEXT_LOST — screenshot rendering will break until restored",
+			);
+		});
+		captureCanvas.addEventListener("webglcontextrestored", () => {
+			renderLog(
+				"warn",
+				"[renderInitCanvasAction] WebGL context restored, rebuilding renderer (PIXI partial restore is unreliable)",
+			);
+			if (!contextRestoreRefs) {
+				renderLog(
+					"warn",
+					"[renderInitCanvasAction] no contextRestoreRefs provided, cannot rebuild after restore",
+				);
+				return;
+			}
+			if (contextRestoreRebuilding) {
+				renderLog("warn", "[renderInitCanvasAction] context restore rebuild already in progress, skip");
+				return;
+			}
+			contextRestoreRebuilding = true;
+			// 异步完整重建：dispose → init（内部自动重放最近一次画布尺寸）→ 重渲染截图
+			(async () => {
+				try {
+					renderDisposeCanvasAction(canvasAppRef);
+					await renderInitCanvasAction(
+						canvasAppRef,
+						appOptions,
+						contextRestoreRefs,
+					);
+					const cachedBuffer =
+						contextRestoreRefs.imageSharedBufferRef.current;
+					if (cachedBuffer) {
+						await renderAddImageToContainerAction(
+							contextRestoreRefs.canvasContainerMapRef,
+							contextRestoreRefs.currentImageTextureRef,
+							contextRestoreRefs.sharedBufferImageTextureRef,
+							contextRestoreRefs.imageSharedBufferRef,
+							contextRestoreRefs.baseImageTextureRef,
+							contextRestoreRefs.containerKey,
+							cachedBuffer,
+							false,
+							contextRestoreRefs.blurSpriteMapRef,
+						);
+					} else {
+						renderLog(
+							"warn",
+							"[renderInitCanvasAction] no cached screenshot buffer after rebuild",
+						);
+					}
+					canvasAppRef.current?.render();
+					renderLog(
+						"info",
+						"[renderInitCanvasAction] renderer rebuilt after context restore, rendering recovered",
+					);
+				} catch (error) {
+					renderLog(
+						"error",
+						`[renderInitCanvasAction] context restore rebuild failed: ${String(error)}`,
+					);
+				} finally {
+					contextRestoreRebuilding = false;
+				}
+			})();
+		});
+	}
+
 	// 诊断日志：定位"冻结画面被放大"，确认初始化后画布实际尺寸
 	renderLog(
 		"info",
@@ -529,6 +637,58 @@ export const renderAddImageToContainerAction = async (
 			}
 		}
 	}
+};
+
+/**
+ * 黑屏兜底：检查截图容器是否已渲染（有 sprite）。
+ * 实测黑屏时 export 出的图 childrenCount 为 0（截图数据从未进入渲染容器，
+ * 多窗口实例并存/窗口重建后 worker 容器被清空），画面与导出结果全黑。
+ * 容器为空且传入兜底 buffer 有效时，重新执行 addImageToContainer 渲染。
+ * 返回容器 children 数量（> 0 表示渲染正常）。
+ */
+export const renderEnsureImageRenderedAction = async (
+	canvasContainerMapRef: RefType<Map<string, PIXI.Container>>,
+	currentImageTextureRef: RefType<PIXI.Texture | undefined>,
+	sharedBufferImageTextureRef: RefType<PIXI.Texture | undefined>,
+	imageSharedBufferRef: RefType<ImageSharedBufferData | undefined>,
+	baseImageTextureRef: RefType<PIXI.Texture | undefined>,
+	blurSpriteMapRef: RefType<Map<string, BlurSprite>>,
+	containerKey: string,
+	fallbackImageBuffer: ImageSharedBufferData | undefined,
+): Promise<number> => {
+	const container = canvasContainerMapRef.current.get(containerKey);
+	const childrenCount = container?.children.length ?? 0;
+	if (childrenCount > 0) {
+		return childrenCount;
+	}
+
+	renderLog(
+		"warn",
+		`[renderEnsureImageRenderedAction] INIT container is EMPTY (childrenCount: 0), fallback buffer: ${!!fallbackImageBuffer}, re-rendering`,
+	);
+	if (!fallbackImageBuffer) {
+		return 0;
+	}
+
+	await renderAddImageToContainerAction(
+		canvasContainerMapRef,
+		currentImageTextureRef,
+		sharedBufferImageTextureRef,
+		imageSharedBufferRef,
+		baseImageTextureRef,
+		containerKey,
+		fallbackImageBuffer,
+		false,
+		blurSpriteMapRef,
+	);
+
+	const updated = canvasContainerMapRef.current.get(containerKey);
+	const updatedCount = updated?.children.length ?? 0;
+	renderLog(
+		updatedCount > 0 ? "info" : "error",
+		`[renderEnsureImageRenderedAction] re-render done, childrenCount: ${updatedCount}`,
+	);
+	return updatedCount;
 };
 
 export const renderTransferImageSharedBufferAction = (
