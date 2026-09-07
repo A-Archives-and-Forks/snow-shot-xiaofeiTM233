@@ -59,9 +59,11 @@ export const renderDisposeCanvasAction = (
 
 // 渲染初始化与截图并行时的竞态兜底：resizeCanvasAction 可能先于 Init 消息到达，
 // 此时画布应用尚未创建，若直接丢弃，画布会停留在默认尺寸（如 300x150），
-// 截图被画进去后经 CSS 拉伸铺满窗口，表现为冻结画面被放大。这里记录待应用的
-// 尺寸，在初始化完成后补齐
-let pendingResizeCanvasSize: { width: number; height: number } | undefined;
+// 截图被画进去后经 CSS 拉伸铺满窗口，表现为冻结画面被放大。
+// 反过来，Init 会销毁并重建 PIXI Application，此前已经生效的 resize 同样会丢失
+// （画布退回 Application 的默认尺寸 800x600），因此这里记录最近一次请求的画布
+// 尺寸，在每次初始化完成后都重新应用
+let lastResizeCanvasSize: { width: number; height: number } | undefined;
 
 export const renderInitCanvasAction = async (
 	canvasAppRef: RefType<Application | undefined>,
@@ -91,12 +93,13 @@ export const renderInitCanvasAction = async (
 	}
 	canvasAppRef.current = canvasApp;
 	canvasApp.stage.interactiveChildren = false;
-	if (pendingResizeCanvasSize) {
+	// 重建应用后画布会回到默认尺寸，必须重新应用最近一次请求的尺寸，
+	// 否则截图贴图会被 CSS 拉伸，表现为冻结画面被放大
+	if (lastResizeCanvasSize) {
 		canvasApp.renderer.resize(
-			pendingResizeCanvasSize.width,
-			pendingResizeCanvasSize.height,
+			lastResizeCanvasSize.width,
+			lastResizeCanvasSize.height,
 		);
-		pendingResizeCanvasSize = undefined;
 	}
 	// 诊断日志：定位"冻结画面被放大"，确认初始化后画布实际尺寸
 	renderLog(
@@ -132,14 +135,15 @@ export const renderResizeCanvasAction = (
 	width: number,
 	height: number,
 ) => {
+	// 无论当前是否已初始化都记录，供后续 Init 重建应用后补应用
+	lastResizeCanvasSize = { width, height };
+
 	const canvasApp = canvasAppRef.current;
 	if (!canvasApp) {
-		// 画布应用尚未初始化，记录尺寸待初始化完成后补应用
-		pendingResizeCanvasSize = { width, height };
+		// 画布应用尚未初始化，尺寸已在上面记录，待初始化完成后补应用
 		return;
 	}
 
-	pendingResizeCanvasSize = undefined;
 	canvasApp.renderer.resize(width, height);
 	// 诊断日志：定位"冻结画面被放大"，确认 resize 后画布实际尺寸
 	renderLog(
