@@ -237,6 +237,18 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 	disabled,
 }) => {
 	const layerContainerElementRef = useRef<HTMLDivElement>(null);
+	/** 最近一次请求的画布尺寸，Init 重建画布应用后需要重新应用 */
+	const latestCanvasSizeRef = useRef<
+		{ width: number; height: number } | undefined
+	>(undefined);
+	/** 上一次用于初始化画布的渲染配置，用于避免重复初始化 */
+	const lastRenderConfigRef = useRef<
+		{ antialias: boolean; renderBackend: RenderBackend } | undefined
+	>(undefined);
+	/** 因画布上已有内容而推迟的渲染配置，在下一次调整画布尺寸时应用 */
+	const pendingRenderConfigRef = useRef<
+		{ antialias: boolean; renderBackend: RenderBackend } | undefined
+	>(undefined);
 	/** 可能的 OffscreenCanvas，用于在 Web Worker 中渲染 */
 	const offscreenCanvasRef = useRef<OffscreenCanvas | undefined>(undefined);
 	const canvasAppRef = useRef<PIXI.Application | undefined>(undefined);
@@ -337,9 +349,17 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 		},
 		[rendererWorker],
 	);
-	/** 初始化画布 */
-	const initCanvas = useCallback<ImageLayerActionType["initCanvas"]>(
-		async (antialias: boolean, renderBackend: RenderBackend) => {
+	/**
+	 * 初始化/重建画布应用
+	 * @param notifyReady 是否回调 onInitCanvasReady。推迟到截图流程中重建时传 false，
+	 * 避免触发页面状态机的副作用
+	 */
+	const initCanvasCore = useCallback(
+		async (
+			antialias: boolean,
+			renderBackend: RenderBackend,
+			notifyReady: boolean,
+		) => {
 			if (disabled) {
 				return;
 			}
@@ -384,9 +404,43 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 				offscreenCanvasRef.current ? [offscreenCanvasRef.current] : undefined,
 			);
 
-			await onInitCanvasReady?.();
+			// 初始化会销毁并重建画布应用，此前创建的初始容器与已应用的画布尺寸都会
+			// 丢失，画布退回默认尺寸（如 800x600），截图贴图画进去后经 CSS 拉伸会表现为
+			// 冻结画面被放大。这里重建初始容器并重新应用最近一次请求的尺寸
+			const latestCanvasSize = latestCanvasSizeRef.current;
+			if (latestCanvasSize) {
+				await createNewCanvasContainer(INIT_CONTAINER_KEY);
+				await resizeCanvasAction(
+					rendererWorker,
+					canvasAppRef,
+					latestCanvasSize.width,
+					latestCanvasSize.height,
+				);
+			}
+
+			// 仅在重建成功后记录已应用的配置，避免在 hasInitRendererWorker 尚未就绪
+			// 等提前返回的情况下被误判为已应用，导致后续不再补初始化
+			lastRenderConfigRef.current = { antialias, renderBackend };
+
+			if (notifyReady) {
+				await onInitCanvasReady?.();
+			}
 		},
-		[rendererWorker, onInitCanvasReady, disabled, hasInitRendererWorker],
+		[
+			rendererWorker,
+			onInitCanvasReady,
+			disabled,
+			hasInitRendererWorker,
+			createNewCanvasContainer,
+		],
+	);
+
+	/** 初始化画布 */
+	const initCanvas = useCallback<ImageLayerActionType["initCanvas"]>(
+		async (antialias: boolean, renderBackend: RenderBackend) => {
+			await initCanvasCore(antialias, renderBackend, true);
+		},
+		[initCanvasCore],
 	);
 
 	const [renderSettings, setRenderSettings] = useState<
@@ -404,8 +458,27 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 			return;
 		}
 
-		initCanvas(renderSettings.antialias, renderSettings.renderBackend);
-	}, [initCanvas, renderSettings]);
+		const { antialias, renderBackend } = renderSettings;
+		const lastRenderConfig = lastRenderConfigRef.current;
+		// 渲染配置没有实际变化时跳过重建：重建画布应用会与截图流程产生竞态，
+		// 可能导致画布尺寸被重置，表现为冻结画面被放大
+		if (
+			lastRenderConfig &&
+			lastRenderConfig.antialias === antialias &&
+			lastRenderConfig.renderBackend === renderBackend
+		) {
+			return;
+		}
+		// 画布上已经存在内容时立即重建会丢失当前画面（重建后画布退回默认尺寸，
+		// 表现为冻结画面被放大或空白），推迟到下一次调整画布尺寸
+		// （即新一次截图开始）时再重建
+		if (latestCanvasSizeRef.current) {
+			pendingRenderConfigRef.current = { antialias, renderBackend };
+			return;
+		}
+
+		initCanvasCore(antialias, renderBackend, true);
+	}, [initCanvasCore, renderSettings]);
 
 	/** 调整画布大小 */
 	const resizeCanvas = useCallback(
@@ -414,10 +487,22 @@ export const ImageLayer: React.FC<ImageLayerProps> = ({
 			appInfo(
 				`[DIAG] resizeCanvas: ${width}x${height}, devicePixelRatio: ${window.devicePixelRatio}, innerSize: ${window.innerWidth}x${window.innerHeight}`,
 			);
+			// 上一次因画布上存在内容而推迟的重建，在下一次调整画布尺寸前应用
+			const pendingRenderConfig = pendingRenderConfigRef.current;
+			if (pendingRenderConfig) {
+				pendingRenderConfigRef.current = undefined;
+				await initCanvasCore(
+					pendingRenderConfig.antialias,
+					pendingRenderConfig.renderBackend,
+					false,
+				);
+			}
+
+			latestCanvasSizeRef.current = { width, height };
 			await createNewCanvasContainer(INIT_CONTAINER_KEY);
 			await resizeCanvasAction(rendererWorker, canvasAppRef, width, height);
 		},
-		[createNewCanvasContainer, rendererWorker],
+		[createNewCanvasContainer, initCanvasCore, rendererWorker],
 	);
 
 	const clearCanvas = useCallback<
