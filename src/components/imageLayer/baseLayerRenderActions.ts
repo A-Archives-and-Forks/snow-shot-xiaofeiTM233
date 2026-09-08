@@ -10,6 +10,10 @@ import type { RefWrap } from "./workers/renderWorkerTypes";
 
 export type RefType<T> = RefWrap<T> | RefObject<T>;
 
+// 截图主容器 key（原定义在 actions.ts，因渲染层内部需要使用而移到这里，
+// actions.ts 从此处 re-export 保持兼容）
+export const INIT_CONTAINER_KEY = "init_container";
+
 /**
  * 渲染层日志：worker 线程的 console 不通过 tauri-log 落盘，黑屏排查时看不到 worker 内部状态。
  * 由 renderWorker 入口设置 forwardLog 为 postMessage 转发，主线程收到后 appInfo/appWarn 落盘；
@@ -101,6 +105,69 @@ export const renderInitCanvasAction = async (
 			lastResizeCanvasSize.height,
 		);
 	}
+
+	// WebGL 上下文丢失（CONTEXT_LOST_WEBGL）是黑屏的直接根因：
+	// 上下文丢失后 PIXI 的纹理/shader 全部失效，画面与导出结果全黑。
+	// 常见诱因：GPU 显存压力、WebGL 上下文数量超限（多窗口实例并存时
+	// 每个窗口的渲染 worker 各持一个上下文）、驱动重置。
+	// 这里监听丢失/恢复事件：preventDefault 允许后续恢复，恢复后重新上传
+	// 截图纹理（imageSharedBufferRef 数据仍在 CPU 内存，可在新上下文重建）。
+	const captureCanvas = canvasApp.canvas;
+	captureCanvas.addEventListener("webglcontextlost", (event) => {
+		event.preventDefault();
+		renderLog(
+			"error",
+			"[renderInitCanvasAction] WebGL CONTEXT_LOST — screenshot rendering will break until restored",
+		);
+	});
+	captureCanvas.addEventListener("webglcontextrestored", () => {
+		renderLog(
+			"warn",
+			"[renderInitCanvasAction] WebGL context restored, re-uploading screenshot texture",
+		);
+		try {
+			// PIXI v8 在 context restored 后会重建 GL 资源，但已上传的纹理需要
+			// 重新添加才会重新上传。用 worker 内保留的原始截图数据重新渲染。
+			const cachedBuffer = imageSharedBufferRef.current;
+			if (cachedBuffer) {
+				renderAddImageToContainerAction(
+					canvasContainerMapRef,
+					currentImageTextureRef,
+					sharedBufferImageTextureRef,
+					imageSharedBufferRef,
+					baseImageTextureRef,
+					INIT_CONTAINER_KEY,
+					cachedBuffer,
+					false,
+					blurSpriteMapRef,
+				)
+					.then(() => {
+						canvasApp.render();
+						renderLog(
+							"info",
+							"[renderInitCanvasAction] screenshot texture re-uploaded after context restore",
+						);
+					})
+					.catch((error) => {
+						renderLog(
+							"error",
+							`[renderInitCanvasAction] failed to re-upload texture after restore: ${String(error)}`,
+						);
+					});
+			} else {
+				renderLog(
+					"warn",
+					"[renderInitCanvasAction] no cached screenshot buffer, cannot re-upload after context restore",
+				);
+			}
+		} catch (error) {
+			renderLog(
+				"error",
+				`[renderInitCanvasAction] context restore handler error: ${String(error)}`,
+			);
+		}
+	});
+
 	// 诊断日志：定位"冻结画面被放大"，确认初始化后画布实际尺寸
 	renderLog(
 		"info",

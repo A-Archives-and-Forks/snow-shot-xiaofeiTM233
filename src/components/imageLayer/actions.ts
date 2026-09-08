@@ -38,6 +38,7 @@ import {
 	renderUpdateHighlightAction,
 	renderUpdateHighlightElementPropsAction,
 	renderUpdateWatermarkSpriteAction,
+	renderEnsureImageRenderedAction,
 	type WatermarkProps,
 } from "./baseLayerRenderActions";
 import {
@@ -51,6 +52,7 @@ import {
 	type BaseLayerRenderCreateNewCanvasContainerData,
 	type BaseLayerRenderDeleteBlurSpriteData,
 	type BaseLayerRenderDisposeData,
+	type BaseLayerRenderEnsureImageRenderedData,
 	type BaseLayerRenderGetImageBitmapData,
 	type BaseLayerRenderInitBaseImageTextureData,
 	type BaseLayerRenderInitData,
@@ -66,7 +68,8 @@ import {
 	type RenderResult,
 } from "./workers/renderWorkerTypes";
 
-export const INIT_CONTAINER_KEY = "init_container";
+// 截图主容器 key：定义移至 baseLayerRenderActions（渲染层内部需要），此处 re-export 保持兼容
+export { INIT_CONTAINER_KEY } from "./baseLayerRenderActions";
 
 /**
  * 黑屏兜底：让 worker 检查截图容器是否已渲染，空则用主线程持有的 sharedBuffer
@@ -554,9 +557,7 @@ export const addImageToContainerAction = async (
 				});
 			} else {
 				appInfo(
-					`[addImageToContainerAction] non-sharedBuffer path, imageSrc type: ${typeof imageSrc}, ${
-						imageSrc && "type" in imageSrc ? imageSrc.type : ""
-					}`,
+					`[addImageToContainerAction] non-sharedBuffer path, imageSrc: ${JSON.stringify(imageSrc)?.slice(0, 80)}`,
 				);
 				renderWorker.postMessage(AddImageToContainerData);
 			}
