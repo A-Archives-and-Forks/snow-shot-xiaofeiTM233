@@ -78,6 +78,20 @@ function formatExtraInfo(extra: unknown): string {
 	if (typeof extra === "object") {
 		try {
 			const obj = extra as Record<string, unknown>;
+
+			// Error 对象的 message/stack 位于原型链上，不是自有可枚举属性，
+			// 直接 Object.entries 会得到空数组导致错误详情被吞掉。
+			// 这里先通过 formatErrorDetails 提取 Error 的关键信息
+			if (extra instanceof Error || "stack" in obj || "message" in obj) {
+				const { message, details } = formatErrorDetails(extra);
+				const errorParts: string[] = [`message: ${message}`];
+				if (typeof details.stack === "string") {
+					// 堆栈信息压缩成单行，避免日志被拆成多行
+					errorParts.push(`stack: ${details.stack.replace(/\s*\n\s*/g, " ")}`);
+				}
+				return ` ${errorParts.join(", ")}`;
+			}
+
 			const parts: string[] = [];
 
 			for (const [key, value] of Object.entries(obj)) {
