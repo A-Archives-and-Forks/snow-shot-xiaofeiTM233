@@ -750,7 +750,11 @@ const DrawPageCore: React.FC<{
 			const layerOnExecuteScreenshotPromise = Promise.all([
 				imageLayerActionRef.current?.onExecuteScreenshot(),
 				selectLayerActionRef.current?.onExecuteScreenshot(),
-			]);
+			]).catch((error) => {
+				// 选区层/图像层初始化失败（如 macOS 上窗口元素枚举异常）不阻断
+				// 截图流程，仅丢失窗口自动选择等辅助功能
+				appError("[DrawPageCore] layer onExecuteScreenshot failed", error);
+			});
 			setCaptureEvent({
 				event: CaptureEvent.onExecuteScreenshot,
 			});
@@ -801,6 +805,59 @@ const DrawPageCore: React.FC<{
 				return;
 			}
 
+			// 录屏类型不需要渲染截图画面，直接触发截图就绪事件链：
+			// - onCaptureReady 置位 drawToolbar 的 canHandleScreenshotTypeRef，
+			//   使选区完成后自动进入录屏流程（创建录屏窗口）
+			// - onCaptureLoad 是 selectLayer tryEnableToolbar 启用工具栏的前置条件
+			// 不走 readyCapture：其内部的截图画面渲染（worker 画布初始化等）在无图
+			// 像数据的录屏场景下既无必要，也可能因平台差异（如 macOS WKWebView）
+			// 失败或挂起，导致事件链中断、工具栏无法弹出
+			if (excuteScreenshotType === ScreenshotType.VideoRecord) {
+				setCaptureLoading(false);
+
+				try {
+					await layerOnExecuteScreenshotPromise;
+					appInfo("[DIAG] excuteScreenshot: VideoRecord layer init done");
+				} catch (error) {
+					// 选区层初始化失败不阻断录屏流程，仅丢失窗口自动选择辅助功能
+					appError(
+						"[DIAG] excuteScreenshot: VideoRecord layer init failed",
+						error,
+					);
+				}
+
+				const captureBoundingBoxInfo = captureBoundingBoxInfoRef.current;
+				if (captureBoundingBoxInfo) {
+					mousePositionRef.current = new MousePosition(
+						Math.floor(
+							captureBoundingBoxInfo.mousePosition.mouseX /
+								window.devicePixelRatio,
+						),
+						Math.floor(
+							captureBoundingBoxInfo.mousePosition.mouseY /
+								window.devicePixelRatio,
+						),
+					);
+
+					setCaptureEvent({
+						event: CaptureEvent.onCaptureReady,
+						params: [undefined, undefined],
+					});
+					setCaptureEvent({
+						event: CaptureEvent.onCaptureLoad,
+						params: [undefined, undefined, captureBoundingBoxInfo],
+					});
+					appInfo("[DIAG] excuteScreenshot: VideoRecord ready");
+				} else {
+					appWarn(
+						"[DrawPageCore] VideoRecord captureBoundingBoxInfo is not ready",
+					);
+					finishCapture();
+					return;
+				}
+				return;
+			}
+
 			try {
 				appInfo("[DIAG] excuteScreenshot: entering readyCapture");
 				// 因为窗口是空的，所以窗口显示和图片显示先后顺序倒无所谓
@@ -842,6 +899,7 @@ const DrawPageCore: React.FC<{
 			finishCapture,
 			readyCapture,
 			setCaptureStateAction,
+			setCaptureLoading,
 			resetCaptureStep,
 			resetDrawState,
 			resetScreenshotType,
@@ -907,7 +965,9 @@ const DrawPageCore: React.FC<{
 			}
 
 			// 持久化上一次选定的区域到独立文件，避免被 Cache 组全量回写/重置清空
-			await savePrevSelectRect(selectRect);
+			if (selectRect) {
+				await savePrevSelectRect(selectRect);
+			}
 
 			if (
 				!getAppSettings()[AppSettingsGroup.SystemScreenshot]

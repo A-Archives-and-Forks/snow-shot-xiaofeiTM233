@@ -390,51 +390,56 @@ const SelectLayerCore: React.FC<SelectLayerProps> = ({ actionRef }) => {
 	const initSelectWindowElement = useCallback(async () => {
 		selectWindowElementLoadingRef.current = true;
 
-		const windowElementsPromise =
-			getScreenshotType()?.type === ScreenshotType.SwitchCaptureHistory
-				? Promise.resolve([])
-				: getWindowElements(windowAutoSelectBlacklistRef.current);
+		try {
+			const windowElementsPromise =
+				getScreenshotType()?.type === ScreenshotType.SwitchCaptureHistory
+					? Promise.resolve([])
+					: getWindowElements(windowAutoSelectBlacklistRef.current);
 
-		const rectList: ElementRect[] = [];
-		const initUiElementsCachePromise = initUiElementsCache(
-			windowAutoSelectBlacklistRef.current,
-		);
-		const map = new Map<number, number>();
+			const rectList: ElementRect[] = [];
+			const initUiElementsCachePromise = initUiElementsCache(
+				windowAutoSelectBlacklistRef.current,
+			);
+			const map = new Map<number, number>();
 
-		const windowElements = await windowElementsPromise;
+			const windowElements = await windowElementsPromise;
 
-		if (getPlatform() === "macos") {
-			windowElements.push({
-				window_id: 0,
-				element_rect: {
-					min_x: -Number.MAX_SAFE_INTEGER,
-					min_y: -Number.MAX_SAFE_INTEGER,
-					max_x: Number.MAX_SAFE_INTEGER,
-					max_y: Number.MAX_SAFE_INTEGER,
-				},
-			});
+			if (getPlatform() === "macos") {
+				windowElements.push({
+					window_id: 0,
+					element_rect: {
+						min_x: -Number.MAX_SAFE_INTEGER,
+						min_y: -Number.MAX_SAFE_INTEGER,
+						max_x: Number.MAX_SAFE_INTEGER,
+						max_y: Number.MAX_SAFE_INTEGER,
+					},
+				});
+			}
+
+			let rTree: Flatbush | undefined;
+			if (windowElements.length > 0) {
+				rTree = new Flatbush(windowElements.length);
+				windowElements.forEach((windowElement, index) => {
+					const rect = windowElement.element_rect;
+					rectList.push(rect);
+
+					// biome-ignore lint/style/noNonNullAssertion: rTree 已被定义，显然不为空
+					rTree!.add(rect.min_x, rect.min_y, rect.max_x, rect.max_y);
+					map.set(index, windowElement.window_id);
+				});
+				rTree.finish();
+			}
+			elementsListRTreeRef.current = rTree;
+			elementsListRef.current = rectList;
+			selectedWindowIdRef.current = undefined;
+			elementsIndexWindowIdMapRef.current = map;
+
+			await initUiElementsCachePromise;
+		} finally {
+			// 即使初始化失败也要复位加载标记，否则窗口自动选择功能永久失效，
+			// 且上层（page.tsx）会将该失败降级为非致命错误继续截图流程
+			selectWindowElementLoadingRef.current = false;
 		}
-
-		let rTree: Flatbush | undefined;
-		if (windowElements.length > 0) {
-			rTree = new Flatbush(windowElements.length);
-			windowElements.forEach((windowElement, index) => {
-				const rect = windowElement.element_rect;
-				rectList.push(rect);
-
-				// biome-ignore lint/style/noNonNullAssertion: rTree 已被定义，显然不为空
-				rTree!.add(rect.min_x, rect.min_y, rect.max_x, rect.max_y);
-				map.set(index, windowElement.window_id);
-			});
-			rTree.finish();
-		}
-		elementsListRTreeRef.current = rTree;
-		elementsListRef.current = rectList;
-		selectedWindowIdRef.current = undefined;
-		elementsIndexWindowIdMapRef.current = map;
-
-		await initUiElementsCachePromise;
-		selectWindowElementLoadingRef.current = false;
 	}, [getScreenshotType]);
 
 	/**
