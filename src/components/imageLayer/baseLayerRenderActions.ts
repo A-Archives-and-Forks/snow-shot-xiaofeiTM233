@@ -93,22 +93,49 @@ export const renderInitCanvasAction = async (
 ): Promise<OffscreenCanvas | HTMLCanvasElement | undefined> => {
 	renderDisposeCanvasAction(canvasAppRef);
 
-	const canvasApp = new PIXI.Application();
+	let canvasApp = new PIXI.Application();
 	try {
-		await canvasApp.init({
-			...appOptions,
-		});
-	} catch (error) {
-		// WebGPU 初始化失败（WebView/Worker 环境不支持等），自动回退到 WebGL
 		if (appOptions.preference === "webgpu") {
-			console.warn(
-				"[renderInitCanvasAction] WebGPU init failed, fallback to WebGL",
-				error,
+			// WebGPU init 在 WebView2 的 worker/OffscreenCanvas 环境可能永久挂起
+			// （requestAdapter 无响应）：表现为零日志、画布不存在、主线程等待
+			// Init result 永久挂起、截图全黑。加超时兜底：超时视为 init 失败
+			await Promise.race([
+				canvasApp.init({ ...appOptions }),
+				new Promise<never>((_, reject) =>
+					setTimeout(
+						() => reject(new Error("WebGPU init timeout (15s)")),
+						15_000,
+					),
+				),
+			]);
+		} else {
+			await canvasApp.init({ ...appOptions });
+		}
+	} catch (error) {
+		// WebGPU 初始化失败/超时（WebView/Worker 环境不支持等），自动回退到 WebGL。
+		// 必须用 renderLog 落盘：worker 的 console 不进日志文件，
+		// 用 console.warn 会导致"设置的是 WebGPU 实际跑的是 WebGL"完全不可见
+		if (appOptions.preference === "webgpu") {
+			renderLog(
+				"warn",
+				`[renderInitCanvasAction] WebGPU init failed or timed out, fallback to WebGL: ${String(error)}`,
 			);
+			// 丢弃挂起/失败的 WebGPU Application：超时后原 init 若最终 resolve
+			// 会与新 Application 产生状态混乱，必须整体替换
+			try {
+				canvasApp.destroy(true, true);
+			} catch {
+				// init 未完成时 destroy 可能抛错，忽略
+			}
+			canvasApp = new PIXI.Application();
 			await canvasApp.init({
 				...appOptions,
 				preference: "webgl",
 			});
+			renderLog(
+				"warn",
+				`[renderInitCanvasAction] WebGL fallback init done (WebGPU mode is NOT active), rendererType: ${String(canvasApp.renderer.type)}`,
+			);
 		} else {
 			throw error;
 		}
@@ -163,15 +190,21 @@ export const renderInitCanvasAction = async (
 				return;
 			}
 			contextRestoreRebuilding = true;
-			// 异步完整重建：dispose → init（内部自动重放最近一次画布尺寸）→ 重渲染截图
+			// 异步完整重建：dispose → init（内部自动重放最近一次画布尺寸）→ 重渲染截图。
+			// 分步日志：实测（2026-09-09 日志）restore 后 rebuild warn 出现但后续
+			// init/成功/失败日志全部缺失，说明流程在 dispose→init 之间卡住或中断，
+			// 需要逐步落盘定位
 			(async () => {
 				try {
+					renderLog("info", "[rebuild] step 1/5: disposing old renderer");
 					renderDisposeCanvasAction(canvasAppRef);
+					renderLog("info", "[rebuild] step 2/5: re-initializing renderer");
 					await renderInitCanvasAction(
 						canvasAppRef,
 						appOptions,
 						contextRestoreRefs,
 					);
+					renderLog("info", "[rebuild] step 3/5: renderer re-initialized");
 					const cachedBuffer =
 						contextRestoreRefs.imageSharedBufferRef.current;
 					if (cachedBuffer) {
@@ -186,16 +219,20 @@ export const renderInitCanvasAction = async (
 							false,
 							contextRestoreRefs.blurSpriteMapRef,
 						);
+						renderLog(
+							"info",
+							"[rebuild] step 4/5: screenshot re-rendered from cached buffer",
+						);
 					} else {
 						renderLog(
 							"warn",
-							"[renderInitCanvasAction] no cached screenshot buffer after rebuild",
+							"[rebuild] step 4/5 skipped: no cached screenshot buffer after rebuild",
 						);
 					}
 					canvasAppRef.current?.render();
 					renderLog(
 						"info",
-						"[renderInitCanvasAction] renderer rebuilt after context restore, rendering recovered",
+						"[rebuild] step 5/5: renderer rebuilt after context restore, rendering recovered",
 					);
 				} catch (error) {
 					renderLog(
@@ -209,10 +246,14 @@ export const renderInitCanvasAction = async (
 		});
 	}
 
-	// 诊断日志：定位"冻结画面被放大"，确认初始化后画布实际尺寸
+	// 诊断日志：定位"冻结画面被放大"，确认初始化后画布实际尺寸；
+	// 同时输出实际使用的渲染后端（WebGPU 模式可能在 init 失败时静默回退 WebGL，
+	// 或 WebGPU 渲染器初始化"成功"但渲染异常——黑屏排查需要确知实际后端）
 	renderLog(
 		"info",
-		`[renderInitCanvasAction] init, renderer: ${canvasApp.renderer.width}x${canvasApp.renderer.height}, canvas: ${canvasApp.canvas.width}x${canvasApp.canvas.height}`,
+		`[renderInitCanvasAction] init, rendererType: ${String(
+			canvasApp.renderer.type,
+		)}, renderer: ${canvasApp.renderer.width}x${canvasApp.renderer.height}, canvas: ${canvasApp.canvas.width}x${canvasApp.canvas.height}`,
 	);
 	return canvasApp.canvas;
 };
@@ -320,7 +361,7 @@ export const renderGetImageBitmapAction = async (
 		`[renderGetImageBitmapAction] export, imageContainer: ${!!imageContainer}, childrenCount: ${
 			imageContainer?.children.length ?? -1
 		}, hasTexture: ${
-			!!(imageContainer?.children[0] && imageContainer.children[0].texture)
+			!!(imageContainer?.children[0] as PIXI.Sprite | undefined)?.texture
 		}`,
 	);
 
@@ -338,6 +379,57 @@ export const renderGetImageBitmapAction = async (
 
 	if (imageContainer?.children[0] && hasChangeAlpha) {
 		imageContainer.children[0].alpha = 0;
+	}
+
+	// result 黑屏检测：对导出结果缩放采样统计亮度分布。
+	// 用户反馈的黑屏是「最终 result 图黑」，而此前所有黑屏检测都在后端采集侧——
+	// 两者是不同环节。这里把 result 图纳入日志观测：WebGPU/WebGL 渲染异常
+	// （如 PIXI WebGPU 渲染器兼容性问题、上下文恢复失败）都会在这里显形。
+	try {
+		const SAMPLE = 64;
+		const sampleCanvas = new OffscreenCanvas(SAMPLE, SAMPLE);
+		const sampleCtx = sampleCanvas.getContext("2d");
+		if (sampleCtx) {
+			sampleCtx.drawImage(
+				canvas as OffscreenCanvas,
+				0,
+				0,
+				SAMPLE,
+				SAMPLE,
+			);
+			const { data } = sampleCtx.getImageData(0, 0, SAMPLE, SAMPLE);
+			let black = 0;
+			let dark = 0;
+			let transparent = 0;
+			const total = data.length / 4;
+			for (let i = 0; i < data.length; i += 4) {
+				if (data[i + 3] < 10) {
+					transparent++;
+					continue;
+				}
+				const max = Math.max(data[i], data[i + 1], data[i + 2]);
+				if (max < 10) {
+					black++;
+				} else if (max < 40) {
+					dark++;
+				}
+			}
+			const blackRatio = black / total;
+			const isBlack = blackRatio > 0.99;
+			renderLog(
+				isBlack ? "error" : "info",
+				`[renderGetImageBitmapAction] result sampled: blackRatio=${blackRatio.toFixed(3)}, darkRatio=${(
+					dark / total
+				).toFixed(3)}, transparentRatio=${(transparent / total).toFixed(3)}${
+					isBlack ? " — RESULT IMAGE IS BLACK" : ""
+				}`,
+			);
+		}
+	} catch (error) {
+		renderLog(
+			"warn",
+			`[renderGetImageBitmapAction] result sampling failed: ${String(error)}`,
+		);
 	}
 
 	const result = await self.createImageBitmap(canvas as OffscreenCanvas);
@@ -629,7 +721,7 @@ export const renderAddImageToContainerAction = async (
 	// 若不随主纹理一起更新，会持有已被替换掉的旧纹理引用（WebGPU 下其 GPU
 	// 资源会被回收），导致滤镜渲染时读取到 null 资源而报错
 	// （Cannot read properties of null (reading '0')）。
-	if (oldTexture && blurSpriteMapRef?.current) {
+	if (texture && oldTexture && blurSpriteMapRef?.current) {
 		for (const blurSprite of blurSpriteMapRef.current.values()) {
 			// 仅同步直接引用主纹理（非自定义高亮纹理）的精灵
 			if (!blurSprite.customTexture && blurSprite.sprite.texture === oldTexture) {

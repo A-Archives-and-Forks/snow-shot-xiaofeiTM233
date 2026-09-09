@@ -179,14 +179,35 @@ export const initCanvasAction = async (
 ): Promise<OffscreenCanvas | HTMLCanvasElement | undefined> => {
 	return new Promise((resolve) => {
 		if (renderWorker) {
+			let settled = false;
 			const handleMessage = (event: MessageEvent<RenderResult>) => {
+				if (settled) {
+					return;
+				}
 				const { type, payload } = event.data;
 				if (type === BaseLayerRenderMessageType.Init) {
+					settled = true;
+					clearTimeout(timeoutId);
 					resolve(payload);
 					renderWorker.removeEventListener("message", handleMessage);
 				}
 			};
 			renderWorker.addEventListener("message", handleMessage);
+
+			// 超时兜底：worker init 挂起/异常未回传 result 时（实测 WebGPU init
+			// 在 worker 环境挂起发生过），防止主线程初始化流程永久卡死。
+			// worker 侧 WebGPU init 超时 15s 后回退 WebGL，这里留 30s 余量
+			const timeoutId = setTimeout(() => {
+				if (settled) {
+					return;
+				}
+				settled = true;
+				appWarn(
+					"[initCanvasAction] renderer worker init timeout (30s), giving up waiting for Init result",
+				);
+				resolve(undefined);
+				renderWorker.removeEventListener("message", handleMessage);
+			}, 30_000);
 
 			const InitData: BaseLayerRenderInitData = {
 				type: BaseLayerRenderMessageType.Init,

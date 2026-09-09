@@ -36,6 +36,7 @@ import {
 	renderUpdateWatermarkSpriteAction,
 	renderEnsureImageRenderedAction,
 	INIT_CONTAINER_KEY,
+	renderLog,
 	setForwardLog,
 	type WatermarkProps,
 } from "../baseLayerRenderActions";
@@ -355,7 +356,13 @@ setForwardLog((level, message) => {
 	});
 });
 
-self.onmessage = async ({ data }: MessageEvent<BaseLayerRenderData>) => {
+// 消息派发独立成函数：外层 onmessage 统一捕获异常。任何 handler 抛异常都必须
+// 捕获并回传空结果——主线程的 initCanvasAction 等以「收到对应 type 的消息」为
+// resolve 条件且无超时，worker 异常时不回传会导致主线程永久挂起
+// （实测：WebGPU init 抛异常时整个截图功能失效且无任何日志）
+const dispatchRenderMessage = async ({
+	data,
+}: MessageEvent<BaseLayerRenderData>): Promise<void> => {
 	let message: RenderResult;
 
 	switch (data.type) {
@@ -552,4 +559,20 @@ self.onmessage = async ({ data }: MessageEvent<BaseLayerRenderData>) => {
 	}
 
 	self.postMessage(message);
+};
+
+self.onmessage = async (event: MessageEvent<BaseLayerRenderData>) => {
+	try {
+		await dispatchRenderMessage(event);
+	} catch (error) {
+		renderLog(
+			"error",
+			`[renderWorker] handle ${event.data.type} failed: ${String(error)}`,
+		);
+		// 回传空结果：让主线程的等待 resolve，避免永久挂起
+		self.postMessage({
+			type: event.data.type,
+			payload: undefined,
+		} as unknown as RenderResult);
+	}
 };
